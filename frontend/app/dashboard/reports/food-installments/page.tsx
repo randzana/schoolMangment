@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { DataTable, Column } from '@/components/tables/DataTable';
 import { formatCurrency, formatDate, GRADE_OPTIONS, GRADE_MAP } from '@/lib/utils';
-import { HiOutlineArrowDownTray, HiOutlinePrinter } from 'react-icons/hi2';
+import { HiOutlineArrowDownTray } from 'react-icons/hi2';
 
 export default function FoodInstallmentsReportPage() {
   const [from, setFrom] = useState('');
@@ -29,8 +29,7 @@ export default function FoodInstallmentsReportPage() {
   const summary = reportResponse?.summary || { count: 0, total_amount: 0 };
 
   const handleExportCsv = () => {
-    // Generate CSV client-side since we have data loaded
-    const headers = 'Invoice No,Date,Student Name,Grade,Amount Paid,Remaining After,Returned\n';
+    const headers = 'ژمارەی پسوولە,بەروار,ناوی قوتابی,پۆل,بڕی دراو,ماوەی قەرز,گەڕاوەتەوە\n';
     const rows = records
       .map((r: any) =>
         [
@@ -40,7 +39,7 @@ export default function FoodInstallmentsReportPage() {
           GRADE_MAP[r.student?.grade] || r.student?.grade,
           r.amount_paid,
           r.remain_after,
-          r.is_returned ? 'Yes' : 'No',
+          r.is_returned ? 'بەڵێ' : 'نەخێر',
         ].join(',')
       )
       .join('\n');
@@ -54,17 +53,17 @@ export default function FoodInstallmentsReportPage() {
   };
 
   const columns: Column<any>[] = [
-    { header: 'Invoice No', accessor: (row) => `#${row.invoice_no}` },
-    { header: 'Date', accessor: (row) => formatDate(row.payment_date) },
-    { header: 'Student Name', accessor: (row) => row.student?.full_name },
-    { header: 'Grade', accessor: (row) => GRADE_MAP[row.student?.grade] || row.student?.grade },
-    { header: 'Amount Paid', accessor: (row) => formatCurrency(row.amount_paid), className: 'text-primary font-bold' },
-    { header: 'Remaining After', accessor: (row) => formatCurrency(row.remain_after) },
+    { header: 'ژمارەی پسوولە', accessor: (row) => `#${row.invoice_no}` },
+    { header: 'بەروار', accessor: (row) => formatDate(row.payment_date) },
+    { header: 'ناوی قوتابی', accessor: (row) => row.student?.full_name },
+    { header: 'پۆل', accessor: (row) => GRADE_MAP[row.student?.grade] || row.student?.grade },
+    { header: 'بڕی دراو', accessor: (row) => formatCurrency(row.amount_paid), className: 'text-primary font-bold' },
+    { header: 'ماوەی قەرز', accessor: (row) => formatCurrency(row.remain_after) },
     {
-      header: 'Returned',
+      header: 'بارودۆخ',
       accessor: (row) => (
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${row.is_returned ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'}`}>
-          {row.is_returned ? 'Yes' : 'No'}
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${row.is_returned ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'}`}>
+          {row.is_returned ? 'گەڕاوەتەوە' : 'چالاک'}
         </span>
       ),
     },
@@ -75,24 +74,24 @@ export default function FoodInstallmentsReportPage() {
       {/* Filters */}
       <div className="grid gap-4 sm:grid-cols-3 items-end bg-surface-muted p-4 border rounded-xl">
         <Input
-          label="From Date"
+          label="لە بەرواری"
           id="from_date"
           type="date"
           value={from}
           onChange={(e) => setFrom(e.target.value)}
         />
         <Input
-          label="To Date"
+          label="بۆ بەرواری"
           id="to_date"
           type="date"
           value={to}
           onChange={(e) => setTo(e.target.value)}
         />
         <Select
-          label="Filter by Grade"
+          label="فلتەر بەپێی پۆل"
           id="grade_filter"
           options={GRADE_OPTIONS}
-          placeholder="All Grades"
+          placeholder="هەموو پۆلەکان"
           value={grade}
           onChange={(e) => setGrade(e.target.value)}
         />
@@ -101,11 +100,11 @@ export default function FoodInstallmentsReportPage() {
       {/* Summary Aggregates */}
       <div className="grid gap-4 sm:grid-cols-2 max-w-md">
         <div className="bg-surface-muted p-4 border rounded-xl">
-          <span className="text-[10px] text-text-muted font-bold uppercase">Total Transactions</span>
+          <span className="text-[10px] text-text-muted font-bold">کۆی مامەڵەکان</span>
           <p className="text-base font-bold text-text mt-0.5">{summary.count}</p>
         </div>
         <div className="bg-surface-muted p-4 border rounded-xl">
-          <span className="text-[10px] text-text-muted font-bold uppercase">Total Revenue Collected</span>
+          <span className="text-[10px] text-text-muted font-bold">کۆی داهاتی کۆکراوە</span>
           <p className="text-base font-bold text-success mt-0.5">{formatCurrency(summary.total_amount)}</p>
         </div>
       </div>
@@ -114,7 +113,7 @@ export default function FoodInstallmentsReportPage() {
       <div className="flex justify-end">
         <Button variant="secondary" onClick={handleExportCsv} className="flex items-center gap-1.5">
           <HiOutlineArrowDownTray className="w-4 h-4" />
-          <span>Export CSV</span>
+          <span>ناردنەوەی CSV</span>
         </Button>
       </div>
 

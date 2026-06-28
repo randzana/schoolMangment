@@ -15,9 +15,9 @@ import { formatCurrency, GRADE_OPTIONS, GRADE_MAP, getBalanceRowClass } from '@/
 import { HiOutlinePencilSquare, HiOutlinePlusCircle, HiOutlineMagnifyingGlass } from 'react-icons/hi2';
 
 const setupPaymentSchema = zod.object({
-  student_id: zod.number().min(1, 'Select a student'),
-  annual_price: zod.number().min(0, 'Annual price must be positive'),
-  discount: zod.number().min(0, 'Discount must be positive'),
+  student_id: zod.number().min(1, 'تکایە قوتابییەک هەڵبژێرە'),
+  annual_price: zod.number().min(0, 'بڕی پارە دەبێت ژمارەیەکی پۆزەتیڤ بێت'),
+  discount: zod.number().min(0, 'داشکاندن دەبێت ژمارەیەکی پۆزەتیڤ بێت'),
   notes: zod.string().optional(),
 });
 
@@ -81,22 +81,22 @@ export default function StudyPaymentsPage() {
   };
 
   const columns: Column<any>[] = [
-    { header: 'Serial No', accessor: (row) => row.student?.serial_number },
-    { header: 'Student Name', accessor: (row) => row.student?.full_name, sortable: true },
-    { header: 'Grade', accessor: (row) => GRADE_MAP[row.student?.grade] || row.student?.grade },
-    { header: 'Annual Price', accessor: (row) => formatCurrency(row.annual_price) },
-    { header: 'Discount', accessor: (row) => formatCurrency(row.discount), className: 'text-danger' },
-    { header: 'Net Price', accessor: (row) => formatCurrency(row.price_after_discount), className: 'font-semibold' },
-    { header: 'Total Paid', accessor: (row) => formatCurrency(row.total_paid), className: 'text-success font-semibold' },
-    { header: 'Remaining', accessor: (row) => formatCurrency(row.remain_balance), className: 'text-danger font-bold' },
+    { header: 'سێریال', accessor: (row) => row.student?.serial_number },
+    { header: 'ناوی قوتابی', accessor: (row) => row.student?.full_name, sortable: true },
+    { header: 'پۆل', accessor: (row) => GRADE_MAP[row.student?.grade] || row.student?.grade },
+    { header: 'کرێی ساڵانە', accessor: (row) => formatCurrency(row.annual_price) },
+    { header: 'داشکاندن', accessor: (row) => formatCurrency(row.discount), className: 'text-danger' },
+    { header: 'کۆی گشتی', accessor: (row) => formatCurrency(row.price_after_discount), className: 'font-semibold' },
+    { header: 'کۆی دراو', accessor: (row) => formatCurrency(row.total_paid), className: 'text-success font-semibold' },
+    { header: 'قەرز (ماوە)', accessor: (row) => formatCurrency(row.remain_balance), className: 'text-danger font-bold' },
     {
-      header: 'Actions',
+      header: 'کردارەکان',
       accessor: (row) => (
         <Button
           variant="ghost"
           size="sm"
           onClick={() => openEditModal(row)}
-          title="Update Tuition Configuration"
+          title="دەستکاریکردنی ڕێکخستنی کرێ"
         >
           <HiOutlinePencilSquare className="w-4 h-4" />
         </Button>
@@ -109,12 +109,12 @@ export default function StudyPaymentsPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-text">Study Payments</h1>
-          <p className="text-xs text-text-muted">Configure student annual tuition prices and discounts</p>
+          <h1 className="text-2xl font-bold tracking-tight text-text">پارەی خوێندن</h1>
+          <p className="text-xs text-text-muted">ڕێکخستنی نرخەکانی خوێندنی ساڵانە و داشکاندن بۆ قوتابییان</p>
         </div>
         <Button variant="primary" onClick={openAddModal} className="flex items-center gap-1.5 self-start">
           <HiOutlinePlusCircle className="w-4 h-4" />
-          <span>Setup Fee</span>
+          <span>ڕێکخستنی کرێ</span>
         </Button>
       </div>
 
@@ -122,19 +122,19 @@ export default function StudyPaymentsPage() {
       {summaryData?.data && (
         <div className="grid gap-6 sm:grid-cols-4">
           <div className="bg-white border p-5 rounded-xl shadow-card">
-            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Total Annual Fees</span>
+            <span className="text-[10px] text-text-muted font-bold">کۆی کرێی ساڵانە</span>
             <p className="text-base font-bold text-text mt-1">{formatCurrency(summaryData.data.total_annual)}</p>
           </div>
           <div className="bg-white border p-5 rounded-xl shadow-card">
-            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Total Discounts</span>
+            <span className="text-[10px] text-text-muted font-bold">کۆی داشکاندنەکان</span>
             <p className="text-base font-bold text-danger mt-1">-{formatCurrency(summaryData.data.total_discount)}</p>
           </div>
           <div className="bg-white border p-5 rounded-xl shadow-card">
-            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Total Collected</span>
+            <span className="text-[10px] text-text-muted font-bold">کۆی دراو</span>
             <p className="text-base font-bold text-success mt-1">{formatCurrency(summaryData.data.total_paid)}</p>
           </div>
           <div className="bg-white border p-5 rounded-xl shadow-card">
-            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Outstanding Balance</span>
+            <span className="text-[10px] text-text-muted font-bold">کۆی قەرزی ماوە</span>
             <p className="text-base font-bold text-danger mt-1">{formatCurrency(summaryData.data.total_remaining)}</p>
           </div>
         </div>
@@ -145,7 +145,7 @@ export default function StudyPaymentsPage() {
         <div className="flex-1 relative">
           <input
             type="text"
-            placeholder="Search by student name or serial..."
+            placeholder="گەڕان بەدوای قوتابی بە ناو یان سێریال..."
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -164,7 +164,7 @@ export default function StudyPaymentsPage() {
             }}
             className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-white text-text focus:border-primary focus:outline-none transition-all"
           >
-            <option value="">All Grades</option>
+            <option value="">هەموو پۆلەکان</option>
             {GRADE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
@@ -194,52 +194,52 @@ export default function StudyPaymentsPage() {
       </div>
 
       {/* Setup Form Modal */}
-      <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title={editingPayment ? 'Modify Annual Tuition' : 'Setup Annual Tuition'}>
+      <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title={editingPayment ? 'دەستکاریکردنی کرێی خوێندنی ساڵانە' : 'تۆمارکردنی کرێی خوێندنی ساڵانە'}>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {!editingPayment ? (
             <AutocompleteInput
-              label="Select Student *"
+              label="قوتابی هەڵبژێرە *"
               onSelect={(student) => setValue('student_id', student.id)}
               error={errors.student_id?.message}
             />
           ) : (
             <div className="bg-surface-muted p-3 border border-border rounded-lg">
-              <span className="text-[10px] text-text-muted font-bold uppercase">Student Name</span>
+              <span className="text-[10px] text-text-muted font-bold">ناوی قوتابی</span>
               <p className="text-sm font-bold text-text mt-0.5">{editingPayment.student?.full_name}</p>
             </div>
           )}
 
           <Input
-            label="Annual Price (IQD) *"
+            label="کرێی خوێندنی ساڵانە *"
             id="annual_price"
             type="number"
-            placeholder="e.g. 1500000"
+            placeholder="بۆ نموونە: ١٥٠٠٠٠٠"
             error={errors.annual_price?.message}
             {...register('annual_price', { valueAsNumber: true })}
           />
 
           <Input
-            label="Discount (IQD)"
+            label="داشکاندن"
             id="discount"
             type="number"
-            placeholder="e.g. 100000"
+            placeholder="بۆ نموونە: ١٠٠٠٠٠"
             error={errors.discount?.message}
             {...register('discount', { valueAsNumber: true })}
           />
 
           <div className="bg-surface-muted p-3 border border-border rounded-lg">
-            <span className="text-[10px] text-text-muted font-bold uppercase">Net Price After Discount (Computed)</span>
+            <span className="text-[10px] text-text-muted font-bold">کۆی گشتی دوای داشکاندن (ئەژمارکراو)</span>
             <p className="text-sm font-mono font-bold text-primary mt-0.5">{formatCurrency(priceAfterDiscount)}</p>
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="notes" className="text-xs font-semibold text-text">
-              Notes
+              تێبینی
             </label>
             <textarea
               id="notes"
               rows={3}
-              placeholder="Comments or installment split agreements"
+              placeholder="سەرنجەکان یان ڕێککەوتنی دابەشکردنی قستەکان"
               className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-text border-border focus:border-primary-light focus:outline-none focus:ring-2 focus:ring-primary-light/20 transition-all placeholder:text-text-light"
               {...register('notes')}
             />
@@ -247,10 +247,10 @@ export default function StudyPaymentsPage() {
 
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" onClick={() => setIsFormOpen(false)}>
-              Cancel
+              پاشگەزبوونەوە
             </Button>
             <Button type="submit" variant="primary" isLoading={savePaymentMutation.isPending}>
-              Save Setup
+              پاشەکەوتکردن
             </Button>
           </div>
         </form>

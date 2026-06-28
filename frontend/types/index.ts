@@ -36,7 +36,7 @@ export interface Student {
   id: number;
   serial_number: string;
   full_name: string;
-  grade: 'one' | 'two' | 'three' | 'four' | 'five';
+  grade: 'one' | 'two' | 'three' | 'four' | 'five' | 'six' | 'seven' | 'eight' | 'nine';
   grade_display?: string;
   phone: string | null;
   address: string | null;

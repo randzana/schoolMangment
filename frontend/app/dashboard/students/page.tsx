@@ -17,17 +17,12 @@ import { useRouter } from 'next/navigation';
 import { HiOutlineUserPlus, HiOutlineTrash, HiOutlineEye, HiOutlineMagnifyingGlass } from 'react-icons/hi2';
 
 const studentSchema = zod.object({
-  serial_number: zod.string().min(1, 'Serial number is required').max(20, 'Max 20 characters'),
-  full_name: zod.string().min(1, 'Full name is required').max(150, 'Max 150 characters'),
-  grade: zod.enum(['one', 'two', 'three', 'four', 'five'], {
-    message: 'Grade level is required',
+  full_name: zod.string().min(1, 'ناوی سیانی قوتابی داواکراوە').max(150, 'زۆرترین ١٥٠ پیت'),
+  grade: zod.enum(['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'], {
+    message: 'دیاریکردنی پۆل داواکراوە',
   }),
-  phone: zod.string().max(30, 'Max 30 characters').optional().or(zod.literal('')),
-  address: zod.string().optional(),
-  notes: zod.string().optional(),
+  tuition_price: zod.coerce.number().min(0, 'نابێت لە سفر کەمتر بێت'),
 });
-
-type StudentFormValues = zod.infer<typeof studentSchema>;
 
 export default function StudentsPage() {
   const router = useRouter();
@@ -46,11 +41,11 @@ export default function StudentsPage() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<StudentFormValues>({
+  } = useForm({
     resolver: zodResolver(studentSchema),
   });
 
-  const onSubmit = (values: StudentFormValues) => {
+  const onSubmit = (values: any) => {
     createStudentMutation.mutate(values, {
       onSuccess: () => {
         setIsAddModalOpen(false);
@@ -69,7 +64,7 @@ export default function StudentsPage() {
 
   const handleExportCsv = () => {
     if (!studentsData?.data) return;
-    const headers = 'Serial No,Name,Grade,Study Balance,Food Balance,Phone,Address\n';
+    const headers = 'سێریال,ناو,پۆل,قەرزی خوێندن,قەرزی نانخواردن\n';
     const rows = studentsData.data
       .map((student) =>
         [
@@ -78,8 +73,6 @@ export default function StudentsPage() {
           gradeDisplay(student.grade),
           student.study_balance || 0,
           student.food_balance || 0,
-          student.phone || '',
-          `"${student.address || ''}"`,
         ].join(',')
       )
       .join('\n');
@@ -93,20 +86,20 @@ export default function StudentsPage() {
   };
 
   const columns: Column<any>[] = [
-    { header: 'Serial No', accessor: 'serial_number', sortable: true },
-    { header: 'Name', accessor: 'full_name', sortable: true },
-    { header: 'Grade', accessor: (row) => gradeDisplay(row.grade) },
-    { header: 'Study Balance', accessor: (row) => formatCurrency(row.study_balance || 0) },
-    { header: 'Food Balance', accessor: (row) => formatCurrency(row.food_balance || 0) },
+    { header: 'سێریال', accessor: 'serial_number', sortable: true },
+    { header: 'ناو', accessor: 'full_name', sortable: true },
+    { header: 'پۆل', accessor: (row) => gradeDisplay(row.grade) },
+    { header: 'قەرزی خوێندن', accessor: (row) => formatCurrency(row.study_balance || 0) },
+    { header: 'قەرزی نانخواردن', accessor: (row) => formatCurrency(row.food_balance || 0) },
     {
-      header: 'Actions',
+      header: 'کردارەکان',
       accessor: (row) => (
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => router.push(`/dashboard/students/${row.id}`)}
-            title="View Details"
+            title="بینین"
           >
             <HiOutlineEye className="w-4 h-4" />
           </Button>
@@ -115,7 +108,7 @@ export default function StudentsPage() {
             size="sm"
             className="text-danger hover:bg-danger-light"
             onClick={() => setDeleteId(row.id)}
-            title="Delete Student"
+            title="سڕینەوە"
           >
             <HiOutlineTrash className="w-4 h-4" />
           </Button>
@@ -129,16 +122,16 @@ export default function StudentsPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-text">Students</h1>
-          <p className="text-xs text-text-muted">Manage student records, demographics, and registration details</p>
+          <h1 className="text-2xl font-bold tracking-tight text-text">قوتابییەکان</h1>
+          <p className="text-xs text-text-muted">بەڕێوەبردنی تۆمارەکانی قوتابییان و زانیارییەکانی تۆمارکردن</p>
         </div>
         <div className="flex gap-3">
           <Button variant="secondary" onClick={handleExportCsv}>
-            Export List
+            ناردنەوەی لیست
           </Button>
           <Button variant="primary" onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-1.5">
             <HiOutlineUserPlus className="w-4 h-4" />
-            <span>Add Student</span>
+            <span>زیادکردنی قوتابی</span>
           </Button>
         </div>
       </div>
@@ -148,7 +141,7 @@ export default function StudentsPage() {
         <div className="flex-1 relative">
           <input
             type="text"
-            placeholder="Search student by name or serial number..."
+            placeholder="گەڕان بەدوای قوتابی بە ناو یان ژمارەی سێریال..."
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -167,7 +160,7 @@ export default function StudentsPage() {
             }}
             className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-white text-text focus:border-primary focus:outline-none transition-all"
           >
-            <option value="">All Grades</option>
+            <option value="">هەموو پۆلەکان</option>
             {GRADE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
@@ -197,68 +190,40 @@ export default function StudentsPage() {
       </div>
 
       {/* Add Student Modal */}
-      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add Student" size="md">
+      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="زیادکردنی قوتابی" size="md">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <Input
-            label="Serial Number *"
-            id="serial_number"
-            placeholder="e.g. 4947492"
-            error={errors.serial_number?.message}
-            {...register('serial_number')}
-          />
-
-          <Input
-            label="Full Name *"
+            label="ناوی سیانی قوتابی *"
             id="full_name"
-            placeholder="Kurdish/Arabic or English full name"
+            placeholder="ناوی قوتابی بە کوردی یان ئینگلیزی"
             error={errors.full_name?.message}
             {...register('full_name')}
           />
 
           <Select
-            label="Grade Level *"
+            label="پۆل / قۆناغ *"
             id="grade"
             options={GRADE_OPTIONS}
-            placeholder="Select a grade"
+            placeholder="پۆلێک هەڵبژێرە"
             error={errors.grade?.message}
             {...register('grade')}
           />
 
           <Input
-            label="Phone"
-            id="phone"
-            placeholder="e.g. 0750 123 4567"
-            error={errors.phone?.message}
-            {...register('phone')}
+            label="بڕی پارەی کرێی خوێندن (بڕی پارە) *"
+            id="tuition_price"
+            type="number"
+            placeholder="بۆ نموونە: ١٥٠٠٠٠٠"
+            error={errors.tuition_price?.message}
+            {...register('tuition_price')}
           />
-
-          <Input
-            label="Address"
-            id="address"
-            placeholder="Kurdish Region, Erbil, Ankawa..."
-            error={errors.address?.message}
-            {...register('address')}
-          />
-
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="notes" className="text-xs font-semibold text-text">
-              Notes
-            </label>
-            <textarea
-              id="notes"
-              rows={3}
-              placeholder="Any additional details or special comments"
-              className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-text border-border focus:border-primary-light focus:outline-none focus:ring-2 focus:ring-primary-light/20 transition-all placeholder:text-text-light"
-              {...register('notes')}
-            />
-          </div>
 
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" onClick={() => setIsAddModalOpen(false)}>
-              Cancel
+              پاشگەزبوونەوە
             </Button>
             <Button type="submit" variant="primary" isLoading={createStudentMutation.isPending}>
-              Create Student
+              تۆمارکردن
             </Button>
           </div>
         </form>
@@ -269,8 +234,8 @@ export default function StudentsPage() {
         isOpen={deleteId !== null}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="Delete Student"
-        message="Are you sure you want to delete this student? This action soft-deletes the record and preserves their historical payment transactions."
+        title="سڕینەوەی قوتابی"
+        message="ئایا دڵنیای لە سڕینەوەی ئەم قوتابییە؟ ئەم کردارە زانیاری قوتابییەکە دەسڕێتەوە بەڵام تۆماری داراییەکانی دەپارێزێت."
         isLoading={deleteStudentMutation.isPending}
       />
     </div>

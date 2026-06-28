@@ -12,20 +12,19 @@ export default function ReportsLayout({
   const pathname = usePathname();
 
   const reportTabs = [
-    { label: 'Study Installments', href: '/dashboard/reports/study-installments' },
-    { label: 'Food Installments', href: '/dashboard/reports/food-installments' },
-    { label: 'Study Income', href: '/dashboard/reports/study-income' },
-    { label: 'Expenses Report', href: '/dashboard/reports/expenses' },
-    { label: 'Salary Expenses', href: '/dashboard/reports/salaries' },
-    { label: 'Student List', href: '/dashboard/reports/student-list' },
+    { label: 'قستەکانی خوێندن', href: '/dashboard/reports/study-installments' },
+    { label: 'قستەکانی نانخواردن', href: '/dashboard/reports/food-installments' },
+    { label: 'داهاتی خوێندن', href: '/dashboard/reports/study-income' },
+    { label: 'ڕاپۆرتی خەرجییەکان', href: '/dashboard/reports/expenses' },
+    { label: 'لیستی قوتابییان', href: '/dashboard/reports/student-list' },
   ];
 
   return (
     <div className="space-y-6">
       {/* Title */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-text">Reports & Searches</h1>
-        <p className="text-xs text-text-muted">Query financial aggregates, export data tables, and print summary audit reports</p>
+        <h1 className="text-2xl font-bold tracking-tight text-text">ڕاپۆرتەکان و گەڕان</h1>
+        <p className="text-xs text-text-muted">پرسیاری کۆکراوەکانی دارایی، ناردنەوەی خشتەی زانیارییەکان، و چاپکردنی ڕاپۆرتەکانی پشکنین</p>
       </div>
 
       {/* Tabs */}
@@ -36,7 +35,7 @@ export default function ReportsLayout({
             <Link
               key={tab.href}
               href={tab.href}
-              className={`px-5 py-3.5 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all whitespace-nowrap ${
+              className={`px-5 py-3.5 text-xs font-semibold tracking-wider border-b-2 transition-all whitespace-nowrap ${
                 isActive
                   ? 'border-primary text-primary bg-primary/5'
                   : 'border-transparent text-text-muted hover:text-text hover:bg-surface-muted'

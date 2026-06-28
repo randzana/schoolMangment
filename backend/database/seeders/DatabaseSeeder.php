@@ -11,7 +11,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             UserSeeder::class,
             StudentSeeder::class,
-            TeacherSeeder::class,
             StudyPaymentSeeder::class,
             FoodPaymentSeeder::class,
             InstallmentSeeder::class,

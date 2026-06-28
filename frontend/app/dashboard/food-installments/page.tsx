@@ -18,9 +18,9 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
 const foodInstallmentSchema = zod.object({
-  food_payment_id: zod.number().min(1, 'Select a student with a configured meal plan'),
-  amount_paid: zod.number().min(1, 'Amount paid must be greater than 0'),
-  payment_date: zod.string().min(1, 'Payment date is required'),
+  food_payment_id: zod.number().min(1, 'تکایە قوتابییەک هەڵبژێرە کە پلانی نانخواردنی بۆ ڕێکخرابێت'),
+  amount_paid: zod.number().min(1, 'بڕی پارەی دراو دەبێت لە ٠ زیاتر بێت'),
+  payment_date: zod.string().min(1, 'دیاریکردنی بەرواری پارەدان داواکراوە'),
   notes: zod.string().optional(),
 });
 
@@ -85,7 +85,7 @@ export default function FoodInstallmentsPage() {
 
   const onSubmit = (values: FoodInstallmentFormValues) => {
     if (selectedPayment && values.amount_paid > parseFloat(selectedPayment.remain_balance)) {
-      alert(`Payment exceeds the remaining balance of ${selectedPayment.remain_balance} IQD`);
+      alert(`بڕی پارەی دراو زیاترە لەو بڕەی کە ماوە: ${formatCurrency(selectedPayment.remain_balance)} دینار`);
       return;
     }
 
@@ -118,29 +118,29 @@ export default function FoodInstallmentsPage() {
   };
 
   const columns: Column<any>[] = [
-    { header: 'Invoice No', accessor: (row) => `#${row.invoice_no}`, sortable: true },
-    { header: 'Date', accessor: (row) => formatDate(row.payment_date), sortable: true },
-    { header: 'Student Name', accessor: (row) => row.student?.full_name },
-    { header: 'Grade', accessor: (row) => GRADE_MAP[row.student?.grade] || row.student?.grade },
-    { header: 'Amount Paid', accessor: (row) => formatCurrency(row.amount_paid), className: 'text-primary font-bold' },
-    { header: 'Remaining After', accessor: (row) => formatCurrency(row.remain_after), className: 'text-danger' },
+    { header: 'ژمارەی پسوولە', accessor: (row) => `#${row.invoice_no}`, sortable: true },
+    { header: 'بەروار', accessor: (row) => formatDate(row.payment_date), sortable: true },
+    { header: 'ناوی قوتابی', accessor: (row) => row.student?.full_name },
+    { header: 'پۆل', accessor: (row) => GRADE_MAP[row.student?.grade] || row.student?.grade },
+    { header: 'بڕی دراو', accessor: (row) => formatCurrency(row.amount_paid), className: 'text-primary font-bold' },
+    { header: 'قەرز (ماوە) دوای ئەمە', accessor: (row) => formatCurrency(row.remain_after), className: 'text-danger' },
     {
-      header: 'Returned',
+      header: 'گەڕاوەتەوە',
       accessor: (row) => (
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${row.is_returned ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'}`}>
-          {row.is_returned ? 'Yes' : 'No'}
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${row.is_returned ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'}`}>
+          {row.is_returned ? 'بەڵێ' : 'نەخێر'}
         </span>
       ),
     },
     {
-      header: 'Actions',
+      header: 'کردارەکان',
       accessor: (row) => (
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/food-installments/${row.id}/invoice`, '_blank')}
-            title="Re-Print Invoice"
+            title="چاپکردنەوەی پسوولە"
           >
             <HiOutlinePrinter className="w-4 h-4" />
           </Button>
@@ -150,7 +150,7 @@ export default function FoodInstallmentsPage() {
               size="sm"
               className="text-danger hover:bg-danger-light"
               onClick={() => setReturnId(row.id)}
-              title="Void / Return Bill"
+              title="گێڕانەوەی پسوولە"
             >
               <HiOutlineArrowUturnLeft className="w-4 h-4" />
             </Button>
@@ -164,25 +164,25 @@ export default function FoodInstallmentsPage() {
     <div className="space-y-6">
       {/* Page Title */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-text">Food Installments</h1>
-        <p className="text-xs text-text-muted">Record and verify cafeteria and food payments</p>
+        <h1 className="text-2xl font-bold tracking-tight text-text">قستەکانی نانخواردن</h1>
+        <p className="text-xs text-text-muted">تۆمارکردن و دڵنیابوونەوە لە قست و پارەی نانخواردنی قوتابخانە</p>
       </div>
 
       {/* Entry Form */}
       <div className="bg-white border border-border p-6 rounded-xl shadow-card space-y-6">
-        <h3 className="font-semibold text-sm text-text border-b pb-2">Record Meal Installment</h3>
+        <h3 className="font-semibold text-sm text-text border-b pb-2">تۆمارکردنی قستی نوێی نانخواردن</h3>
         
         <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6 sm:grid-cols-2 md:grid-cols-4 items-end">
           <div className="sm:col-span-2">
             <AutocompleteInput
-              label="Select Student *"
+              label="قوتابی هەڵبژێرە *"
               onSelect={handleStudentSelect}
               error={errors.food_payment_id?.message}
             />
           </div>
 
           <Input
-            label="Grade"
+            label="پۆل"
             id="student-grade"
             value={selectedStudent ? GRADE_MAP[selectedStudent.grade] || selectedStudent.grade : ''}
             disabled
@@ -190,7 +190,7 @@ export default function FoodInstallmentsPage() {
           />
 
           <Input
-            label="Payment Date *"
+            label="بەرواری پارەدان *"
             id="payment_date"
             type="date"
             error={errors.payment_date?.message}
@@ -198,7 +198,7 @@ export default function FoodInstallmentsPage() {
           />
 
           <Input
-            label="Monthly Price (Net)"
+            label="کرێی مانگانەی نانخواردن (کۆیت گشتی)"
             id="monthly-price"
             value={selectedPayment ? formatCurrency(selectedPayment.price_after_discount) : ''}
             disabled
@@ -206,7 +206,7 @@ export default function FoodInstallmentsPage() {
           />
 
           <Input
-            label="Remaining Balance (Before)"
+            label="قەرزی ماوە (پێشتر)"
             id="remain-before"
             value={selectedPayment ? formatCurrency(selectedPayment.remain_balance) : ''}
             disabled
@@ -214,16 +214,16 @@ export default function FoodInstallmentsPage() {
           />
 
           <Input
-            label="Payment Amount (IQD) *"
+            label="بڕی پارەی دراو (دینار) *"
             id="amount_paid"
             type="number"
-            placeholder="Amount paid now"
+            placeholder="بڕی پارەی دراو لە ئێستادا"
             error={errors.amount_paid?.message}
             {...register('amount_paid', { valueAsNumber: true })}
           />
 
           <Input
-            label="Total Cumulative Paid (After)"
+            label="کۆی دراو (دواتر)"
             id="begin-paid"
             value={selectedPayment ? formatCurrency(beginPaid) : ''}
             disabled
@@ -231,7 +231,7 @@ export default function FoodInstallmentsPage() {
           />
 
           <Input
-            label="Remaining Balance (After)"
+            label="قەرزی ماوە (دواتر)"
             id="remain-after"
             value={selectedPayment ? formatCurrency(remainAfter) : ''}
             disabled
@@ -240,9 +240,9 @@ export default function FoodInstallmentsPage() {
 
           <div className="sm:col-span-2">
             <Input
-              label="Notes"
+              label="تێبینی"
               id="notes"
-              placeholder="Comments on meal options or exceptions"
+              placeholder="بۆ نموونە: تێبینی لەسەر جۆری خواردن یان هتد."
               error={errors.notes?.message}
               {...register('notes')}
             />
@@ -252,11 +252,11 @@ export default function FoodInstallmentsPage() {
             <Button
               type="submit"
               variant="primary"
-              className="w-full flex items-center gap-1.5"
+              className="w-full flex items-center gap-1.5 font-semibold"
               isLoading={createMutation.isPending}
             >
               <HiOutlinePrinter className="w-4 h-4" />
-              <span>Save & Print</span>
+              <span>تۆمارکردن و چاپ</span>
             </Button>
           </div>
         </form>
@@ -265,7 +265,7 @@ export default function FoodInstallmentsPage() {
       {/* History Data Table */}
       <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
         <div className="px-6 py-4 border-b">
-          <h3 className="font-semibold text-sm text-text">Installment History</h3>
+          <h3 className="font-semibold text-sm text-text">مێژووی قستەکان</h3>
         </div>
         <DataTable
           columns={columns}
@@ -297,8 +297,8 @@ export default function FoodInstallmentsPage() {
         isOpen={returnId !== null}
         onClose={() => setReturnId(null)}
         onConfirm={handleReturnConfirm}
-        title="Void / Return Bill"
-        message="Are you sure you want to void this food payment transaction? This action will reverse the amount paid and update the balance accordingly."
+        title="هەڵوەشاندنەوە / گێڕانەوەی پسوولە"
+        message="ئایا دڵنیای لە هەڵوەشاندنەوەی ئەم قستی نانخواردنە؟ هەڵوەشاندنەوە بڕە پارە دراوەکە دەگەڕێنێتەوە و قەرزی قوتابییەکە زیاد دەکاتەوە."
         isLoading={returnMutation.isPending}
       />
     </div>

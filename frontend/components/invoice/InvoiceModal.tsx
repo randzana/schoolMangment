@@ -25,10 +25,10 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Invoice #${invoiceNo}`} size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={`پسوولەی ژمارە #${invoiceNo}`} size="lg">
       <div className="flex flex-col gap-6">
         <p className="text-sm text-text-muted leading-relaxed">
-          The payment has been recorded successfully. You can preview the receipt below or click Print to open in a new tab.
+          پارەدانەکە بە سەرکەوتوویی تۆمارکرا. دەتوانیت لە خوارەوە پێشبینی پسوولەکە بکەیت یان کرتە لەسەر چاپ بکەیت بۆ کردنەوەی لە پەڕەیەکی نوێدا.
         </p>
 
         {invoiceUrl && (
@@ -36,18 +36,18 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             <iframe
               src={invoiceUrl}
               className="w-full h-full"
-              title={`Invoice #${invoiceNo} PDF Preview`}
+              title={`Invoice #${invoiceNo} Preview`}
             />
           </div>
         )}
 
-        <div className="flex justify-end gap-3">
+        <div className="flex justify-end gap-3 font-semibold">
           <Button variant="secondary" onClick={onClose}>
-            Close
+            داخستن
           </Button>
           <Button variant="primary" onClick={handlePrint} className="flex items-center gap-1.5">
             <HiOutlinePrinter className="w-4 h-4" />
-            <span>Open & Print PDF</span>
+            <span>چاپکردنی پسوولە</span>
           </Button>
         </div>
       </div>

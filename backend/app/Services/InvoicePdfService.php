@@ -16,7 +16,7 @@ class InvoicePdfService
         $installment->load('student', 'studyPayment');
 
         $data = [
-            'school_name' => config('school.name', 'Al-Noor Private School'),
+            'school_name' => config('school.name', 'Private F.G Basic School'),
             'invoice_no' => $installment->invoice_no,
             'date' => $installment->payment_date->format('d/m/Y'),
             'invoice_type' => 'Study Payment',
@@ -45,7 +45,7 @@ class InvoicePdfService
         $installment->load('student', 'foodPayment');
 
         $data = [
-            'school_name' => config('school.name', 'Al-Noor Private School'),
+            'school_name' => config('school.name', 'Private F.G Basic School'),
             'invoice_no' => $installment->invoice_no,
             'date' => $installment->payment_date->format('d/m/Y'),
             'invoice_type' => 'Food Payment',

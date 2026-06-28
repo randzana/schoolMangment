@@ -18,9 +18,9 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
 const installmentSchema = zod.object({
-  study_payment_id: zod.number().min(1, 'Select a student with a configured payment plan'),
-  amount_paid: zod.number().min(1, 'Amount paid must be greater than 0'),
-  payment_date: zod.string().min(1, 'Payment date is required'),
+  study_payment_id: zod.number().min(1, 'تکایە قوتابییەک هەڵبژێرە کە کرێی خوێندنی بۆ ڕێکخرابێت'),
+  amount_paid: zod.number().min(1, 'بڕی پارەی دراو دەبێت لە ٠ زیاتر بێت'),
+  payment_date: zod.string().min(1, 'دیاریکردنی بەرواری پارەدان داواکراوە'),
   notes: zod.string().optional(),
 });
 
@@ -86,7 +86,7 @@ export default function StudyInstallmentsPage() {
 
   const onSubmit = (values: InstallmentFormValues) => {
     if (selectedPayment && values.amount_paid > parseFloat(selectedPayment.remain_balance)) {
-      alert(`Payment exceeds the remaining balance of ${selectedPayment.remain_balance} IQD`);
+      alert(`بڕی پارەی دراو زیاترە لەو بڕەی کە ماوە: ${formatCurrency(selectedPayment.remain_balance)} دینار`);
       return;
     }
 
@@ -119,29 +119,29 @@ export default function StudyInstallmentsPage() {
   };
 
   const columns: Column<any>[] = [
-    { header: 'Invoice No', accessor: (row) => `#${row.invoice_no}`, sortable: true },
-    { header: 'Date', accessor: (row) => formatDate(row.payment_date), sortable: true },
-    { header: 'Student Name', accessor: (row) => row.student?.full_name },
-    { header: 'Grade', accessor: (row) => GRADE_MAP[row.student?.grade] || row.student?.grade },
-    { header: 'Amount Paid', accessor: (row) => formatCurrency(row.amount_paid), className: 'text-primary font-bold' },
-    { header: 'Remaining After', accessor: (row) => formatCurrency(row.remain_after), className: 'text-danger' },
+    { header: 'ژمارەی پسوولە', accessor: (row) => `#${row.invoice_no}`, sortable: true },
+    { header: 'بەروار', accessor: (row) => formatDate(row.payment_date), sortable: true },
+    { header: 'ناوی قوتابی', accessor: (row) => row.student?.full_name },
+    { header: 'پۆل', accessor: (row) => GRADE_MAP[row.student?.grade] || row.student?.grade },
+    { header: 'بڕی دراو', accessor: (row) => formatCurrency(row.amount_paid), className: 'text-primary font-bold' },
+    { header: 'قەرز (ماوە) دوای ئەمە', accessor: (row) => formatCurrency(row.remain_after), className: 'text-danger' },
     {
-      header: 'Returned',
+      header: 'گەڕاوەتەوە',
       accessor: (row) => (
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${row.is_returned ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'}`}>
-          {row.is_returned ? 'Yes' : 'No'}
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${row.is_returned ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'}`}>
+          {row.is_returned ? 'بەڵێ' : 'نەخێر'}
         </span>
       ),
     },
     {
-      header: 'Actions',
+      header: 'کردارەکان',
       accessor: (row) => (
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/study-installments/${row.id}/invoice`, '_blank')}
-            title="Re-Print Invoice"
+            title="چاپکردنەوەی پسوولە"
           >
             <HiOutlinePrinter className="w-4 h-4" />
           </Button>
@@ -151,7 +151,7 @@ export default function StudyInstallmentsPage() {
               size="sm"
               className="text-danger hover:bg-danger-light"
               onClick={() => setReturnId(row.id)}
-              title="Void / Return Bill"
+              title="گێڕانەوەی پسوولە"
             >
               <HiOutlineArrowUturnLeft className="w-4 h-4" />
             </Button>
@@ -165,19 +165,19 @@ export default function StudyInstallmentsPage() {
     <div className="space-y-6">
       {/* Page Title */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-text">Study Installments</h1>
-        <p className="text-xs text-text-muted">Record and verify individual student tuition payments</p>
+        <h1 className="text-2xl font-bold tracking-tight text-text">قستەکانی خوێندن</h1>
+        <p className="text-xs text-text-muted">تۆمارکردن و دڵنیابوونەوە لە قستەکانی خوێندنی قوتابییان</p>
       </div>
 
       {/* Entry Form (Top Section) */}
       <div className="bg-white border border-border p-6 rounded-xl shadow-card space-y-6">
-        <h3 className="font-semibold text-sm text-text border-b pb-2">Record Installment Transaction</h3>
+        <h3 className="font-semibold text-sm text-text border-b pb-2">تۆمارکردنی مامەڵەی قستی نوێ</h3>
         
         <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6 sm:grid-cols-2 md:grid-cols-4 items-end">
           {/* Autocomplete Search */}
           <div className="sm:col-span-2">
             <AutocompleteInput
-              label="Select Student *"
+              label="قوتابی هەڵبژێرە *"
               onSelect={handleStudentSelect}
               error={errors.study_payment_id?.message}
             />
@@ -185,7 +185,7 @@ export default function StudyInstallmentsPage() {
 
           {/* Grade Display */}
           <Input
-            label="Grade"
+            label="پۆل"
             id="student-grade"
             value={selectedStudent ? GRADE_MAP[selectedStudent.grade] || selectedStudent.grade : ''}
             disabled
@@ -194,7 +194,7 @@ export default function StudyInstallmentsPage() {
 
           {/* Date Picker */}
           <Input
-            label="Payment Date *"
+            label="بەرواری پارەدان *"
             id="payment_date"
             type="date"
             error={errors.payment_date?.message}
@@ -203,7 +203,7 @@ export default function StudyInstallmentsPage() {
 
           {/* Pricing Info Cards (Read Only) */}
           <Input
-            label="Annual Price (Net)"
+            label="کرێی خوێندنی ساڵانە (کۆی گشتی)"
             id="annual-price"
             value={selectedPayment ? formatCurrency(selectedPayment.price_after_discount) : ''}
             disabled
@@ -211,7 +211,7 @@ export default function StudyInstallmentsPage() {
           />
 
           <Input
-            label="Remaining Balance (Before)"
+            label="قەرزی ماوە (پێشتر)"
             id="remain-before"
             value={selectedPayment ? formatCurrency(selectedPayment.remain_balance) : ''}
             disabled
@@ -220,17 +220,17 @@ export default function StudyInstallmentsPage() {
 
           {/* Price Quantity Input */}
           <Input
-            label="Payment Amount (IQD) *"
+            label="بڕی پارەی دراو (دینار) *"
             id="amount_paid"
             type="number"
-            placeholder="Amount paid now"
+            placeholder="بڕی پارەی دراو لە ئێستادا"
             error={errors.amount_paid?.message}
             {...register('amount_paid', { valueAsNumber: true })}
           />
 
           {/* Begin Paid computed */}
           <Input
-            label="Total Cumulative Paid (After)"
+            label="کۆی دراو (دواتر)"
             id="begin-paid"
             value={selectedPayment ? formatCurrency(beginPaid) : ''}
             disabled
@@ -239,7 +239,7 @@ export default function StudyInstallmentsPage() {
 
           {/* Remaining After computed */}
           <Input
-            label="Remaining Balance (After)"
+            label="قەرزی ماوە (دواتر)"
             id="remain-after"
             value={selectedPayment ? formatCurrency(remainAfter) : ''}
             disabled
@@ -248,9 +248,9 @@ export default function StudyInstallmentsPage() {
 
           <div className="sm:col-span-2">
             <Input
-              label="Notes"
+              label="تێبینی"
               id="notes"
-              placeholder="e.g. Paid in cash, parent check no., etc."
+              placeholder="بۆ نموونە: بە نەختینە درا، ژمارەی چەک، هتد."
               error={errors.notes?.message}
               {...register('notes')}
             />
@@ -264,7 +264,7 @@ export default function StudyInstallmentsPage() {
               isLoading={createMutation.isPending}
             >
               <HiOutlinePrinter className="w-4 h-4" />
-              <span>Save & Print</span>
+              <span>تۆمارکردن و چاپ</span>
             </Button>
           </div>
         </form>
@@ -273,7 +273,7 @@ export default function StudyInstallmentsPage() {
       {/* Data Table History (Bottom Section) */}
       <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
         <div className="px-6 py-4 border-b">
-          <h3 className="font-semibold text-sm text-text">Installment History</h3>
+          <h3 className="font-semibold text-sm text-text">مێژووی قستەکان</h3>
         </div>
         <DataTable
           columns={columns}
@@ -305,8 +305,8 @@ export default function StudyInstallmentsPage() {
         isOpen={returnId !== null}
         onClose={() => setReturnId(null)}
         onConfirm={handleReturnConfirm}
-        title="Void / Return Bill"
-        message="Are you sure you want to void this installment payment? Voiding will reverse the paid amount and increase the student's remaining balance."
+        title="هەڵوەشاندنەوە / گێڕانەوەی پسوولە"
+        message="ئایا دڵنیای لە هەڵوەشاندنەوەی ئەم قستە؟ هەڵوەشاندنەوە بڕە پارە دراوەکە دەگەڕێنێتەوە و قەرزی قوتابییەکە زیاد دەکاتەوە."
         isLoading={returnMutation.isPending}
       />
     </div>

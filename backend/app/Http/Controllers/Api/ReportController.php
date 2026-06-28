@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Expense;
 use App\Models\FoodInstallment;
 use App\Models\FoodPayment;
-use App\Models\SalaryExpense;
 use App\Models\Student;
 use App\Models\StudyInstallment;
 use App\Models\StudyPayment;
@@ -244,38 +243,6 @@ class ReportController extends Controller
         ]);
     }
 
-    /**
-     * Salary expenses report
-     */
-    public function salaries(Request $request): JsonResponse
-    {
-        $query = SalaryExpense::with('teacher');
-
-        if ($request->filled('from')) {
-            $query->where('month', '>=', $request->from);
-        }
-        if ($request->filled('to')) {
-            $query->where('month', '<=', $request->to);
-        }
-
-        if ($request->filled('teacher_id')) {
-            $query->where('teacher_id', $request->teacher_id);
-        }
-
-        $salaries = $query->orderByDesc('month')->get();
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'records' => $salaries,
-                'summary' => [
-                    'count' => $salaries->count(),
-                    'total_paid' => $salaries->sum('amount_paid'),
-                ],
-            ],
-            'message' => 'Salary expenses report generated',
-        ]);
-    }
 
     /**
      * Student list report with payment status
@@ -391,13 +358,13 @@ class ReportController extends Controller
 
         $installments = $query->orderByDesc('payment_date')->get();
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.study-installments', [
+        $pdf_data = [
             'installments' => $installments,
-            'school_name' => config('school.name', 'Al-Noor Private School'),
-            'date_range' => ($request->from ?? 'Start') . ' to ' . ($request->to ?? 'Present'),
+            'school_name' => config('school.name', 'Private F.G Basic School'),
+            'date_range' => ($request->from ?? 'سەرەتا') . ' بۆ ' . ($request->to ?? 'ئێستا'),
             'total' => $installments->where('is_returned', false)->sum('amount_paid'),
-        ])->setPaper('a4', 'landscape');
+        ];
 
-        return $pdf->stream('study_installments_report.pdf');
+        return view('reports.study-installments', $pdf_data);
     }
 }

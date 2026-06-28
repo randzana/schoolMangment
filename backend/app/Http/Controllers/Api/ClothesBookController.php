@@ -119,7 +119,7 @@ class ClothesBookController extends Controller
         $payment = ClothesBookPayment::with('student')->findOrFail($id);
 
         $data = [
-            'school_name' => config('school.name', 'Al-Noor Private School'),
+            'school_name' => config('school.name', 'Private F.G Basic School'),
             'invoice_no' => $payment->invoice_no,
             'date' => $payment->payment_date?->format('d/m/Y') ?? now()->format('d/m/Y'),
             'invoice_type' => 'Clothes & Books Payment',
@@ -136,9 +136,6 @@ class ClothesBookController extends Controller
             'is_returned' => false,
         ];
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('invoices.installment', $data)
-            ->setPaper('a5', 'portrait');
-
-        return $pdf->stream("invoice-{$payment->invoice_no}.pdf");
+        return view('invoices.installment_print', $data);
     }
 }

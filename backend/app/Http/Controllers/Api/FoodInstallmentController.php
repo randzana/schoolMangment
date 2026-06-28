@@ -91,9 +91,26 @@ class FoodInstallmentController extends Controller
     public function invoice(int $id)
     {
         $installment = FoodInstallment::with(['student', 'foodPayment'])->findOrFail($id);
-        $pdf = $this->invoiceService->generateFoodInvoice($installment);
+        
+        $data = [
+            'school_name' => config('school.name', 'Private F.G Basic School'),
+            'invoice_no' => $installment->invoice_no,
+            'date' => $installment->payment_date->format('d/m/Y'),
+            'invoice_type' => 'Food Payment',
+            'student_name' => $installment->student->full_name,
+            'grade' => $installment->student->grade_display,
+            'serial_no' => $installment->student->serial_number,
+            'annual_fee' => $installment->foodPayment->monthly_price,
+            'discount' => $installment->foodPayment->discount,
+            'fee_after_discount' => $installment->foodPayment->price_after_discount,
+            'remain_before' => $installment->remain_before,
+            'amount_paid' => $installment->amount_paid,
+            'remain_after' => $installment->remain_after,
+            'fee_label' => 'Monthly Price',
+            'is_returned' => $installment->is_returned,
+        ];
 
-        return $pdf->stream("invoice-{$installment->invoice_no}.pdf");
+        return view('invoices.installment_print', $data);
     }
 
     public function returnBill(Request $request, int $id): JsonResponse

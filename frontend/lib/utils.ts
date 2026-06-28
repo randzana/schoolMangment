@@ -13,8 +13,8 @@ export function cn(...inputs: ClassValue[]): string {
  */
 export function formatCurrency(amount: number | string): string {
   const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-  if (isNaN(num)) return '0 IQD';
-  return `${Math.round(num).toLocaleString('en-US')} IQD`;
+  if (isNaN(num)) return '٠ دینار';
+  return `${Math.round(num).toLocaleString('en-US')} دینار`;
 }
 
 /**
@@ -22,7 +22,7 @@ export function formatCurrency(amount: number | string): string {
  */
 export function formatNumber(amount: number | string): string {
   const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-  if (isNaN(num)) return '0';
+  if (isNaN(num)) return '٠';
   return Math.round(num).toLocaleString('en-US');
 }
 
@@ -30,19 +30,27 @@ export function formatNumber(amount: number | string): string {
  * Map grade key to display string.
  */
 export const GRADE_MAP: Record<string, string> = {
-  one: 'Grade 1',
-  two: 'Grade 2',
-  three: 'Grade 3',
-  four: 'Grade 4',
-  five: 'Grade 5',
+  one: 'پۆلی یەکەم',
+  two: 'پۆلی دووەم',
+  three: 'پۆلی سێیەم',
+  four: 'پۆلی چوارەم',
+  five: 'پۆلی پێنجەم',
+  six: 'پۆلی شەشەم',
+  seven: 'پۆلی حەوتەم',
+  eight: 'پۆلی هەشتەم',
+  nine: 'پۆلی نۆیەم',
 };
 
 export const GRADE_OPTIONS = [
-  { value: 'one', label: 'Grade 1' },
-  { value: 'two', label: 'Grade 2' },
-  { value: 'three', label: 'Grade 3' },
-  { value: 'four', label: 'Grade 4' },
-  { value: 'five', label: 'Grade 5' },
+  { value: 'one', label: 'پۆلی یەکەم' },
+  { value: 'two', label: 'پۆلی دووەم' },
+  { value: 'three', label: 'پۆلی سێیەم' },
+  { value: 'four', label: 'پۆلی چوارەم' },
+  { value: 'five', label: 'پۆلی پێنجەم' },
+  { value: 'six', label: 'پۆلی شەشەم' },
+  { value: 'seven', label: 'پۆلی حەوتەم' },
+  { value: 'eight', label: 'پۆلی هەشتەم' },
+  { value: 'nine', label: 'پۆلی نۆیەم' },
 ];
 
 export function gradeDisplay(grade: string): string {
@@ -69,16 +77,16 @@ export function getAcademicYear(): string {
  * Get school name.
  */
 export function getSchoolName(): string {
-  return process.env.NEXT_PUBLIC_SCHOOL_NAME || 'Al-Noor Private School';
+  return process.env.NEXT_PUBLIC_SCHOOL_NAME || 'قوتابخانەی بنەڕەتی ئەهلی F.G';
 }
 
 /**
  * Item type display labels.
  */
 export const ITEM_TYPE_MAP: Record<string, string> = {
-  clothes: 'Clothes',
-  book: 'Books',
-  both: 'Clothes & Books',
+  clothes: 'جلی قوتابخانە',
+  book: 'کتێبی خوێندن',
+  both: 'جل و کتێب',
 };
 
 /**

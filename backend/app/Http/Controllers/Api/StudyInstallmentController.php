@@ -95,9 +95,26 @@ class StudyInstallmentController extends Controller
     public function invoice(int $id)
     {
         $installment = StudyInstallment::with(['student', 'studyPayment'])->findOrFail($id);
-        $pdf = $this->invoiceService->generateStudyInvoice($installment);
+        
+        $data = [
+            'school_name' => config('school.name', 'Private F.G Basic School'),
+            'invoice_no' => $installment->invoice_no,
+            'date' => $installment->payment_date->format('d/m/Y'),
+            'invoice_type' => 'Study Payment',
+            'student_name' => $installment->student->full_name,
+            'grade' => $installment->student->grade_display,
+            'serial_no' => $installment->student->serial_number,
+            'annual_fee' => $installment->studyPayment->annual_price,
+            'discount' => $installment->studyPayment->discount,
+            'fee_after_discount' => $installment->studyPayment->price_after_discount,
+            'remain_before' => $installment->remain_before,
+            'amount_paid' => $installment->amount_paid,
+            'remain_after' => $installment->remain_after,
+            'fee_label' => 'Annual Fee',
+            'is_returned' => $installment->is_returned,
+        ];
 
-        return $pdf->stream("invoice-{$installment->invoice_no}.pdf");
+        return view('invoices.installment_print', $data);
     }
 
     /**

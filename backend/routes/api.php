@@ -14,6 +14,11 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
 });
 
+// Public invoice print routes (accessed via window.open in new tab)
+Route::get('study-installments/{id}/invoice', [\App\Http\Controllers\Api\StudyInstallmentController::class, 'invoice']);
+Route::get('food-installments/{id}/invoice', [\App\Http\Controllers\Api\FoodInstallmentController::class, 'invoice']);
+Route::get('clothes-books/{id}/invoice', [\App\Http\Controllers\Api\ClothesBookController::class, 'invoice']);
+
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
@@ -26,8 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('students', \App\Http\Controllers\Api\StudentController::class);
     Route::get('students-search', [\App\Http\Controllers\Api\StudentController::class, 'search']);
 
-    // Teachers
-    Route::apiResource('teachers', \App\Http\Controllers\Api\TeacherController::class);
+
 
     // Study Payments
     Route::apiResource('study-payments', \App\Http\Controllers\Api\StudyPaymentController::class)->except(['destroy']);
@@ -35,7 +39,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Study Installments
     Route::apiResource('study-installments', \App\Http\Controllers\Api\StudyInstallmentController::class)->except(['update']);
-    Route::get('study-installments/{id}/invoice', [\App\Http\Controllers\Api\StudyInstallmentController::class, 'invoice']);
     Route::put('study-installments/{id}/return', [\App\Http\Controllers\Api\StudyInstallmentController::class, 'returnBill'])
         ->middleware('role:admin');
 
@@ -45,19 +48,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Food Installments
     Route::apiResource('food-installments', \App\Http\Controllers\Api\FoodInstallmentController::class)->except(['update']);
-    Route::get('food-installments/{id}/invoice', [\App\Http\Controllers\Api\FoodInstallmentController::class, 'invoice']);
     Route::put('food-installments/{id}/return', [\App\Http\Controllers\Api\FoodInstallmentController::class, 'returnBill'])
         ->middleware('role:admin');
 
     // Clothes & Books
     Route::apiResource('clothes-books', \App\Http\Controllers\Api\ClothesBookController::class);
-    Route::get('clothes-books/{id}/invoice', [\App\Http\Controllers\Api\ClothesBookController::class, 'invoice']);
 
     // Expenses
     Route::apiResource('expenses', \App\Http\Controllers\Api\ExpenseController::class);
 
-    // Salaries
-    Route::apiResource('salaries', \App\Http\Controllers\Api\SalaryController::class);
+
 
     // Reports
     Route::prefix('reports')->group(function () {
@@ -65,7 +65,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/food-installments', [\App\Http\Controllers\Api\ReportController::class, 'foodInstallments']);
         Route::get('/study-income', [\App\Http\Controllers\Api\ReportController::class, 'studyIncome']);
         Route::get('/expenses', [\App\Http\Controllers\Api\ReportController::class, 'expenses']);
-        Route::get('/salaries', [\App\Http\Controllers\Api\ReportController::class, 'salaries']);
+
         Route::get('/student-list', [\App\Http\Controllers\Api\ReportController::class, 'studentList']);
         Route::get('/study-installments/export', [\App\Http\Controllers\Api\ReportController::class, 'exportStudyInstallments']);
         Route::get('/study-installments/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfStudyInstallments']);

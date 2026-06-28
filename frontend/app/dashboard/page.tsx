@@ -59,25 +59,25 @@ export default function DashboardPage() {
 
   const statCards = [
     {
-      label: 'Active Students',
+      label: 'قوتابیانی چالاک',
       value: dashboard.total_students,
       icon: <HiOutlineUserGroup className="w-6 h-6 text-primary" />,
       color: 'bg-primary/10',
     },
     {
-      label: 'Tuition Revenue (Year)',
+      label: 'داهاتی خوێندن (ساڵانە)',
       value: formatCurrency(dashboard.study_revenue),
       icon: <HiOutlineCreditCard className="w-6 h-6 text-success" />,
       color: 'bg-success/10',
     },
     {
-      label: 'Meal Revenue (Year)',
+      label: 'داهاتی نانخواردن (ساڵانە)',
       value: formatCurrency(dashboard.food_revenue),
       icon: <HiOutlineBuildingStorefront className="w-6 h-6 text-accent" />,
       color: 'bg-accent/10',
     },
     {
-      label: 'Expenses (Month)',
+      label: 'خەرجییەکان (مانگانە)',
       value: formatCurrency(dashboard.monthly_expenses),
       icon: <HiOutlineCurrencyDollar className="w-6 h-6 text-danger" />,
       color: 'bg-danger/10',
@@ -88,8 +88,8 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* Title */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-text">Dashboard</h1>
-        <p className="text-xs text-text-muted">School operation and finances overview</p>
+        <h1 className="text-2xl font-bold tracking-tight text-text">سەرەکی</h1>
+        <p className="text-xs text-text-muted">کورتەی گشتی کاروبار و دارایی قوتابخانە</p>
       </div>
 
       {/* Summary Cards */}
@@ -109,7 +109,7 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Revenue vs Expenses Chart */}
         <div className="lg:col-span-2 bg-white border border-border rounded-xl shadow-card p-6 flex flex-col">
-          <h3 className="font-semibold text-sm text-text mb-4">Revenue vs Expenses</h3>
+          <h3 className="font-semibold text-sm text-text mb-4">داهات بەرامبەر خەرجی</h3>
           <div className="flex-1 min-h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={dashboard.monthly_chart} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -118,8 +118,8 @@ export default function DashboardPage() {
                 <YAxis stroke="#A0AEC0" fontSize={10} tickLine={false} />
                 <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                 <Legend iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                <Bar dataKey="revenue" fill="var(--color-primary-light)" radius={[4, 4, 0, 0]} name="Total Revenue" />
-                <Bar dataKey="expenses" fill="var(--color-danger)" radius={[4, 4, 0, 0]} name="Total Expenses" />
+                <Bar dataKey="revenue" fill="var(--color-primary-light)" radius={[4, 4, 0, 0]} name="کۆی داهات" />
+                <Bar dataKey="expenses" fill="var(--color-danger)" radius={[4, 4, 0, 0]} name="کۆی خەرجی" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -129,12 +129,12 @@ export default function DashboardPage() {
         <div className="bg-white border border-border rounded-xl shadow-card p-6 flex flex-col">
           <div className="flex items-center gap-2 mb-4 text-warning">
             <HiOutlineExclamationTriangle className="w-5 h-5" />
-            <h3 className="font-semibold text-sm text-text">Outstanding Balances</h3>
+            <h3 className="font-semibold text-sm text-text">قەرزە ماوەکان</h3>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-3 max-h-[300px] pr-1">
             {dashboard.outstanding_balances.length === 0 ? (
-              <p className="text-xs text-text-muted text-center py-10">No students have outstanding balances.</p>
+              <p className="text-xs text-text-muted text-center py-10">هیچ قوتابییەک قەرزار نییە.</p>
             ) : (
               dashboard.outstanding_balances.map((balance, idx) => (
                 <div key={idx} className="flex justify-between items-center p-2.5 rounded-lg border border-border bg-surface-muted">
@@ -152,17 +152,17 @@ export default function DashboardPage() {
 
       {/* Recent Transactions Table */}
       <div className="bg-white border border-border rounded-xl shadow-card p-6">
-        <h3 className="font-semibold text-sm text-text mb-4">Recent Transactions</h3>
+        <h3 className="font-semibold text-sm text-text mb-4">کۆتا مامەڵەکان</h3>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-border">
             <thead>
               <tr className="text-left text-xs font-semibold uppercase text-text-muted tracking-wider bg-surface-muted">
-                <th className="px-6 py-3">Invoice No</th>
-                <th className="px-6 py-3">Student Name</th>
-                <th className="px-6 py-3">Type</th>
-                <th className="px-6 py-3">Amount Paid</th>
-                <th className="px-6 py-3">Date</th>
-                <th className="px-6 py-3">Status</th>
+                <th className="px-6 py-3">ژمارەی پسوولە</th>
+                <th className="px-6 py-3">ناوی قوتابی</th>
+                <th className="px-6 py-3">جۆر</th>
+                <th className="px-6 py-3">بڕی دراو</th>
+                <th className="px-6 py-3">بەروار</th>
+                <th className="px-6 py-3">بارودۆخ</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-border text-sm text-text">
@@ -170,12 +170,14 @@ export default function DashboardPage() {
                 <tr key={idx} className={`hover:bg-surface-muted/50 ${tx.is_returned ? 'line-through opacity-60 text-danger bg-red-50/20' : ''}`}>
                   <td className="px-6 py-3 font-mono font-semibold">#{tx.invoice_no}</td>
                   <td className="px-6 py-3 font-medium">{tx.student?.full_name}</td>
-                  <td className="px-6 py-3 uppercase text-xs font-bold text-text-muted">{tx.type}</td>
+                  <td className="px-6 py-3 uppercase text-xs font-bold text-text-muted">
+                    {tx.type === 'study' ? 'خوێندن' : 'نانخواردن'}
+                  </td>
                   <td className="px-6 py-3 font-mono font-semibold text-primary">{formatCurrency(tx.amount_paid)}</td>
                   <td className="px-6 py-3">{formatDate(tx.payment_date)}</td>
                   <td className="px-6 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${tx.is_returned ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'}`}>
-                      {tx.is_returned ? 'Returned' : 'Paid'}
+                      {tx.is_returned ? 'گەڕاوەتەوە' : 'دراوە'}
                     </span>
                   </td>
                 </tr>

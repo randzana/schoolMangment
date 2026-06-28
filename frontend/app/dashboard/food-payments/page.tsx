@@ -15,9 +15,9 @@ import { formatCurrency, GRADE_OPTIONS, GRADE_MAP, getBalanceRowClass } from '@/
 import { HiOutlinePencilSquare, HiOutlinePlusCircle, HiOutlineMagnifyingGlass } from 'react-icons/hi2';
 
 const setupFoodSchema = zod.object({
-  student_id: zod.number().min(1, 'Select a student'),
-  monthly_price: zod.number().min(0, 'Monthly rate must be positive'),
-  discount: zod.number().min(0, 'Discount must be positive'),
+  student_id: zod.number().min(1, 'تکایە قوتابییەک هەڵبژێرە'),
+  monthly_price: zod.number().min(0, 'دەبێت بڕی مانگانە لە ٠ زیاتر بێت'),
+  discount: zod.number().min(0, 'دەبێت بڕی داشکاندن لە ٠ زیاتر بێت'),
   notes: zod.string().optional(),
 });
 
@@ -81,22 +81,22 @@ export default function FoodPaymentsPage() {
   };
 
   const columns: Column<any>[] = [
-    { header: 'Serial No', accessor: (row) => row.student?.serial_number },
-    { header: 'Student Name', accessor: (row) => row.student?.full_name, sortable: true },
-    { header: 'Grade', accessor: (row) => GRADE_MAP[row.student?.grade] || row.student?.grade },
-    { header: 'Monthly Price', accessor: (row) => formatCurrency(row.monthly_price) },
-    { header: 'Discount', accessor: (row) => formatCurrency(row.discount), className: 'text-danger' },
-    { header: 'Net Price', accessor: (row) => formatCurrency(row.price_after_discount), className: 'font-semibold' },
-    { header: 'Total Paid', accessor: (row) => formatCurrency(row.total_paid), className: 'text-success font-semibold' },
-    { header: 'Remaining', accessor: (row) => formatCurrency(row.remain_balance), className: 'text-danger font-bold' },
+    { header: 'ژمارەی ناسنامە (سێریال)', accessor: (row) => row.student?.serial_number },
+    { header: 'ناوی قوتابی', accessor: (row) => row.student?.full_name, sortable: true },
+    { header: 'پۆل', accessor: (row) => GRADE_MAP[row.student?.grade] || row.student?.grade },
+    { header: 'نرخی مانگانە', accessor: (row) => formatCurrency(row.monthly_price) },
+    { header: 'داشکاندن', accessor: (row) => formatCurrency(row.discount), className: 'text-danger' },
+    { header: 'نرخی سافی', accessor: (row) => formatCurrency(row.price_after_discount), className: 'font-semibold' },
+    { header: 'کۆی دراو', accessor: (row) => formatCurrency(row.total_paid), className: 'text-success font-semibold' },
+    { header: 'قەرزی ماوە', accessor: (row) => formatCurrency(row.remain_balance), className: 'text-danger font-bold' },
     {
-      header: 'Actions',
+      header: 'کردارەکان',
       accessor: (row) => (
         <Button
           variant="ghost"
           size="sm"
           onClick={() => openEditModal(row)}
-          title="Update Food Configuration"
+          title="دەستکاریکردنی پلانی نانخواردن"
         >
           <HiOutlinePencilSquare className="w-4 h-4" />
         </Button>
@@ -109,12 +109,12 @@ export default function FoodPaymentsPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-text">Food Payments</h1>
-          <p className="text-xs text-text-muted">Configure student monthly meal plans and subscription discounts</p>
+          <h1 className="text-2xl font-bold tracking-tight text-text">پارەی نانخواردن</h1>
+          <p className="text-xs text-text-muted">ڕێکخستنی پلانەکانی نانخواردنی مانگانەی قوتابییان و داشکاندنەکان</p>
         </div>
-        <Button variant="primary" onClick={openAddModal} className="flex items-center gap-1.5 self-start">
+        <Button variant="primary" onClick={openAddModal} className="flex items-center gap-1.5 self-start font-semibold">
           <HiOutlinePlusCircle className="w-4 h-4" />
-          <span>Setup Meal Plan</span>
+          <span>ڕێکخستنی پلانی نانخواردن</span>
         </Button>
       </div>
 
@@ -122,19 +122,19 @@ export default function FoodPaymentsPage() {
       {summaryData?.data && (
         <div className="grid gap-6 sm:grid-cols-4">
           <div className="bg-white border p-5 rounded-xl shadow-card">
-            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Total Monthly Rate</span>
+            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">کۆی گشتی نرخی مانگانە</span>
             <p className="text-base font-bold text-text mt-1">{formatCurrency(summaryData.data.total_monthly)}</p>
           </div>
           <div className="bg-white border p-5 rounded-xl shadow-card">
-            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Total Discounts</span>
+            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">کۆی گشتی داشکاندنەکان</span>
             <p className="text-base font-bold text-danger mt-1">-{formatCurrency(summaryData.data.total_discount)}</p>
           </div>
           <div className="bg-white border p-5 rounded-xl shadow-card">
-            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Total Collected</span>
+            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">کۆی گشتی وەرگیراو</span>
             <p className="text-base font-bold text-success mt-1">{formatCurrency(summaryData.data.total_paid)}</p>
           </div>
           <div className="bg-white border p-5 rounded-xl shadow-card">
-            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Outstanding Balance</span>
+            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">کۆی گشتی قەرزی ماوە</span>
             <p className="text-base font-bold text-danger mt-1">{formatCurrency(summaryData.data.total_remaining)}</p>
           </div>
         </div>
@@ -145,7 +145,7 @@ export default function FoodPaymentsPage() {
         <div className="flex-1 relative">
           <input
             type="text"
-            placeholder="Search by student name or serial..."
+            placeholder="گەڕان بەپێی ناوی قوتابی یان ژمارەی ناسنامە..."
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -164,7 +164,7 @@ export default function FoodPaymentsPage() {
             }}
             className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-white text-text focus:border-primary focus:outline-none transition-all"
           >
-            <option value="">All Grades</option>
+            <option value="">هەموو پۆلەکان</option>
             {GRADE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
@@ -194,63 +194,63 @@ export default function FoodPaymentsPage() {
       </div>
 
       {/* Setup Form Modal */}
-      <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title={editingPayment ? 'Modify Monthly Meal Rate' : 'Setup Monthly Meal Rate'}>
+      <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title={editingPayment ? 'دەستکاریکردنی نرخی مانگانەی نانخواردن' : 'ڕێکخستنی نرخی مانگانەی نانخواردن'}>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {!editingPayment ? (
             <AutocompleteInput
-              label="Select Student *"
+              label="قوتابی هەڵبژێرە *"
               onSelect={(student) => setValue('student_id', student.id)}
               error={errors.student_id?.message}
             />
           ) : (
             <div className="bg-surface-muted p-3 border border-border rounded-lg">
-              <span className="text-[10px] text-text-muted font-bold uppercase">Student Name</span>
+              <span className="text-[10px] text-text-muted font-bold uppercase">ناوی قوتابی</span>
               <p className="text-sm font-bold text-text mt-0.5">{editingPayment.student?.full_name}</p>
             </div>
           )}
 
           <Input
-            label="Monthly Price (IQD) *"
+            label="نرخی مانگانە (دینار) *"
             id="monthly_price"
             type="number"
-            placeholder="e.g. 150000"
+            placeholder="نموونە: 150000"
             error={errors.monthly_price?.message}
             {...register('monthly_price', { valueAsNumber: true })}
           />
 
           <Input
-            label="Discount (IQD)"
+            label="داشکاندن (دینار)"
             id="discount"
             type="number"
-            placeholder="e.g. 10000"
+            placeholder="نموونە: 10000"
             error={errors.discount?.message}
             {...register('discount', { valueAsNumber: true })}
           />
 
           <div className="bg-surface-muted p-3 border border-border rounded-lg">
-            <span className="text-[10px] text-text-muted font-bold uppercase">Net Price After Discount (Computed)</span>
+            <span className="text-[10px] text-text-muted font-bold uppercase">نرخی سافی دوای داشکاندن (ئەژمارکراو)</span>
             <p className="text-sm font-mono font-bold text-primary mt-0.5">{formatCurrency(priceAfterDiscount)}</p>
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="notes" className="text-xs font-semibold text-text">
-              Notes
+              تێبینی
             </label>
             <textarea
               id="notes"
               rows={3}
-              placeholder="e.g. Halal meal only / allergy warnings"
+              placeholder="بۆ نموونە: تەنها خواردنی حەڵاڵ، هەستیاری بە خواردن، هتد."
               className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-text border-border focus:border-primary-light focus:outline-none focus:ring-2 focus:ring-primary-light/20 transition-all placeholder:text-text-light"
               {...register('notes')}
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex justify-end gap-3 pt-2 font-semibold">
             <Button variant="secondary" onClick={() => setIsFormOpen(false)}>
-              Cancel
+              پاشگەزبوونەوە
             </Button>
             <Button type="submit" variant="primary" isLoading={savePaymentMutation.isPending}>
-              Save Setup
+              پاشەکەوتکردن
             </Button>
           </div>
         </form>

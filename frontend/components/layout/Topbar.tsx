@@ -26,7 +26,7 @@ export default function Topbar() {
             {getSchoolName()}
           </h2>
           <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-            Academic Year: {getAcademicYear()}
+            ساڵی خوێندن: {getAcademicYear()}
           </p>
         </div>
       </div>

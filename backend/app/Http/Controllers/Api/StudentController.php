@@ -55,20 +55,40 @@ class StudentController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        if (!$request->filled('serial_number')) {
+            $maxSerial = Student::withTrashed()->get()->map(function ($s) {
+                return is_numeric($s->serial_number) ? (int)$s->serial_number : 0;
+            })->max();
+            
+            $nextSerial = $maxSerial ? ($maxSerial + 1) : 1001;
+            while (Student::where('serial_number', (string)$nextSerial)->exists()) {
+                $nextSerial++;
+            }
+            $request->merge(['serial_number' => (string)$nextSerial]);
+        }
+
         $validated = $request->validate([
             'serial_number' => 'required|string|max:20|unique:students,serial_number',
             'full_name' => 'required|string|max:150',
-            'grade' => ['required', Rule::in(['one', 'two', 'three', 'four', 'five'])],
+            'grade' => ['required', Rule::in(['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'])],
             'phone' => 'nullable|string|max:30',
             'address' => 'nullable|string',
             'notes' => 'nullable|string',
+            'tuition_price' => 'required|numeric|min:0',
         ]);
 
-        $student = Student::create($validated);
+        $student = Student::create([
+            'serial_number' => $validated['serial_number'],
+            'full_name' => $validated['full_name'],
+            'grade' => $validated['grade'],
+            'phone' => $validated['phone'] ?? null,
+            'address' => $validated['address'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+        ]);
 
         // Auto-create study payment for current academic year
         $academicYear = config('school.academic_year', '2025-2026');
-        $studyPrice = config('school.study_prices.' . $student->grade, 0);
+        $studyPrice = $validated['tuition_price'];
 
         StudyPayment::create([
             'student_id' => $student->id,
@@ -117,7 +137,7 @@ class StudentController extends Controller
         $validated = $request->validate([
             'serial_number' => ['sometimes', 'required', 'string', 'max:20', Rule::unique('students')->ignore($student->id)],
             'full_name' => 'sometimes|required|string|max:150',
-            'grade' => ['sometimes', 'required', Rule::in(['one', 'two', 'three', 'four', 'five'])],
+            'grade' => ['sometimes', 'required', Rule::in(['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'])],
             'phone' => 'nullable|string|max:30',
             'address' => 'nullable|string',
             'notes' => 'nullable|string',

@@ -17,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\RoleMiddleware::class,
         ]);
 
+        // For API requests, return 401 JSON instead of redirecting to a login route
+        $middleware->redirectGuestsTo(fn (Request $request) => 
+            $request->is('api/*') ? null : '/login'
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

@@ -35,7 +35,7 @@ export default function StudyIncomeReportPage() {
   const grandTotal = reportResponse?.grand_total || 0;
 
   const handleExportCsv = () => {
-    const headers = 'Month,Collected Amount,Running Cumulative Total\n';
+    const headers = 'مانگ,بڕی کۆکراوە,کۆی گشتی بەردەوام\n';
     const rows = months
       .map((m: any) =>
         [
@@ -55,9 +55,9 @@ export default function StudyIncomeReportPage() {
   };
 
   const columns: Column<any>[] = [
-    { header: 'Month', accessor: 'month' },
-    { header: 'Total Collected', accessor: (row) => formatCurrency(row.total_collected), className: 'text-success font-semibold' },
-    { header: 'Running Total', accessor: (row) => formatCurrency(row.running_total), className: 'font-mono' },
+    { header: 'مانگ', accessor: 'month' },
+    { header: 'بڕی کۆکراوە', accessor: (row) => formatCurrency(row.total_collected), className: 'text-success font-semibold' },
+    { header: 'کۆی گشتی بەردەوام', accessor: (row) => formatCurrency(row.running_total), className: 'font-mono' },
   ];
 
   return (
@@ -66,7 +66,7 @@ export default function StudyIncomeReportPage() {
       <div className="flex justify-between items-center gap-4 bg-surface-muted p-4 border rounded-xl">
         <div className="w-48">
           <Select
-            label="Select Calendar Year"
+            label="هەڵبژاردنی ساڵ"
             id="year_filter"
             options={[
               { value: '2024', label: '2024' },
@@ -79,19 +79,19 @@ export default function StudyIncomeReportPage() {
         </div>
         <Button variant="secondary" onClick={handleExportCsv} className="flex items-center gap-1.5">
           <HiOutlineArrowDownTray className="w-4 h-4" />
-          <span>Export CSV</span>
+          <span>ناردنەوەی CSV</span>
         </Button>
       </div>
 
       {/* Aggregate Header */}
       <div className="bg-primary/5 p-5 border border-primary/20 rounded-xl max-w-sm">
-        <span className="text-[10px] text-primary font-bold uppercase">Grand Cumulative Revenue</span>
+        <span className="text-[10px] text-primary font-bold">کۆی گشتی داهاتی ساڵانە</span>
         <p className="text-xl font-bold text-primary mt-1">{formatCurrency(grandTotal)}</p>
       </div>
 
       {/* Chart visualization */}
       <div className="bg-white border rounded-xl shadow-card p-6">
-        <h3 className="font-semibold text-xs text-text mb-4 uppercase tracking-wider">Revenue Accrual (Monthly)</h3>
+        <h3 className="font-semibold text-xs text-text mb-4 tracking-wider">داهاتی مانگانە (بە دینار)</h3>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={months} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>

@@ -1,8 +1,8 @@
 <?php
 
 return [
-    'name' => env('SCHOOL_NAME', 'Al-Noor Private School'),
-    'academic_year' => env('ACADEMIC_YEAR', '2025-2026'),
+    'name' => env('SCHOOL_NAME', 'Private F.G Basic School'),
+    'academic_year' => env('ACADEMIC_YEAR', '2026-2027'),
 
     // Grade-based annual tuition prices (IQD)
     'study_prices' => [
@@ -11,6 +11,10 @@ return [
         'three' => 1600000,
         'four'  => 1800000,
         'five'  => 2000000,
+        'six'   => 2200000,
+        'seven' => 2400000,
+        'eight' => 2600000,
+        'nine'  => 2800000,
     ],
 
     // Monthly food price (IQD)

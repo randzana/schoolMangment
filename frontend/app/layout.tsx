@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 import { QueryProvider } from '@/lib/queryClient';
 import { Toaster } from 'sonner';
 
-const inter = Inter({
-  subsets: ['latin'],
+const araknFont = localFont({
+  src: './fonts/arakn.ttf',
   variable: '--font-sans',
 });
 
@@ -20,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+    <html lang="ku" dir="rtl" className={`${araknFont.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background text-text">
         <QueryProvider>
           {children}

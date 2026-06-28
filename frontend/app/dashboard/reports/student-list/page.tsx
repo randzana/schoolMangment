@@ -24,7 +24,7 @@ export default function StudentListReportPage() {
   });
 
   const handleExportCsv = () => {
-    const headers = 'Serial No,Name,Grade,Tuition Due,Tuition Paid,Tuition Remaining,Meal Rate,Meal Paid,Meal Remaining,Tuition Status\n';
+    const headers = 'سێریال,ناو,پۆل,کرێی خوێندن,دراوی خوێندن,ماوەی خوێندن,نرخی نان,دراوی نان,ماوەی نان,بارودۆخ\n';
     const rows = students
       .map((s: any) =>
         [
@@ -37,7 +37,8 @@ export default function StudentListReportPage() {
           s.food_monthly_price,
           s.food_paid,
           s.food_remaining,
-          s.payment_status.toUpperCase(),
+          s.payment_status === 'paid' ? 'تەواو دراوە' :
+          s.payment_status === 'partial' ? 'بەشێکی دراوە' : 'نەدراوە',
         ].join(',')
       )
       .join('\n');
@@ -51,22 +52,23 @@ export default function StudentListReportPage() {
   };
 
   const columns: Column<any>[] = [
-    { header: 'Serial No', accessor: 'serial_number' },
-    { header: 'Student Name', accessor: 'full_name' },
-    { header: 'Grade', accessor: 'grade_display' },
-    { header: 'Tuition Price', accessor: (row) => formatCurrency(row.study_annual_price) },
-    { header: 'Tuition Paid', accessor: (row) => formatCurrency(row.study_paid), className: 'text-success' },
-    { header: 'Tuition Balance', accessor: (row) => formatCurrency(row.study_remaining), className: 'text-danger font-semibold' },
-    { header: 'Meal Price', accessor: (row) => formatCurrency(row.food_monthly_price) },
-    { header: 'Meal Balance', accessor: (row) => formatCurrency(row.food_remaining), className: 'text-danger font-semibold' },
+    { header: 'سێریال', accessor: 'serial_number' },
+    { header: 'ناوی قوتابی', accessor: 'full_name' },
+    { header: 'پۆل', accessor: 'grade_display' },
+    { header: 'کرێی خوێندن', accessor: (row) => formatCurrency(row.study_annual_price) },
+    { header: 'دراوی خوێندن', accessor: (row) => formatCurrency(row.study_paid), className: 'text-success' },
+    { header: 'ماوەی خوێندن', accessor: (row) => formatCurrency(row.study_remaining), className: 'text-danger font-semibold' },
+    { header: 'نرخی نان', accessor: (row) => formatCurrency(row.food_monthly_price) },
+    { header: 'ماوەی نان', accessor: (row) => formatCurrency(row.food_remaining), className: 'text-danger font-semibold' },
     {
-      header: 'Tuition Status',
+      header: 'بارودۆخ',
       accessor: (row) => (
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
           row.payment_status === 'paid' ? 'bg-success/10 text-success' :
           row.payment_status === 'partial' ? 'bg-warning/10 text-warning' : 'bg-danger/10 text-danger'
         }`}>
-          {row.payment_status}
+          {row.payment_status === 'paid' ? 'تەواو دراوە' :
+           row.payment_status === 'partial' ? 'بەشێکی دراوە' : 'نەدراوە'}
         </span>
       ),
     },
@@ -77,22 +79,22 @@ export default function StudentListReportPage() {
       {/* Filters */}
       <div className="grid gap-4 sm:grid-cols-2 items-end bg-surface-muted p-4 border rounded-xl max-w-2xl">
         <Select
-          label="Filter by Grade"
+          label="فلتەر بەپێی پۆل"
           id="grade_filter"
           options={GRADE_OPTIONS}
-          placeholder="All Grades"
+          placeholder="هەموو پۆلەکان"
           value={grade}
           onChange={(e) => setGrade(e.target.value)}
         />
         <Select
-          label="Filter by Payment Status"
+          label="فلتەر بەپێی بارودۆخی پارەدان"
           id="status_filter"
           options={[
-            { value: 'paid', label: 'Fully Paid' },
-            { value: 'partial', label: 'Partially Paid' },
-            { value: 'unpaid', label: 'Not Paid' },
+            { value: 'paid', label: 'تەواو دراوە' },
+            { value: 'partial', label: 'بەشێکی دراوە' },
+            { value: 'unpaid', label: 'نەدراوە' },
           ]}
-          placeholder="All Statuses"
+          placeholder="هەموو بارودۆخەکان"
           value={status}
           onChange={(e) => setStatus(e.target.value)}
         />
@@ -100,7 +102,7 @@ export default function StudentListReportPage() {
 
       {/* Summary aggregate count */}
       <div className="bg-surface-muted p-4 border rounded-xl max-w-xs">
-        <span className="text-[10px] text-text-muted font-bold uppercase">Filtered Student Count</span>
+        <span className="text-[10px] text-text-muted font-bold">ژمارەی قوتابییانی فلتەرکراو</span>
         <p className="text-base font-bold text-text mt-0.5">{students.length}</p>
       </div>
 
@@ -108,7 +110,7 @@ export default function StudentListReportPage() {
       <div className="flex justify-end">
         <Button variant="secondary" onClick={handleExportCsv} className="flex items-center gap-1.5">
           <HiOutlineArrowDownTray className="w-4 h-4" />
-          <span>Export CSV</span>
+          <span>ناردنەوەی CSV</span>
         </Button>
       </div>
 

@@ -43,17 +43,17 @@ export default function StudyInstallmentsReportPage() {
   };
 
   const columns: Column<any>[] = [
-    { header: 'Invoice No', accessor: (row) => `#${row.invoice_no}` },
-    { header: 'Date', accessor: (row) => formatDate(row.payment_date) },
-    { header: 'Student Name', accessor: (row) => row.student?.full_name },
-    { header: 'Grade', accessor: (row) => GRADE_MAP[row.student?.grade] || row.student?.grade },
-    { header: 'Amount Paid', accessor: (row) => formatCurrency(row.amount_paid), className: 'text-primary font-bold' },
-    { header: 'Remaining After', accessor: (row) => formatCurrency(row.remain_after) },
+    { header: 'ژمارەی پسوولە', accessor: (row) => `#${row.invoice_no}` },
+    { header: 'بەروار', accessor: (row) => formatDate(row.payment_date) },
+    { header: 'ناوی قوتابی', accessor: (row) => row.student?.full_name },
+    { header: 'پۆل', accessor: (row) => GRADE_MAP[row.student?.grade] || row.student?.grade },
+    { header: 'بڕی دراو', accessor: (row) => formatCurrency(row.amount_paid), className: 'text-primary font-bold' },
+    { header: 'ماوەی قەرز', accessor: (row) => formatCurrency(row.remain_after) },
     {
-      header: 'Returned',
+      header: 'بارودۆخ',
       accessor: (row) => (
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${row.is_returned ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'}`}>
-          {row.is_returned ? 'Yes' : 'No'}
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${row.is_returned ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'}`}>
+          {row.is_returned ? 'گەڕاوەتەوە' : 'چالاک'}
         </span>
       ),
     },
@@ -64,24 +64,24 @@ export default function StudyInstallmentsReportPage() {
       {/* Filters */}
       <div className="grid gap-4 sm:grid-cols-3 items-end bg-surface-muted p-4 border rounded-xl">
         <Input
-          label="From Date"
+          label="لە بەرواری"
           id="from_date"
           type="date"
           value={from}
           onChange={(e) => setFrom(e.target.value)}
         />
         <Input
-          label="To Date"
+          label="بۆ بەرواری"
           id="to_date"
           type="date"
           value={to}
           onChange={(e) => setTo(e.target.value)}
         />
         <Select
-          label="Filter by Grade"
+          label="فلتەر بەپێی پۆل"
           id="grade_filter"
           options={GRADE_OPTIONS}
-          placeholder="All Grades"
+          placeholder="هەموو پۆلەکان"
           value={grade}
           onChange={(e) => setGrade(e.target.value)}
         />
@@ -90,11 +90,11 @@ export default function StudyInstallmentsReportPage() {
       {/* Summary Aggregate cards */}
       <div className="grid gap-4 sm:grid-cols-2 max-w-md">
         <div className="bg-surface-muted p-4 border rounded-xl">
-          <span className="text-[10px] text-text-muted font-bold uppercase">Total Transactions</span>
+          <span className="text-[10px] text-text-muted font-bold">کۆی مامەڵەکان</span>
           <p className="text-base font-bold text-text mt-0.5">{summary.count}</p>
         </div>
         <div className="bg-surface-muted p-4 border rounded-xl">
-          <span className="text-[10px] text-text-muted font-bold uppercase">Total Revenue Collected</span>
+          <span className="text-[10px] text-text-muted font-bold">کۆی داهاتی کۆکراوە</span>
           <p className="text-base font-bold text-success mt-0.5">{formatCurrency(summary.total_amount)}</p>
         </div>
       </div>
@@ -103,11 +103,11 @@ export default function StudyInstallmentsReportPage() {
       <div className="flex justify-end gap-3">
         <Button variant="secondary" onClick={handleExportCsv} className="flex items-center gap-1.5">
           <HiOutlineArrowDownTray className="w-4 h-4" />
-          <span>Export CSV</span>
+          <span>ناردنەوەی CSV</span>
         </Button>
         <Button variant="primary" onClick={handlePrintPdf} className="flex items-center gap-1.5">
           <HiOutlinePrinter className="w-4 h-4" />
-          <span>Print PDF</span>
+          <span>چاپکردن</span>
         </Button>
       </div>
 

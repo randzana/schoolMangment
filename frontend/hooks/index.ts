@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import type { ApiResponse, PaginatedResponse, Student, Teacher, StudyPayment, StudyInstallment, FoodPayment, FoodInstallment, ClothesBookPayment, Expense, SalaryExpense, User, ReportData, StudentListItem } from '@/types';
+import type { ApiResponse, PaginatedResponse, Student, StudyPayment, StudyInstallment, FoodPayment, FoodInstallment, ClothesBookPayment, Expense, User, ReportData, StudentListItem } from '@/types';
 import { toast } from 'sonner';
 
 // ==========================================
@@ -81,81 +81,6 @@ export function useDeleteStudent() {
   });
 }
 
-// ==========================================
-// Teachers
-// ==========================================
-export function useTeachers(params: { search?: string; page?: number; per_page?: number }) {
-  return useQuery<PaginatedResponse<Teacher>>({
-    queryKey: ['teachers', params],
-    queryFn: async () => {
-      const res = await api.get('/teachers', { params });
-      return res.data;
-    },
-  });
-}
-
-export function useTeacher(id: number) {
-  return useQuery<ApiResponse<Teacher>>({
-    queryKey: ['teacher', id],
-    queryFn: async () => {
-      const res = await api.get(`/teachers/${id}`);
-      return res.data;
-    },
-    enabled: !!id,
-  });
-}
-
-export function useCreateTeacher() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (data: any) => {
-      const res = await api.post('/teachers', data);
-      return res.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teachers'] });
-      toast.success('Teacher created successfully');
-    },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to create teacher');
-    },
-  });
-}
-
-export function useUpdateTeacher(id: number) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (data: any) => {
-      const res = await api.put(`/teachers/${id}`, data);
-      return res.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teachers'] });
-      queryClient.invalidateQueries({ queryKey: ['teacher', id] });
-      toast.success('Teacher updated successfully');
-    },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to update teacher');
-    },
-  });
-}
-
-export function useDeleteTeacher() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: number) => {
-      const res = await api.delete(`/teachers/${id}`);
-      return res.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teachers'] });
-      toast.success('Teacher deleted successfully');
-    },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to delete teacher');
-    },
-  });
-}
 
 // ==========================================
 // Study Payments & Installments
@@ -489,52 +414,6 @@ export function useDeleteExpense() {
   });
 }
 
-// ==========================================
-// Salaries
-// ==========================================
-export function useSalaries(params: { teacher_id?: number; month?: string; page?: number; per_page?: number }) {
-  return useQuery<PaginatedResponse<SalaryExpense>>({
-    queryKey: ['salaries', params],
-    queryFn: async () => {
-      const res = await api.get('/salaries', { params });
-      return res.data;
-    },
-  });
-}
-
-export function useCreateSalary() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (data: any) => {
-      const res = await api.post('/salaries', data);
-      return res.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['salaries'] });
-      toast.success('Salary expense recorded successfully');
-    },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to record salary');
-    },
-  });
-}
-
-export function useDeleteSalary() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: number) => {
-      const res = await api.delete(`/salaries/${id}`);
-      return res.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['salaries'] });
-      toast.success('Salary expense record deleted');
-    },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to delete record');
-    },
-  });
-}
 
 // ==========================================
 // Users Management
