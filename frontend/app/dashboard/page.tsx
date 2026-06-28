@@ -1,0 +1,189 @@
+'use client';
+
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import api from '@/lib/api';
+import type { DashboardData } from '@/types';
+import { formatCurrency, formatDate } from '@/lib/utils';
+import {
+  HiOutlineUserGroup,
+  HiOutlineCreditCard,
+  HiOutlineBuildingStorefront,
+  HiOutlineCurrencyDollar,
+  HiOutlineExclamationTriangle,
+} from 'react-icons/hi2';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
+import { TableSkeleton } from '@/components/tables/TableSkeleton';
+
+export default function DashboardPage() {
+  const { data: dashboard, isLoading, error } = useQuery<DashboardData>({
+    queryKey: ['dashboard-data'],
+    queryFn: async () => {
+      const res = await api.get('/reports/dashboard');
+      return res.data.data;
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <div key={idx} className="h-24 bg-white border rounded-xl animate-shimmer" />
+          ))}
+        </div>
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 h-96 bg-white border rounded-xl animate-shimmer" />
+          <div className="h-96 bg-white border rounded-xl animate-shimmer" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !dashboard) {
+    return (
+      <div className="p-6 text-center text-danger font-medium border border-danger/20 rounded-xl bg-danger/5">
+        Failed to load dashboard overview data.
+      </div>
+    );
+  }
+
+  const statCards = [
+    {
+      label: 'Active Students',
+      value: dashboard.total_students,
+      icon: <HiOutlineUserGroup className="w-6 h-6 text-primary" />,
+      color: 'bg-primary/10',
+    },
+    {
+      label: 'Tuition Revenue (Year)',
+      value: formatCurrency(dashboard.study_revenue),
+      icon: <HiOutlineCreditCard className="w-6 h-6 text-success" />,
+      color: 'bg-success/10',
+    },
+    {
+      label: 'Meal Revenue (Year)',
+      value: formatCurrency(dashboard.food_revenue),
+      icon: <HiOutlineBuildingStorefront className="w-6 h-6 text-accent" />,
+      color: 'bg-accent/10',
+    },
+    {
+      label: 'Expenses (Month)',
+      value: formatCurrency(dashboard.monthly_expenses),
+      icon: <HiOutlineCurrencyDollar className="w-6 h-6 text-danger" />,
+      color: 'bg-danger/10',
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Title */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-text">Dashboard</h1>
+        <p className="text-xs text-text-muted">School operation and finances overview</p>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {statCards.map((card, idx) => (
+          <div key={idx} className="bg-white border border-border p-6 rounded-xl shadow-card flex items-center justify-between">
+            <div className="space-y-1">
+              <span className="text-xs text-text-muted font-medium">{card.label}</span>
+              <p className="text-lg font-bold text-text">{card.value}</p>
+            </div>
+            <div className={`p-3 rounded-lg ${card.color}`}>{card.icon}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Charts & Outstanding Balances */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Revenue vs Expenses Chart */}
+        <div className="lg:col-span-2 bg-white border border-border rounded-xl shadow-card p-6 flex flex-col">
+          <h3 className="font-semibold text-sm text-text mb-4">Revenue vs Expenses</h3>
+          <div className="flex-1 min-h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dashboard.monthly_chart} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="month" stroke="#A0AEC0" fontSize={10} tickLine={false} />
+                <YAxis stroke="#A0AEC0" fontSize={10} tickLine={false} />
+                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Legend iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                <Bar dataKey="revenue" fill="var(--color-primary-light)" radius={[4, 4, 0, 0]} name="Total Revenue" />
+                <Bar dataKey="expenses" fill="var(--color-danger)" radius={[4, 4, 0, 0]} name="Total Expenses" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Outstanding Balances list */}
+        <div className="bg-white border border-border rounded-xl shadow-card p-6 flex flex-col">
+          <div className="flex items-center gap-2 mb-4 text-warning">
+            <HiOutlineExclamationTriangle className="w-5 h-5" />
+            <h3 className="font-semibold text-sm text-text">Outstanding Balances</h3>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-3 max-h-[300px] pr-1">
+            {dashboard.outstanding_balances.length === 0 ? (
+              <p className="text-xs text-text-muted text-center py-10">No students have outstanding balances.</p>
+            ) : (
+              dashboard.outstanding_balances.map((balance, idx) => (
+                <div key={idx} className="flex justify-between items-center p-2.5 rounded-lg border border-border bg-surface-muted">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-text truncate">{balance.student_name}</p>
+                    <span className="text-[10px] text-text-muted font-medium">{balance.grade}</span>
+                  </div>
+                  <span className="text-xs font-bold text-danger font-mono">{formatCurrency(balance.balance)}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Transactions Table */}
+      <div className="bg-white border border-border rounded-xl shadow-card p-6">
+        <h3 className="font-semibold text-sm text-text mb-4">Recent Transactions</h3>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-border">
+            <thead>
+              <tr className="text-left text-xs font-semibold uppercase text-text-muted tracking-wider bg-surface-muted">
+                <th className="px-6 py-3">Invoice No</th>
+                <th className="px-6 py-3">Student Name</th>
+                <th className="px-6 py-3">Type</th>
+                <th className="px-6 py-3">Amount Paid</th>
+                <th className="px-6 py-3">Date</th>
+                <th className="px-6 py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-border text-sm text-text">
+              {dashboard.recent_transactions.map((tx, idx) => (
+                <tr key={idx} className={`hover:bg-surface-muted/50 ${tx.is_returned ? 'line-through opacity-60 text-danger bg-red-50/20' : ''}`}>
+                  <td className="px-6 py-3 font-mono font-semibold">#{tx.invoice_no}</td>
+                  <td className="px-6 py-3 font-medium">{tx.student?.full_name}</td>
+                  <td className="px-6 py-3 uppercase text-xs font-bold text-text-muted">{tx.type}</td>
+                  <td className="px-6 py-3 font-mono font-semibold text-primary">{formatCurrency(tx.amount_paid)}</td>
+                  <td className="px-6 py-3">{formatDate(tx.payment_date)}</td>
+                  <td className="px-6 py-3">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${tx.is_returned ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'}`}>
+                      {tx.is_returned ? 'Returned' : 'Paid'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
