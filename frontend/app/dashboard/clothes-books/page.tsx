@@ -17,14 +17,14 @@ import { formatCurrency, formatDate, GRADE_MAP, ITEM_TYPE_MAP } from '@/lib/util
 import { HiOutlinePrinter, HiOutlineTrash, HiOutlinePlusCircle } from 'react-icons/hi2';
 
 const purchaseSchema = zod.object({
-  student_id: zod.number().min(1, 'Select a student'),
+  student_id: zod.number().min(1, 'تکایە قوتابییەک هەڵبژێرە'),
   item_type: zod.enum(['clothes', 'book', 'both'], {
-    message: 'Item type is required',
+    message: 'دیاریکردنی جۆری بابەت پێویستە',
   }),
-  price: zod.number().min(0, 'Price must be positive'),
-  discount: zod.number().min(0, 'Discount must be positive'),
-  amount_paid: zod.number().min(0, 'Amount paid must be positive'),
-  payment_date: zod.string().min(1, 'Payment date is required'),
+  price: zod.number().min(0, 'دەبێت نرخ لە ٠ زیاتر بێت'),
+  discount: zod.number().min(0, 'دەبێت داشکاندن لە ٠ زیاتر بێت'),
+  amount_paid: zod.number().min(0, 'دەبێت بڕی پارەی دراو لە ٠ زیاتر بێت'),
+  payment_date: zod.string().min(1, 'دیاریکردنی بەرواری پارەدان پێویستە'),
   notes: zod.string().optional(),
 });
 
@@ -91,22 +91,22 @@ export default function ClothesBooksPage() {
   };
 
   const columns: Column<any>[] = [
-    { header: 'Invoice No', accessor: (row) => row.invoice_no ? `#${row.invoice_no}` : '-', sortable: true },
-    { header: 'Student Name', accessor: (row) => row.student?.full_name },
-    { header: 'Grade', accessor: (row) => GRADE_MAP[row.student?.grade] || row.student?.grade },
-    { header: 'Item Purchased', accessor: (row) => ITEM_TYPE_MAP[row.item_type] || row.item_type },
-    { header: 'Price (Net)', accessor: (row) => formatCurrency(row.price - row.discount) },
-    { header: 'Amount Paid', accessor: (row) => formatCurrency(row.amount_paid), className: 'text-success font-semibold' },
-    { header: 'Date', accessor: (row) => formatDate(row.payment_date), sortable: true },
+    { header: 'ژمارەی پسوولە', accessor: (row) => row.invoice_no ? `#${row.invoice_no}` : '-', sortable: true },
+    { header: 'ناوی قوتابی', accessor: (row) => row.student?.full_name },
+    { header: 'پۆل', accessor: (row) => GRADE_MAP[row.student?.grade] || row.student?.grade },
+    { header: 'بابەتی فرۆشراو', accessor: (row) => ITEM_TYPE_MAP[row.item_type] || row.item_type },
+    { header: 'نرخ (سافی)', accessor: (row) => formatCurrency(row.price - row.discount) },
+    { header: 'بڕی دراو', accessor: (row) => formatCurrency(row.amount_paid), className: 'text-success font-semibold' },
+    { header: 'بەروار', accessor: (row) => formatDate(row.payment_date), sortable: true },
     {
-      header: 'Actions',
+      header: 'کردارەکان',
       accessor: (row) => (
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/clothes-books/${row.id}/invoice`, '_blank')}
-            title="Re-Print Receipt"
+            title="چاپکردنەوەی پسوولە"
           >
             <HiOutlinePrinter className="w-4 h-4" />
           </Button>
@@ -115,7 +115,7 @@ export default function ClothesBooksPage() {
             size="sm"
             className="text-danger hover:bg-danger-light"
             onClick={() => setDeleteId(row.id)}
-            title="Delete Purchase"
+            title="سڕینەوەی کڕین"
           >
             <HiOutlineTrash className="w-4 h-4" />
           </Button>
@@ -129,12 +129,12 @@ export default function ClothesBooksPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-text">Clothes & Books</h1>
-          <p className="text-xs text-text-muted">Record uniform and textbook sales transactions</p>
+          <h1 className="text-2xl font-bold tracking-tight text-text">جلوبەرگ و کتێب</h1>
+          <p className="text-xs text-text-muted">تۆمارکردنی مامەڵەکانی فرۆشتنی جلی قوتابخانە و کتێب</p>
         </div>
-        <Button variant="primary" onClick={openAddModal} className="flex items-center gap-1.5 self-start">
+        <Button variant="primary" onClick={openAddModal} className="flex items-center gap-1.5 self-start font-semibold">
           <HiOutlinePlusCircle className="w-4 h-4" />
-          <span>Record Sale</span>
+          <span>تۆمارکردنی فرۆشتن</span>
         </Button>
       </div>
 
@@ -157,60 +157,60 @@ export default function ClothesBooksPage() {
       </div>
 
       {/* Record Purchase Modal */}
-      <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title="Record Uniform/Book Sale">
+      <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title="تۆمارکردنی فرۆشتنی جلوبەرگ/کتێب">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <AutocompleteInput
-            label="Select Student *"
+            label="قوتابی هەڵبژێرە *"
             onSelect={(student) => setValue('student_id', student.id)}
             error={errors.student_id?.message}
           />
 
           <Select
-            label="Item Category *"
+            label="جۆری بابەت *"
             id="item_type"
             options={[
-              { value: 'clothes', label: 'School Uniform (Clothes)' },
-              { value: 'book', label: 'School Textbooks (Books)' },
-              { value: 'both', label: 'Both Uniform & Textbooks' },
+              { value: 'clothes', label: 'جلی قوتابخانە (جلوبەرگ)' },
+              { value: 'book', label: 'کتێبی خوێندن (کتێبەکان)' },
+              { value: 'both', label: 'هەردووکیان (جلی قوتابخانە و کتێب)' },
             ]}
             error={errors.item_type?.message}
             {...register('item_type')}
           />
 
           <Input
-            label="Retail Price (IQD) *"
+            label="نرخی فرۆشتن (دینار) *"
             id="price"
             type="number"
-            placeholder="Price amount"
+            placeholder="بڕی نرخ"
             error={errors.price?.message}
             {...register('price', { valueAsNumber: true })}
           />
 
           <Input
-            label="Discount (IQD)"
+            label="داشکاندن (دینار)"
             id="discount"
             type="number"
-            placeholder="Discount amount"
+            placeholder="بڕی داشکاندن"
             error={errors.discount?.message}
             {...register('discount', { valueAsNumber: true })}
           />
 
           <div className="bg-surface-muted p-3 border border-border rounded-lg text-xs font-semibold">
-            <span className="text-[10px] text-text-muted font-bold uppercase">Net Amount Due</span>
+            <span className="text-[10px] text-text-muted font-bold uppercase">کۆی گشتی ماوە (دینار)</span>
             <p className="text-sm font-mono font-bold text-primary mt-0.5">{formatCurrency(netDue)}</p>
           </div>
 
           <Input
-            label="Amount Paid Now (IQD) *"
+            label="بڕی پارەی دراو لە ئێستادا (دینار) *"
             id="amount_paid"
             type="number"
-            placeholder="Amount paid"
+            placeholder="بڕی پارەی دراو"
             error={errors.amount_paid?.message}
             {...register('amount_paid', { valueAsNumber: true })}
           />
 
           <Input
-            label="Payment Date *"
+            label="بەرواری پارەدان *"
             id="payment_date"
             type="date"
             error={errors.payment_date?.message}
@@ -219,23 +219,23 @@ export default function ClothesBooksPage() {
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="notes" className="text-xs font-semibold text-text">
-              Notes
+              تێبینی
             </label>
             <textarea
               id="notes"
               rows={3}
-              placeholder="e.g. Uniform size 10, English study textbooks"
+              placeholder="بۆ نموونە: قەبارەی جل ١٠، کتێبی ئینگلیزی، هتد."
               className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-text border-border focus:border-primary-light focus:outline-none focus:ring-2 focus:ring-primary-light/20 transition-all placeholder:text-text-light"
               {...register('notes')}
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex justify-end gap-3 pt-2 font-semibold">
             <Button variant="secondary" onClick={() => setIsFormOpen(false)}>
-              Cancel
+              پاشگەزبوونەوە
             </Button>
             <Button type="submit" variant="primary" isLoading={createMutation.isPending}>
-              Record & Print
+              تۆمارکردن و چاپ
             </Button>
           </div>
         </form>
@@ -246,8 +246,8 @@ export default function ClothesBooksPage() {
         isOpen={deleteId !== null}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="Delete Record"
-        message="Are you sure you want to delete this purchase entry? This will permanently delete the transaction record."
+        title="سڕینەوەی تۆمار"
+        message="ئایا دڵنیایت لە سڕینەوەی ئەم تۆمارە؟ ئەم کردارە بە هەمیشەیی تۆماری کڕینەکە دەسڕێتەوە."
         isLoading={deleteMutation.isPending}
       />
     </div>
