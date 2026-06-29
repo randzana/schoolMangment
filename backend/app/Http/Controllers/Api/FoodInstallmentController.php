@@ -108,6 +108,7 @@ class FoodInstallmentController extends Controller
             'remain_after' => $installment->remain_after,
             'fee_label' => 'Monthly Price',
             'is_returned' => $installment->is_returned,
+            'notes' => $installment->notes,
         ];
 
         return view('invoices.installment_print', $data);

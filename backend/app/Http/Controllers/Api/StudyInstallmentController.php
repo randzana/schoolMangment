@@ -112,6 +112,7 @@ class StudyInstallmentController extends Controller
             'remain_after' => $installment->remain_after,
             'fee_label' => 'Annual Fee',
             'is_returned' => $installment->is_returned,
+            'notes' => $installment->notes,
         ];
 
         return view('invoices.installment_print', $data);

@@ -134,6 +134,7 @@ class ClothesBookController extends Controller
             'remain_after' => $payment->price - $payment->discount - $payment->amount_paid,
             'fee_label' => 'Item Price (' . ucfirst($payment->item_type) . ')',
             'is_returned' => false,
+            'notes' => $payment->notes,
         ];
 
         return view('invoices.installment_print', $data);

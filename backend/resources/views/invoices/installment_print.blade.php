@@ -45,7 +45,7 @@
             justify-content: space-between;
             border-bottom: 2px solid #1E3A5F;
             padding-bottom: 8px;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
         }
         
         .school-info {
@@ -104,80 +104,78 @@
             font-family: monospace;
         }
         
-        /* Two-column layout */
+        /* Simplified 2x2 Grid Layout */
         .content-grid {
             display: flex;
-            gap: 12px;
-            margin-bottom: 8px;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 12px;
         }
         
-        .grid-col {
+        .grid-row {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+        }
+        
+        .grid-cell {
             flex: 1;
             border: 1px solid #E2E8F0;
             border-radius: 6px;
-            overflow: hidden;
+            padding: 8px 12px;
             background-color: #F8FAFC;
-        }
-        
-        .col-header {
-            background: #1E3A5F;
-            color: #FFFFFF;
-            padding: 5px 8px;
-            font-weight: 700;
-            font-size: 10px;
-        }
-        
-        .detail-row {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 6px 8px;
-            border-bottom: 1px solid #E2E8F0;
+            flex-direction: column;
+            justify-content: center;
         }
         
-        .detail-row:last-child {
-            border-bottom: none;
-        }
-        
-        .detail-label {
+        .cell-label {
+            font-size: 9px;
             font-weight: 500;
-            color: #475569;
+            color: #64748B;
+            margin-bottom: 2px;
         }
         
-        .detail-value {
+        .cell-value {
+            font-size: 12px;
             font-weight: 700;
-            color: #1E293B;
-            text-align: left;
+            color: #0F172A;
         }
         
-        /* Highlighted rows */
-        .amount-paid-row {
-            background-color: #FEF3C7; /* yellow background */
+        /* Highlighting for payments */
+        .highlight-paid {
+            background-color: #FEF3C7; /* amber-100 */
+            border-color: #FCD34D;
         }
-        
-        .amount-paid-row .detail-value {
+        .highlight-paid .cell-label {
             color: #B45309;
-            font-size: 12px;
+        }
+        .highlight-paid .cell-value {
+            color: #92400E;
+            font-size: 14px;
         }
         
-        .remain-row {
-            background-color: #FEE2E2; /* red background */
+        .highlight-remain {
+            background-color: #FEE2E2; /* red-100 */
+            border-color: #FCA5A5;
         }
-        
-        .remain-row .detail-value {
+        .highlight-remain .cell-label {
             color: #B91C1C;
-            font-size: 12px;
+        }
+        .highlight-remain .cell-value {
+            color: #991B1B;
+            font-size: 14px;
         }
         
         /* Signatures and Footer */
         .footer-section {
-            margin-top: 8px;
+            margin-top: 10px;
         }
         
         .signature-grid {
             display: flex;
             justify-content: space-between;
-            margin-top: 6px;
+            margin-top: 8px;
             padding: 0 10px;
         }
         
@@ -190,7 +188,7 @@
             font-weight: 700;
             color: #475569;
             font-size: 10px;
-            margin-bottom: 22px;
+            margin-bottom: 20px;
         }
         
         .sig-line {
@@ -272,76 +270,29 @@
             </div>
         </div>
 
-        <!-- Two Columns content -->
+        <!-- 2x2 Grid Content -->
         <div class="content-grid">
-            <!-- Right Column: Student details -->
-            <div class="grid-col">
-                <div class="col-header">زانیاریی قوتابی و پسوولە</div>
-                
-                <div class="detail-row">
-                    <span class="detail-label">ناوی سیانی قوتابی:</span>
-                    <span class="detail-value">{{ $student_name }}</span>
+            <!-- Row 1: Student Name & Notes -->
+            <div class="grid-row">
+                <div class="grid-cell">
+                    <span class="cell-label">ناوی سیانی قوتابی:</span>
+                    <span class="cell-value">{{ $student_name }}</span>
                 </div>
-                
-                <div class="detail-row">
-                    <span class="detail-label">پۆل / قۆناغ:</span>
-                    <span class="detail-value">{{ $grade }}</span>
-                </div>
-                
-                <div class="detail-row">
-                    <span class="detail-label">ژمارەی سێریال (ناسنامە):</span>
-                    <span class="detail-value" style="font-family: monospace;">{{ $serial_no }}</span>
-                </div>
-                
-                <div class="detail-row">
-                    <span class="detail-label">بۆ مەبەستی:</span>
-                    <span class="detail-value">
-                        @if($invoice_type === 'Study Payment')
-                            قستی خوێندن
-                        @elseif($invoice_type === 'Food Payment')
-                            قستی نانخواردن
-                        @else
-                            جل و کتێب
-                        @endif
-                    </span>
+                <div class="grid-cell">
+                    <span class="cell-label">تێبینی:</span>
+                    <span class="cell-value">{{ $notes ?: 'نییە' }}</span>
                 </div>
             </div>
             
-            <!-- Left Column: Financial details -->
-            <div class="grid-col">
-                <div class="col-header">وردەکاری دارایی (بە دیناری عێراقی)</div>
-                
-                <div class="detail-row">
-                    <span class="detail-label">
-                        @if(str_contains($fee_label, 'Annual'))
-                            کرێی خوێندنی ساڵانە:
-                        @elseif(str_contains($fee_label, 'Monthly'))
-                            نرخی نانخواردنی مانگانە:
-                        @else
-                            نرخی بابەت:
-                        @endif
-                    </span>
-                    <span class="detail-value">{{ number_format($annual_fee, 0) }} د.ع</span>
+            <!-- Row 2: Amount Paid & Remaining Balance -->
+            <div class="grid-row">
+                <div class="grid-cell highlight-paid">
+                    <span class="cell-label">بڕی پارەی دراو:</span>
+                    <span class="cell-value">{{ number_format($amount_paid, 0) }} د.ع</span>
                 </div>
-                
-                <div class="detail-row">
-                    <span class="detail-label">داشکاندن:</span>
-                    <span class="detail-value" style="color: #DC2626;">{{ number_format($discount, 0) }} د.ع</span>
-                </div>
-                
-                <div class="detail-row">
-                    <span class="detail-label">قەرزی پێشوو:</span>
-                    <span class="detail-value">{{ number_format($remain_before, 0) }} د.ع</span>
-                </div>
-                
-                <div class="detail-row amount-paid-row">
-                    <span class="detail-label font-bold text-amber-800">بڕی دراو لەم قستەدا:</span>
-                    <span class="detail-value font-bold">{{ number_format($amount_paid, 0) }} د.ع</span>
-                </div>
-                
-                <div class="detail-row remain-row">
-                    <span class="detail-label font-bold text-red-800">قەرزی ماوە (کۆتایی):</span>
-                    <span class="detail-value font-bold">{{ number_format($remain_after, 0) }} د.ع</span>
+                <div class="grid-cell highlight-remain">
+                    <span class="cell-label">بڕی پارەی ماوە (قەرز):</span>
+                    <span class="cell-value">{{ number_format($remain_after, 0) }} د.ع</span>
                 </div>
             </div>
         </div>
