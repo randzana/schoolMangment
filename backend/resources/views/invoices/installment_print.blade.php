@@ -258,7 +258,7 @@
                     @if($invoice_type === 'Study Payment')
                         پسوولەی قستی خوێندن
                     @elseif($invoice_type === 'Food Payment')
-                        پسوولەی قستی نانخواردن
+                        پسوولەی نانخواردن
                     @else
                         پسوولەی جلوبەرگ و کتێب
                     @endif
@@ -286,7 +286,7 @@
             </div>
             
             <!-- Remaining Balance -->
-            @if($invoice_type !== 'Clothes & Books Payment')
+            @if($invoice_type === 'Study Payment')
             <div class="detail-row highlight-remain">
                 <span class="detail-label">بڕی پارەی ماوە (قەرز):</span>
                 <span class="detail-value">{{ number_format($remain_after, 0) }} د.ع</span>
