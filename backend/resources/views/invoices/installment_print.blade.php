@@ -266,7 +266,6 @@
             </div>
             
             <div class="invoice-meta">
-                <div>ژمارەی پسوولە: <span class="meta-no">#{{ $invoice_no }}</span></div>
                 <div>بەروار: <strong>{{ $date }}</strong></div>
             </div>
         </div>
@@ -303,14 +302,10 @@
 
         <!-- Footer Signatures -->
         <div class="footer-section">
-            <div class="signature-grid">
-                <div class="signature-box">
+            <div class="signature-grid" style="justify-content: flex-start;">
+                <div class="signature-box" style="width: 45%;">
                     <p class="sig-title">وەرگر / ژمێریار</p>
-                    <div class="sig-line">واژۆ و مۆر</div>
-                </div>
-                <div class="signature-box">
-                    <p class="sig-title">بەخێوکەری قوتابی</p>
-                    <div class="sig-line">واژۆ</div>
+                    <div class="sig-line" style="min-height: 15px;"></div>
                 </div>
             </div>
             
