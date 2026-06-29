@@ -7,24 +7,17 @@ import * as zod from 'zod';
 import { useClothesBooks, useCreateClothesBook, useDeleteClothesBook } from '@/hooks';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { AutocompleteInput } from '@/components/forms/AutocompleteInput';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { DataTable, Column } from '@/components/tables/DataTable';
 import { TablePagination } from '@/components/tables/TablePagination';
-import { formatCurrency, formatDate, GRADE_MAP, ITEM_TYPE_MAP } from '@/lib/utils';
+import { formatCurrency, formatDate, GRADE_MAP } from '@/lib/utils';
 import { HiOutlinePrinter, HiOutlineTrash, HiOutlinePlusCircle } from 'react-icons/hi2';
 
 const purchaseSchema = zod.object({
   student_id: zod.number().min(1, 'تکایە قوتابییەک هەڵبژێرە'),
-  item_type: zod.enum(['clothes', 'book', 'both'], {
-    message: 'دیاریکردنی جۆری بابەت پێویستە',
-  }),
-  price: zod.number().min(0, 'دەبێت نرخ لە ٠ زیاتر بێت'),
-  discount: zod.number().min(0, 'دەبێت داشکاندن لە ٠ زیاتر بێت'),
-  amount_paid: zod.number().min(0, 'دەبێت بڕی پارەی دراو لە ٠ زیاتر بێت'),
-  payment_date: zod.string().min(1, 'دیاریکردنی بەرواری پارەدان پێویستە'),
+  amount_paid: zod.number().min(1, 'دەبێت بڕی پارە لە ٠ زیاتر بێت'),
   notes: zod.string().optional(),
 });
 
@@ -43,36 +36,37 @@ export default function ClothesBooksPage() {
     register,
     handleSubmit,
     setValue,
-    watch,
     reset,
     formState: { errors },
   } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
     defaultValues: {
-      payment_date: new Date().toISOString().split('T')[0],
-      discount: 0,
+      amount_paid: 0,
+      notes: '',
     },
   });
-
-  const price = watch('price') || 0;
-  const discount = watch('discount') || 0;
-  const netDue = Math.max(0, price - discount);
 
   const openAddModal = () => {
     reset({
       student_id: 0,
-      item_type: 'book',
-      price: 0,
-      discount: 0,
       amount_paid: 0,
-      payment_date: new Date().toISOString().split('T')[0],
       notes: '',
     });
     setIsFormOpen(true);
   };
 
   const onSubmit = (values: PurchaseFormValues) => {
-    createMutation.mutate(values, {
+    const payload = {
+      student_id: values.student_id,
+      item_type: 'both' as const,
+      price: values.amount_paid,
+      discount: 0,
+      amount_paid: values.amount_paid,
+      payment_date: new Date().toISOString().split('T')[0],
+      notes: values.notes || '',
+    };
+
+    createMutation.mutate(payload, {
       onSuccess: (res) => {
         setIsFormOpen(false);
         // Print the invoice directly
@@ -94,8 +88,6 @@ export default function ClothesBooksPage() {
     { header: 'ژمارەی پسوولە', accessor: (row) => row.invoice_no ? `#${row.invoice_no}` : '-', sortable: true },
     { header: 'ناوی قوتابی', accessor: (row) => row.student?.full_name },
     { header: 'پۆل', accessor: (row) => GRADE_MAP[row.student?.grade] || row.student?.grade },
-    { header: 'بابەتی فرۆشراو', accessor: (row) => ITEM_TYPE_MAP[row.item_type] || row.item_type },
-    { header: 'نرخ (سافی)', accessor: (row) => formatCurrency(row.price - row.discount) },
     { header: 'بڕی دراو', accessor: (row) => formatCurrency(row.amount_paid), className: 'text-success font-semibold' },
     { header: 'بەروار', accessor: (row) => formatDate(row.payment_date), sortable: true },
     {
@@ -165,56 +157,13 @@ export default function ClothesBooksPage() {
             error={errors.student_id?.message}
           />
 
-          <Select
-            label="جۆری بابەت *"
-            id="item_type"
-            options={[
-              { value: 'clothes', label: 'جلی قوتابخانە (جلوبەرگ)' },
-              { value: 'book', label: 'کتێبی خوێندن (کتێبەکان)' },
-              { value: 'both', label: 'هەردووکیان (جلی قوتابخانە و کتێب)' },
-            ]}
-            error={errors.item_type?.message}
-            {...register('item_type')}
-          />
-
           <Input
-            label="نرخی فرۆشتن (دینار) *"
-            id="price"
-            type="number"
-            placeholder="بڕی نرخ"
-            error={errors.price?.message}
-            {...register('price', { valueAsNumber: true })}
-          />
-
-          <Input
-            label="داشکاندن (دینار)"
-            id="discount"
-            type="number"
-            placeholder="بڕی داشکاندن"
-            error={errors.discount?.message}
-            {...register('discount', { valueAsNumber: true })}
-          />
-
-          <div className="bg-surface-muted p-3 border border-border rounded-lg text-xs font-semibold">
-            <span className="text-[10px] text-text-muted font-bold uppercase">کۆی گشتی ماوە (دینار)</span>
-            <p className="text-sm font-mono font-bold text-primary mt-0.5">{formatCurrency(netDue)}</p>
-          </div>
-
-          <Input
-            label="بڕی پارەی دراو لە ئێستادا (دینار) *"
+            label="بڕی پارەی دراو (دینار) *"
             id="amount_paid"
             type="number"
-            placeholder="بڕی پارەی دراو"
+            placeholder="بڕی پارەی دراو لە ئێستادا"
             error={errors.amount_paid?.message}
             {...register('amount_paid', { valueAsNumber: true })}
-          />
-
-          <Input
-            label="بەرواری پارەدان *"
-            id="payment_date"
-            type="date"
-            error={errors.payment_date?.message}
-            {...register('payment_date')}
           />
 
           <div className="flex flex-col gap-1.5">
