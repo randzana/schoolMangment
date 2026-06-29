@@ -45,7 +45,7 @@
             justify-content: space-between;
             border-bottom: 2px solid #1E3A5F;
             padding-bottom: 8px;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
         
         .school-info {
@@ -104,42 +104,35 @@
             font-family: monospace;
         }
         
-        /* Simplified 2x2 Grid Layout */
+        /* Vertical list layout */
         .content-grid {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin-bottom: 12px;
+            gap: 6px;
+            margin-bottom: 10px;
         }
         
-        .grid-row {
+        .detail-row {
             display: flex;
-            gap: 12px;
-            width: 100%;
-        }
-        
-        .grid-cell {
-            flex: 1;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 12px;
             border: 1px solid #E2E8F0;
             border-radius: 6px;
-            padding: 8px 12px;
             background-color: #F8FAFC;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
         }
         
-        .cell-label {
-            font-size: 9px;
+        .detail-label {
+            font-size: 11px;
             font-weight: 500;
             color: #64748B;
-            margin-bottom: 2px;
         }
         
-        .cell-value {
+        .detail-value {
             font-size: 12px;
             font-weight: 700;
             color: #0F172A;
+            text-align: left;
         }
         
         /* Highlighting for payments */
@@ -147,29 +140,29 @@
             background-color: #FEF3C7; /* amber-100 */
             border-color: #FCD34D;
         }
-        .highlight-paid .cell-label {
+        .highlight-paid .detail-label {
             color: #B45309;
         }
-        .highlight-paid .cell-value {
+        .highlight-paid .detail-value {
             color: #92400E;
-            font-size: 14px;
+            font-size: 13px;
         }
         
         .highlight-remain {
             background-color: #FEE2E2; /* red-100 */
             border-color: #FCA5A5;
         }
-        .highlight-remain .cell-label {
+        .highlight-remain .detail-label {
             color: #B91C1C;
         }
-        .highlight-remain .cell-value {
+        .highlight-remain .detail-value {
             color: #991B1B;
-            font-size: 14px;
+            font-size: 13px;
         }
         
         /* Signatures and Footer */
         .footer-section {
-            margin-top: 10px;
+            margin-top: 8px;
         }
         
         .signature-grid {
@@ -270,30 +263,44 @@
             </div>
         </div>
 
-        <!-- 2x2 Grid Content -->
+        <!-- Vertical Stacked Details -->
         <div class="content-grid">
-            <!-- Row 1: Student Name & Notes -->
-            <div class="grid-row">
-                <div class="grid-cell">
-                    <span class="cell-label">ناوی سیانی قوتابی:</span>
-                    <span class="cell-value">{{ $student_name }}</span>
-                </div>
-                <div class="grid-cell">
-                    <span class="cell-label">تێبینی:</span>
-                    <span class="cell-value">{{ $notes ?: 'نییە' }}</span>
-                </div>
+            <!-- Full Name -->
+            <div class="detail-row">
+                <span class="detail-label">ناوی سیانی قوتابی:</span>
+                <span class="detail-value">{{ $student_name }}</span>
             </div>
             
-            <!-- Row 2: Amount Paid & Remaining Balance -->
-            <div class="grid-row">
-                <div class="grid-cell highlight-paid">
-                    <span class="cell-label">بڕی پارەی دراو:</span>
-                    <span class="cell-value">{{ number_format($amount_paid, 0) }} د.ع</span>
-                </div>
-                <div class="grid-cell highlight-remain">
-                    <span class="cell-label">بڕی پارەی ماوە (قەرز):</span>
-                    <span class="cell-value">{{ number_format($remain_after, 0) }} د.ع</span>
-                </div>
+            <!-- Invoice Type -->
+            <div class="detail-row">
+                <span class="detail-label">جۆری پسوولە:</span>
+                <span class="detail-value">
+                    @if($invoice_type === 'Study Payment')
+                        قستی خوێندن
+                    @elseif($invoice_type === 'Food Payment')
+                        قستی نانخواردن
+                    @else
+                        جل و کتێب
+                    @endif
+                </span>
+            </div>
+            
+            <!-- Amount Paid -->
+            <div class="detail-row highlight-paid">
+                <span class="detail-label">بڕی پارەی دراو:</span>
+                <span class="detail-value">{{ number_format($amount_paid, 0) }} د.ع</span>
+            </div>
+            
+            <!-- Remaining Balance -->
+            <div class="detail-row highlight-remain">
+                <span class="detail-label">بڕی پارەی ماوە (قەرز):</span>
+                <span class="detail-value">{{ number_format($remain_after, 0) }} د.ع</span>
+            </div>
+            
+            <!-- Notes -->
+            <div class="detail-row">
+                <span class="detail-label">تێبینی:</span>
+                <span class="detail-value">{{ $notes ?: 'نییە' }}</span>
             </div>
         </div>
 
