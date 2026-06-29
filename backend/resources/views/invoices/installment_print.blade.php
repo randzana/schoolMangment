@@ -272,6 +272,7 @@
             </div>
             
             <!-- Invoice Type -->
+            @if($invoice_type !== 'Clothes & Books Payment')
             <div class="detail-row">
                 <span class="detail-label">جۆری پسوولە:</span>
                 <span class="detail-value">
@@ -284,6 +285,7 @@
                     @endif
                 </span>
             </div>
+            @endif
             
             <!-- Amount Paid -->
             <div class="detail-row highlight-paid">
@@ -292,10 +294,12 @@
             </div>
             
             <!-- Remaining Balance -->
+            @if($invoice_type !== 'Clothes & Books Payment')
             <div class="detail-row highlight-remain">
                 <span class="detail-label">بڕی پارەی ماوە (قەرز):</span>
                 <span class="detail-value">{{ number_format($remain_after, 0) }} د.ع</span>
             </div>
+            @endif
             
             <!-- Notes -->
             <div class="detail-row">
