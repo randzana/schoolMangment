@@ -11,8 +11,8 @@ import { toast } from 'sonner';
 import { getSchoolName } from '@/lib/utils';
 
 const loginSchema = zod.object({
-  username: zod.string().min(1, 'Username is required'),
-  password: zod.string().min(1, 'Password is required'),
+  username: zod.string().min(1, 'ناوی بەکارهێنەر داواکراوە'),
+  password: zod.string().min(1, 'وشەی تێپەڕ داواکراوە'),
 });
 
 type LoginFormValues = zod.infer<typeof loginSchema>;
@@ -33,9 +33,9 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       await login(values.username, values.password);
-      toast.success('Login successful! Redirecting to dashboard...');
+      toast.success('چوونەژوورەوە سەرکەوتوو بوو! گواستنەوە بۆ داشبۆرد...');
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Invalid username or password.';
+      const msg = err.response?.data?.message || 'ناوی بەکارهێنەر یاخود وشەی تێپەڕ هەڵەیە.';
       toast.error(msg);
     } finally {
       setIsSubmitting(false);
@@ -43,7 +43,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl border border-border shadow-lg animate-fade-in">
+    <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl border border-border shadow-lg animate-fade-in" dir="rtl">
       <div className="text-center">
         <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg mx-auto mb-3 shadow-md"
              style={{ backgroundColor: 'var(--color-primary)' }}>
@@ -53,22 +53,22 @@ export default function LoginPage() {
           {getSchoolName()}
         </h2>
         <p className="mt-1.5 text-xs text-text-muted">
-          School Administration & Financial System
+          سیستەمی بەڕێوەبردن و دارایی قوتابخانە
         </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-6">
         <div className="space-y-4">
           <Input
-            label="Username"
+            label="ناوی بەکارهێنەر"
             id="username"
-            placeholder="Enter username (e.g. admin)"
+            placeholder="ناوی بەکارهێنەر بنووسە (بۆ نموونە: admin)"
             error={errors.username?.message}
             {...register('username')}
           />
 
           <Input
-            label="Password"
+            label="وشەی تێپەڕ"
             id="password"
             type="password"
             placeholder="••••••••"
@@ -79,11 +79,11 @@ export default function LoginPage() {
 
         <Button
           type="submit"
-          className="w-full"
+          className="w-full font-semibold"
           variant="primary"
           isLoading={isSubmitting}
         >
-          Sign In
+          چوونەژوورەوە
         </Button>
       </form>
     </div>
