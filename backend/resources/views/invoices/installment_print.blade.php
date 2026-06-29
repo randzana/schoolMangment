@@ -1,3 +1,28 @@
+@php
+    $month_num = null;
+    if (isset($date)) {
+        $parts = explode('/', $date);
+        if (count($parts) === 3) {
+            $month_num = (int)$parts[1];
+        }
+    }
+    
+    $kurdish_months = [
+        1 => 'کانوونی دووەم',
+        2 => 'شوبات',
+        3 => 'ئادار',
+        4 => 'نیسان',
+        5 => 'ئایار',
+        6 => 'حوزەیران',
+        7 => 'تەممووز',
+        8 => 'ئاب',
+        9 => 'ئەیلوول',
+        10 => 'تشرینی یەکەم',
+        11 => 'تشرینی دووەم',
+        12 => 'کانوونی یەکەم'
+    ];
+    $kurdish_month_name = $month_num ? ($kurdish_months[$month_num] ?? '') : '';
+@endphp
 <!DOCTYPE html>
 <html lang="ku" dir="rtl">
 <head>
@@ -278,6 +303,12 @@
                 <span class="detail-value">{{ $student_name }}</span>
             </div>
             
+            @if($invoice_type === 'Food Payment')
+            <div class="detail-row">
+                <span class="detail-label">بۆ پارەی نانخواردنی مانگی:</span>
+                <span class="detail-value text-primary font-bold">{{ $kurdish_month_name }}</span>
+            </div>
+            @endif
 
             <!-- Amount Paid -->
             <div class="detail-row highlight-paid">
