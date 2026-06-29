@@ -254,7 +254,15 @@
             </div>
             
             <div>
-                <div class="title-badge">پسوولەی وەرگرتنی پارە</div>
+                <div class="title-badge">
+                    @if($invoice_type === 'Study Payment')
+                        پسوولەی قستی خوێندن
+                    @elseif($invoice_type === 'Food Payment')
+                        پسوولەی قستی نانخواردن
+                    @else
+                        پسوولەی جلوبەرگ و کتێب
+                    @endif
+                </div>
             </div>
             
             <div class="invoice-meta">
@@ -271,22 +279,7 @@
                 <span class="detail-value">{{ $student_name }}</span>
             </div>
             
-            <!-- Invoice Type -->
-            @if($invoice_type !== 'Clothes & Books Payment')
-            <div class="detail-row">
-                <span class="detail-label">جۆری پسوولە:</span>
-                <span class="detail-value">
-                    @if($invoice_type === 'Study Payment')
-                        قستی خوێندن
-                    @elseif($invoice_type === 'Food Payment')
-                        قستی نانخواردن
-                    @else
-                        جل و کتێب
-                    @endif
-                </span>
-            </div>
-            @endif
-            
+
             <!-- Amount Paid -->
             <div class="detail-row highlight-paid">
                 <span class="detail-label">بڕی پارەی دراو:</span>
