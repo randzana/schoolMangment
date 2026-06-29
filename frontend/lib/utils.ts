@@ -77,7 +77,7 @@ export function getAcademicYear(): string {
  * Get school name.
  */
 export function getSchoolName(): string {
-  return process.env.NEXT_PUBLIC_SCHOOL_NAME || 'قوتابخانەی بنەڕەتی ئەهلی F.G';
+  return process.env.NEXT_PUBLIC_SCHOOL_NAME || 'Future Generation Private Basic School';
 }
 
 /**

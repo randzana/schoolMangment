@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'name' => env('SCHOOL_NAME', 'Private F.G Basic School'),
+    'name' => env('SCHOOL_NAME', 'Future Generation Private Basic School'),
     'academic_year' => env('ACADEMIC_YEAR', '2026-2027'),
 
     // Grade-based annual tuition prices (IQD)

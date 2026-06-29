@@ -360,7 +360,7 @@ class ReportController extends Controller
 
         $pdf_data = [
             'installments' => $installments,
-            'school_name' => config('school.name', 'Private F.G Basic School'),
+            'school_name' => config('school.name', 'Future Generation Private Basic School'),
             'date_range' => ($request->from ?? 'سەرەتا') . ' بۆ ' . ($request->to ?? 'ئێستا'),
             'total' => $installments->where('is_returned', false)->sum('amount_paid'),
         ];

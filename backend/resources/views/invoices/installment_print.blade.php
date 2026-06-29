@@ -317,7 +317,7 @@
                 </div>
             </div>
             
-            <p class="footer-note">سیستەمی بەڕێوەبردنی دارایی قوتابخانە • Private F.G. Basic School</p>
+            <p class="footer-note">سیستەمی بەڕێوەبردنی دارایی قوتابخانە • Future Generation Private Basic School</p>
         </div>
     </div>
 </div>

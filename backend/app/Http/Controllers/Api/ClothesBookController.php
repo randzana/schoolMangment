@@ -119,7 +119,7 @@ class ClothesBookController extends Controller
         $payment = ClothesBookPayment::with('student')->findOrFail($id);
 
         $data = [
-            'school_name' => config('school.name', 'Private F.G Basic School'),
+            'school_name' => config('school.name', 'Future Generation Private Basic School'),
             'invoice_no' => $payment->invoice_no,
             'date' => $payment->payment_date?->format('d/m/Y') ?? now()->format('d/m/Y'),
             'invoice_type' => 'Clothes & Books Payment',

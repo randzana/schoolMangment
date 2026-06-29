@@ -93,7 +93,7 @@ class FoodInstallmentController extends Controller
         $installment = FoodInstallment::with(['student', 'foodPayment'])->findOrFail($id);
         
         $data = [
-            'school_name' => config('school.name', 'Private F.G Basic School'),
+            'school_name' => config('school.name', 'Future Generation Private Basic School'),
             'invoice_no' => $installment->invoice_no,
             'date' => $installment->payment_date->format('d/m/Y'),
             'invoice_type' => 'Food Payment',
