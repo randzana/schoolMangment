@@ -27,6 +27,10 @@ class ClothesBookController extends Controller
             $query->where('academic_year', $request->academic_year);
         }
 
+        if ($request->filled('item_type')) {
+            $query->where('item_type', $request->item_type);
+        }
+
         $perPage = $request->integer('per_page', 20);
         $payments = $query->orderByDesc('created_at')->paginate($perPage);
 
@@ -118,11 +122,21 @@ class ClothesBookController extends Controller
     {
         $payment = ClothesBookPayment::with('student')->findOrFail($id);
 
+        $invoice_type = 'Clothes & Books Payment';
+        $fee_label = 'بڕی پێویست';
+        if ($payment->item_type === 'clothes') {
+            $invoice_type = 'Clothes Payment';
+            $fee_label = 'نرخی جلوبەرگ';
+        } elseif ($payment->item_type === 'book') {
+            $invoice_type = 'Book Payment';
+            $fee_label = 'نرخی کتێب';
+        }
+
         $data = [
             'school_name' => config('school.name', 'Future Generation Private Basic School'),
             'invoice_no' => $payment->invoice_no,
             'date' => $payment->payment_date?->format('d/m/Y') ?? now()->format('d/m/Y'),
-            'invoice_type' => 'Clothes & Books Payment',
+            'invoice_type' => $invoice_type,
             'student_name' => $payment->student->full_name,
             'grade' => $payment->student->grade_display,
             'serial_no' => $payment->student->serial_number,
@@ -132,7 +146,7 @@ class ClothesBookController extends Controller
             'remain_before' => $payment->price - $payment->discount,
             'amount_paid' => $payment->amount_paid,
             'remain_after' => $payment->price - $payment->discount - $payment->amount_paid,
-            'fee_label' => 'Item Price (' . ucfirst($payment->item_type) . ')',
+            'fee_label' => $fee_label,
             'is_returned' => false,
             'notes' => $payment->notes,
         ];

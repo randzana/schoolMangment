@@ -13,10 +13,10 @@ export default function ReportsLayout({
 
   const reportTabs = [
     { label: 'قستەکانی خوێندن', href: '/dashboard/reports/study-installments' },
-    { label: 'قستەکانی نانخواردن', href: '/dashboard/reports/food-installments' },
-    { label: 'داهاتی خوێندن', href: '/dashboard/reports/study-income' },
-    { label: 'ڕاپۆرتی خەرجییەکان', href: '/dashboard/reports/expenses' },
-    { label: 'لیستی قوتابییان', href: '/dashboard/reports/student-list' },
+    { label: 'مانگانەی نانخواردن', href: '/dashboard/reports/food-installments' },
+    { label: 'ڕاپۆرتی جلوبەرگ', href: '/dashboard/reports/clothes' },
+    { label: 'ڕاپۆرتی کتێب', href: '/dashboard/reports/books' },
+    { label: 'داهاتی ساڵانە', href: '/dashboard/reports/annual-income' },
   ];
 
   return (

@@ -36,7 +36,7 @@ export function DataTable<T extends { id: number | string }>({
   const handleSort = (column: Column<T>) => {
     if (!column.sortable) return;
     
-    const key = (column.sortKey || column.accessor) as string;
+    const key = column.header;
     if (sortKey === key) {
       setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
     } else {
@@ -48,9 +48,16 @@ export function DataTable<T extends { id: number | string }>({
   // Sort data client-side if needed (fallback/simple cases)
   const sortedData = React.useMemo(() => {
     if (!sortKey) return data;
+    const activeColumn = columns.find((col) => col.header === sortKey);
+    if (!activeColumn) return data;
+
     return [...data].sort((a, b) => {
-      let valA = a[sortKey as keyof T];
-      let valB = b[sortKey as keyof T];
+      let valA = typeof activeColumn.accessor === 'function' 
+        ? activeColumn.accessor(a) 
+        : a[activeColumn.accessor as keyof T];
+      let valB = typeof activeColumn.accessor === 'function' 
+        ? activeColumn.accessor(b) 
+        : b[activeColumn.accessor as keyof T];
 
       if (typeof valA === 'function') return 0;
       if (typeof valB === 'function') return 0;
@@ -58,6 +65,9 @@ export function DataTable<T extends { id: number | string }>({
       // Handle null/undefined
       if (valA === null || valA === undefined) return sortOrder === 'asc' ? 1 : -1;
       if (valB === null || valB === undefined) return sortOrder === 'asc' ? -1 : 1;
+
+      // Avoid sorting complex React elements/objects
+      if (typeof valA === 'object' || typeof valB === 'object') return 0;
 
       // Type checks
       if (typeof valA === 'number' && typeof valB === 'number') {
@@ -70,7 +80,7 @@ export function DataTable<T extends { id: number | string }>({
       if (strA > strB) return sortOrder === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [data, sortKey, sortOrder]);
+  }, [data, sortKey, sortOrder, columns]);
 
   if (isLoading) {
     return (

@@ -303,7 +303,7 @@ export function useReturnFoodInstallment() {
 // ==========================================
 // Clothes & Books
 // ==========================================
-export function useClothesBooks(params: { student_id?: number; academic_year?: string; page?: number; per_page?: number }) {
+export function useClothesBooks(params: { student_id?: number; academic_year?: string; item_type?: string; page?: number; per_page?: number }) {
   return useQuery<PaginatedResponse<ClothesBookPayment>>({
     queryKey: ['clothes-books', params],
     queryFn: async () => {

@@ -9,6 +9,7 @@ use App\Models\FoodPayment;
 use App\Models\Student;
 use App\Models\StudyInstallment;
 use App\Models\StudyPayment;
+use App\Models\ClothesBookPayment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +31,9 @@ class ReportController extends Controller
 
         // Total food revenue (current year)
         $foodRevenue = FoodPayment::where('academic_year', $academicYear)->sum('total_paid');
+
+        // Total clothes & books revenue (current year)
+        $clothesRevenue = ClothesBookPayment::where('academic_year', $academicYear)->sum('amount_paid');
 
         // Total expenses (current month)
         $monthlyExpenses = Expense::whereYear('expense_date', now()->year)
@@ -99,6 +103,7 @@ class ReportController extends Controller
                 'total_students' => $totalStudents,
                 'study_revenue' => (float) $studyRevenue,
                 'food_revenue' => (float) $foodRevenue,
+                'clothes_revenue' => (float) $clothesRevenue,
                 'monthly_expenses' => (float) $monthlyExpenses,
                 'recent_transactions' => $recentTransactions,
                 'outstanding_balances' => $outstandingBalances,
@@ -117,6 +122,10 @@ class ReportController extends Controller
 
         if ($request->filled('from') || $request->filled('to')) {
             $query->byDateRange($request->from, $request->to);
+        }
+
+        if ($request->filled('month')) {
+            $query->whereMonth('payment_date', $request->month);
         }
 
         if ($request->filled('grade')) {
@@ -151,6 +160,10 @@ class ReportController extends Controller
 
         if ($request->filled('from') || $request->filled('to')) {
             $query->byDateRange($request->from, $request->to);
+        }
+
+        if ($request->filled('month')) {
+            $query->whereMonth('payment_date', $request->month);
         }
 
         if ($request->filled('grade')) {
@@ -356,15 +369,626 @@ class ReportController extends Controller
             $query->byDateRange($request->from, $request->to);
         }
 
+        if ($request->filled('month')) {
+            $query->whereMonth('payment_date', $request->month);
+        }
+
+        if ($request->filled('grade')) {
+            $query->whereHas('student', fn ($q) => $q->where('grade', $request->grade));
+        }
+
+        if ($request->filled('student_id')) {
+            $query->where('student_id', $request->student_id);
+        }
+
         $installments = $query->orderByDesc('payment_date')->get();
+
+        $grade_map = [
+            'one'   => 'پۆلی یەکەم',
+            'two'   => 'پۆلی دووەم',
+            'three' => 'پۆلی سێیەم',
+            'four'  => 'پۆلی چوارەم',
+            'five'  => 'پۆلی پێنجەم',
+            'six'   => 'پۆلی شەشەم',
+            'seven' => 'پۆلی حەوتەم',
+            'eight' => 'پۆلی هەشتەم',
+            'nine'  => 'پۆلی نۆیەم',
+        ];
+        
+        $grade_label = $request->filled('grade') ? ($grade_map[$request->grade] ?? $request->grade) : null;
+
+        $month_names = [
+            '1'  => 'کانوونی دووەم (1)',
+            '2'  => 'شوبات (2)',
+            '3'  => 'ئادار (3)',
+            '4'  => 'نیسان (4)',
+            '5'  => 'ئایار (5)',
+            '6'  => 'حوزەیران (6)',
+            '7'  => 'تەممووز (7)',
+            '8'  => 'ئاب (8)',
+            '9'  => 'ئەیلوول (9)',
+            '10' => 'تشرینی یەکەم (10)',
+            '11' => 'تشرینی دووەم (11)',
+            '12' => 'کانوونی یەکەم (12)',
+        ];
+        
+        $date_range = ($request->from ?? 'سەرەتا') . ' بۆ ' . ($request->to ?? 'ئێستا');
+        if ($request->filled('month')) {
+            $date_range = 'مانگی ' . ($month_names[$request->month] ?? $request->month);
+        }
 
         $pdf_data = [
             'installments' => $installments,
             'school_name' => config('school.name', 'Future Generation Private Basic School'),
-            'date_range' => ($request->from ?? 'سەرەتا') . ' بۆ ' . ($request->to ?? 'ئێستا'),
+            'date_range' => $date_range,
+            'grade_label' => $grade_label,
             'total' => $installments->where('is_returned', false)->sum('amount_paid'),
         ];
 
         return view('reports.study-installments', $pdf_data);
+    }
+
+    /**
+     * PDF report of food installments
+     */
+    public function pdfFoodInstallments(Request $request)
+    {
+        $query = FoodInstallment::with('student');
+
+        if ($request->filled('from') || $request->filled('to')) {
+            $query->byDateRange($request->from, $request->to);
+        }
+
+        if ($request->filled('month')) {
+            $query->whereMonth('payment_date', $request->month);
+        }
+
+        if ($request->filled('grade')) {
+            $query->whereHas('student', fn ($q) => $q->where('grade', $request->grade));
+        }
+
+        if ($request->filled('student_id')) {
+            $query->where('student_id', $request->student_id);
+        }
+
+        $installments = $query->orderByDesc('payment_date')->get();
+
+        $grade_map = [
+            'one'   => 'پۆلی یەکەم',
+            'two'   => 'پۆلی دووەم',
+            'three' => 'پۆلی سێیەم',
+            'four'  => 'پۆلی چوارەم',
+            'five'  => 'پۆلی پێنجەم',
+            'six'   => 'پۆلی شەشەم',
+            'seven' => 'پۆلی حەوتەم',
+            'eight' => 'پۆلی هەشتەم',
+            'nine'  => 'پۆلی نۆیەم',
+        ];
+        
+        $grade_label = $request->filled('grade') ? ($grade_map[$request->grade] ?? $request->grade) : null;
+
+        $month_names = [
+            '1'  => 'کانوونی دووەم (1)',
+            '2'  => 'شوبات (2)',
+            '3'  => 'ئادار (3)',
+            '4'  => 'نیسان (4)',
+            '5'  => 'ئایار (5)',
+            '6'  => 'حوزەیران (6)',
+            '7'  => 'تەممووز (7)',
+            '8'  => 'ئاب (8)',
+            '9'  => 'ئەیلوول (9)',
+            '10' => 'تشرینی یەکەم (10)',
+            '11' => 'تشرینی دووەم (11)',
+            '12' => 'کانوونی یەکەم (12)',
+        ];
+        
+        $date_range = ($request->from ?? 'سەرەتا') . ' بۆ ' . ($request->to ?? 'ئێستا');
+        if ($request->filled('month')) {
+            $date_range = 'مانگی ' . ($month_names[$request->month] ?? $request->month);
+        }
+
+        $pdf_data = [
+            'installments' => $installments,
+            'school_name' => config('school.name', 'Future Generation Private Basic School'),
+            'date_range' => $date_range,
+            'grade_label' => $grade_label,
+            'total' => $installments->where('is_returned', false)->sum('amount_paid'),
+        ];
+
+        return view('reports.food-installments', $pdf_data);
+    }
+
+    /**
+     * Annual income report with tuition, food, clothes/books details per student
+     */
+    public function annualIncome(Request $request): JsonResponse
+    {
+        $academicYear = $request->get('academic_year', config('school.academic_year', '2025-2026'));
+        $grade = $request->get('grade');
+
+        $query = Student::active();
+
+        if ($grade) {
+            $query->byGrade($grade);
+        }
+
+        $students = $query->with([
+            'studyPayments' => fn ($q) => $q->where('academic_year', $academicYear),
+            'foodPayments' => fn ($q) => $q->where('academic_year', $academicYear),
+            'clothesBookPayments' => fn ($q) => $q->where('academic_year', $academicYear),
+        ])->orderBy('full_name')->get();
+
+        $data = $students->map(function ($student) {
+            $sp = $student->studyPayments->first();
+            $fp = $student->foodPayments->first();
+            
+            $studyPaid = $sp ? (float) $sp->total_paid : 0;
+            $studyRemain = $sp ? (float) $sp->remain_balance : 0;
+            
+            $foodPaid = $fp ? (float) $fp->total_paid : 0;
+            $foodRemain = $fp ? (float) $fp->remain_balance : 0;
+            
+            $clothesPaid = (float) $student->clothesBookPayments->where('item_type', 'clothes')->sum('amount_paid');
+            $booksPaid = (float) $student->clothesBookPayments->where('item_type', 'book')->sum('amount_paid');
+            
+            $grandTotalPaid = $studyPaid + $foodPaid + $clothesPaid + $booksPaid;
+
+            return [
+                'id' => $student->id,
+                'serial_number' => $student->serial_number,
+                'full_name' => $student->full_name,
+                'grade' => $student->grade,
+                'grade_display' => $student->grade_display,
+                'study_paid' => $studyPaid,
+                'study_remaining' => $studyRemain,
+                'food_paid' => $foodPaid,
+                'food_remaining' => $foodRemain,
+                'clothes_paid' => $clothesPaid,
+                'books_paid' => $booksPaid,
+                'grand_total_paid' => $grandTotalPaid,
+            ];
+        });
+
+        // Calculate totals for summary cards
+        $totalStudy = $data->sum('study_paid');
+        $totalFood = $data->sum('food_paid');
+        $totalClothes = $data->sum('clothes_paid');
+        $totalBooks = $data->sum('books_paid');
+        $totalIncome = $data->sum('grand_total_paid');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'records' => $data,
+                'summary' => [
+                    'total_study' => $totalStudy,
+                    'total_food' => $totalFood,
+                    'total_clothes' => $totalClothes,
+                    'total_books' => $totalBooks,
+                    'total_income' => $totalIncome,
+                ],
+            ],
+            'message' => 'Annual income report generated',
+        ]);
+    }
+
+    /**
+     * Export annual income report as CSV
+     */
+    public function exportAnnualIncome(Request $request)
+    {
+        $academicYear = $request->get('academic_year', config('school.academic_year', '2025-2026'));
+        $grade = $request->get('grade');
+
+        $query = Student::active();
+
+        if ($grade) {
+            $query->byGrade($grade);
+        }
+
+        $students = $query->with([
+            'studyPayments' => fn ($q) => $q->where('academic_year', $academicYear),
+            'foodPayments' => fn ($q) => $q->where('academic_year', $academicYear),
+            'clothesBookPayments' => fn ($q) => $q->where('academic_year', $academicYear),
+        ])->orderBy('full_name')->get();
+
+        $csv = "Student Name,Grade,Study Paid,Food Paid,Clothes Paid,Books Paid,Total Paid\n";
+
+        foreach ($students as $student) {
+            $sp = $student->studyPayments->first();
+            $fp = $student->foodPayments->first();
+            
+            $studyPaid = $sp ? (float) $sp->total_paid : 0;
+            $foodPaid = $fp ? (float) $fp->total_paid : 0;
+            
+            $clothesPaid = (float) $student->clothesBookPayments->where('item_type', 'clothes')->sum('amount_paid');
+            $booksPaid = (float) $student->clothesBookPayments->where('item_type', 'book')->sum('amount_paid');
+            $grandTotalPaid = $studyPaid + $foodPaid + $clothesPaid + $booksPaid;
+
+            $csv .= implode(',', [
+                '"' . $student->full_name . '"',
+                $student->grade_display,
+                $studyPaid,
+                $foodPaid,
+                $clothesPaid,
+                $booksPaid,
+                $grandTotalPaid,
+            ]) . "\n";
+        }
+
+        return response($csv)
+            ->header('Content-Type', 'text/csv')
+            ->header('Content-Disposition', 'attachment; filename="annual_income_report.csv"');
+    }
+
+    /**
+     * PDF print layout for annual income report
+     */
+    public function pdfAnnualIncome(Request $request)
+    {
+        $academicYear = $request->get('academic_year', config('school.academic_year', '2025-2026'));
+        $grade = $request->get('grade');
+
+        $query = Student::active();
+
+        if ($grade) {
+            $query->byGrade($grade);
+        }
+
+        $students = $query->with([
+            'studyPayments' => fn ($q) => $q->where('academic_year', $academicYear),
+            'foodPayments' => fn ($q) => $q->where('academic_year', $academicYear),
+            'clothesBookPayments' => fn ($q) => $q->where('academic_year', $academicYear),
+        ])->orderBy('full_name')->get();
+
+        $records = $students->map(function ($student) {
+            $sp = $student->studyPayments->first();
+            $fp = $student->foodPayments->first();
+            
+            $studyPaid = $sp ? (float) $sp->total_paid : 0;
+            $studyRemain = $sp ? (float) $sp->remain_balance : 0;
+            
+            $foodPaid = $fp ? (float) $fp->total_paid : 0;
+            $foodRemain = $fp ? (float) $fp->remain_balance : 0;
+            
+            $clothesPaid = (float) $student->clothesBookPayments->where('item_type', 'clothes')->sum('amount_paid');
+            $booksPaid = (float) $student->clothesBookPayments->where('item_type', 'book')->sum('amount_paid');
+            $grandTotalPaid = $studyPaid + $foodPaid + $clothesPaid + $booksPaid;
+
+            return [
+                'serial_number' => $student->serial_number,
+                'full_name' => $student->full_name,
+                'grade_display' => $student->grade_display,
+                'study_paid' => $studyPaid,
+                'study_remaining' => $studyRemain,
+                'food_paid' => $foodPaid,
+                'food_remaining' => $foodRemain,
+                'clothes_paid' => $clothesPaid,
+                'books_paid' => $booksPaid,
+                'grand_total_paid' => $grandTotalPaid,
+            ];
+        });
+
+        $grade_map = [
+            'one'   => 'پۆلی یەکەم',
+            'two'   => 'پۆلی دووەم',
+            'three' => 'پۆلی سێیەم',
+            'four'  => 'پۆلی چوارەم',
+            'five'  => 'پۆلی پێنجەم',
+            'six'   => 'پۆلی شەشەم',
+            'seven' => 'پۆلی حەوتەم',
+            'eight' => 'پۆلی هەشتەم',
+            'nine'  => 'پۆلی Noyem', // Wait, keep as standard
+        ];
+        
+        $grade_map = [
+            'one'   => 'پۆلی یەکەم',
+            'two'   => 'پۆلی دووەم',
+            'three' => 'پۆلی سێیەم',
+            'four'  => 'پۆلی چوارەم',
+            'five'  => 'پۆلی پێنجەم',
+            'six'   => 'پۆلی شەشەم',
+            'seven' => 'پۆلی حەوتەم',
+            'eight' => 'پۆلی هەشتەم',
+            'nine'  => 'پۆلی نۆیەم',
+        ];
+        
+        $grade_label = $grade ? ($grade_map[$grade] ?? $grade) : null;
+
+        $pdf_data = [
+            'records' => $records,
+            'school_name' => config('school.name', 'Future Generation Private Basic School'),
+            'academic_year' => $academicYear,
+            'grade_label' => $grade_label,
+            'total_study' => $records->sum('study_paid'),
+            'total_food' => $records->sum('food_paid'),
+            'total_clothes' => $records->sum('clothes_paid'),
+            'total_books' => $records->sum('books_paid'),
+            'total_income' => $records->sum('grand_total_paid'),
+        ];
+
+        return view('reports.annual-income', $pdf_data);
+    }
+
+    /**
+     * Food income monthly breakdown report
+     */
+    public function foodIncome(Request $request): JsonResponse
+    {
+        $year = $request->get('year', now()->year);
+
+        $monthlyData = [];
+        $runningTotal = 0;
+
+        for ($month = 1; $month <= 12; $month++) {
+            $collected = (float) FoodInstallment::whereYear('payment_date', $year)
+                ->whereMonth('payment_date', $month)
+                ->where('is_returned', false)
+                ->sum('amount_paid');
+
+            $runningTotal += $collected;
+
+            $monthlyData[] = [
+                'month' => date('F', mktime(0, 0, 0, $month, 1)),
+                'month_number' => $month,
+                'total_collected' => $collected,
+                'running_total' => $runningTotal,
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'year' => $year,
+                'months' => $monthlyData,
+                'grand_total' => $runningTotal,
+            ],
+            'message' => 'Food income report generated',
+        ]);
+    }
+
+    /**
+     * Export food income report as CSV
+     */
+    public function exportFoodIncome(Request $request)
+    {
+        $year = $request->get('year', now()->year);
+
+        $csv = "Month,Collected Amount,Running Total\n";
+
+        $runningTotal = 0;
+        for ($month = 1; $month <= 12; $month++) {
+            $collected = (float) FoodInstallment::whereYear('payment_date', $year)
+                ->whereMonth('payment_date', $month)
+                ->where('is_returned', false)
+                ->sum('amount_paid');
+
+            $runningTotal += $collected;
+            $monthName = date('F', mktime(0, 0, 0, $month, 1));
+
+            $csv .= implode(',', [
+                $monthName,
+                $collected,
+                $runningTotal,
+            ]) . "\n";
+        }
+
+        return response($csv)
+            ->header('Content-Type', 'text/csv')
+            ->header('Content-Disposition', 'attachment; filename="food_income_report_' . $year . '.csv"');
+    }
+
+    public function clothesPayments(Request $request): JsonResponse
+    {
+        $query = ClothesBookPayment::where('item_type', 'clothes')->with('student');
+
+        if ($request->filled('from') || $request->filled('to')) {
+            $from = $request->from ?? '1970-01-01';
+            $to = $request->to ?? now()->toDateString();
+            $query->whereBetween('payment_date', [$from, $to]);
+        }
+
+        if ($request->filled('month')) {
+            $query->whereMonth('payment_date', $request->month);
+        }
+
+        if ($request->filled('grade')) {
+            $query->whereHas('student', fn ($q) => $q->where('grade', $request->grade));
+        }
+
+        if ($request->filled('student_id')) {
+            $query->where('student_id', $request->student_id);
+        }
+
+        $payments = $query->orderByDesc('payment_date')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'records' => $payments,
+                'summary' => [
+                    'count' => $payments->count(),
+                    'total_amount' => $payments->sum('amount_paid'),
+                ],
+            ],
+            'message' => 'Clothes payments report generated',
+        ]);
+    }
+
+    public function bookPayments(Request $request): JsonResponse
+    {
+        $query = ClothesBookPayment::where('item_type', 'book')->with('student');
+
+        if ($request->filled('from') || $request->filled('to')) {
+            $from = $request->from ?? '1970-01-01';
+            $to = $request->to ?? now()->toDateString();
+            $query->whereBetween('payment_date', [$from, $to]);
+        }
+
+        if ($request->filled('month')) {
+            $query->whereMonth('payment_date', $request->month);
+        }
+
+        if ($request->filled('grade')) {
+            $query->whereHas('student', fn ($q) => $q->where('grade', $request->grade));
+        }
+
+        if ($request->filled('student_id')) {
+            $query->where('student_id', $request->student_id);
+        }
+
+        $payments = $query->orderByDesc('payment_date')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'records' => $payments,
+                'summary' => [
+                    'count' => $payments->count(),
+                    'total_amount' => $payments->sum('amount_paid'),
+                ],
+            ],
+            'message' => 'Book payments report generated',
+        ]);
+    }
+
+    public function pdfClothesPayments(Request $request)
+    {
+        $query = ClothesBookPayment::where('item_type', 'clothes')->with('student');
+
+        if ($request->filled('from') || $request->filled('to')) {
+            $from = $request->from ?? '1970-01-01';
+            $to = $request->to ?? now()->toDateString();
+            $query->whereBetween('payment_date', [$from, $to]);
+        }
+
+        if ($request->filled('month')) {
+            $query->whereMonth('payment_date', $request->month);
+        }
+
+        if ($request->filled('grade')) {
+            $query->whereHas('student', fn ($q) => $q->where('grade', $request->grade));
+        }
+
+        if ($request->filled('student_id')) {
+            $query->where('student_id', $request->student_id);
+        }
+
+        $payments = $query->orderByDesc('payment_date')->get();
+
+        $grade_map = [
+            'one'   => 'پۆلی یەکەم',
+            'two'   => 'پۆلی دووەم',
+            'three' => 'پۆلی سێیەم',
+            'four'  => 'پۆلی چوارەم',
+            'five'  => 'پۆلی پێنجەم',
+            'six'   => 'پۆلی شەشەم',
+            'seven' => 'پۆلی حەوتەم',
+            'eight' => 'پۆلی هەشتەم',
+            'nine'  => 'پۆلی نۆیەم',
+        ];
+        
+        $grade_label = $request->filled('grade') ? ($grade_map[$request->grade] ?? $request->grade) : null;
+
+        $month_names = [
+            '1'  => 'کانوونی دووەم (1)',
+            '2'  => 'شوبات (2)',
+            '3'  => 'ئادار (3)',
+            '4'  => 'نیسان (4)',
+            '5'  => 'ئایار (5)',
+            '6'  => 'حوزەیران (6)',
+            '7'  => 'تەممووز (7)',
+            '8'  => 'ئاب (8)',
+            '9'  => 'ئەیلوول (9)',
+            '10' => 'تشرینی یەکەم (10)',
+            '11' => 'تشرینی دووەم (11)',
+            '12' => 'کانوونی یەکەم (12)',
+        ];
+        
+        $date_range = ($request->from ?? 'سەرەتا') . ' بۆ ' . ($request->to ?? 'ئێستا');
+        if ($request->filled('month')) {
+            $date_range = 'مانگی ' . ($month_names[$request->month] ?? $request->month);
+        }
+
+        $pdf_data = [
+            'payments' => $payments,
+            'school_name' => config('school.name', 'Future Generation Private Basic School'),
+            'date_range' => $date_range,
+            'grade_label' => $grade_label,
+            'total' => $payments->sum('amount_paid'),
+            'title' => 'ڕاپۆرتی داهاتی جلوبەرگ',
+        ];
+
+        return view('reports.clothes-payments', $pdf_data);
+    }
+
+    public function pdfBookPayments(Request $request)
+    {
+        $query = ClothesBookPayment::where('item_type', 'book')->with('student');
+
+        if ($request->filled('from') || $request->filled('to')) {
+            $from = $request->from ?? '1970-01-01';
+            $to = $request->to ?? now()->toDateString();
+            $query->whereBetween('payment_date', [$from, $to]);
+        }
+
+        if ($request->filled('month')) {
+            $query->whereMonth('payment_date', $request->month);
+        }
+
+        if ($request->filled('grade')) {
+            $query->whereHas('student', fn ($q) => $q->where('grade', $request->grade));
+        }
+
+        if ($request->filled('student_id')) {
+            $query->where('student_id', $request->student_id);
+        }
+
+        $payments = $query->orderByDesc('payment_date')->get();
+
+        $grade_map = [
+            'one'   => 'پۆلی یەکەم',
+            'two'   => 'پۆلی دووەم',
+            'three' => 'پۆلی سێیەم',
+            'four'  => 'پۆلی چوارەم',
+            'five'  => 'پۆلی پێنجەم',
+            'six'   => 'پۆلی شەشەم',
+            'seven' => 'پۆلی حەوتەم',
+            'eight' => 'پۆلی هەشتەم',
+            'nine'  => 'پۆلی نۆیەم',
+        ];
+        
+        $grade_label = $request->filled('grade') ? ($grade_map[$request->grade] ?? $request->grade) : null;
+
+        $month_names = [
+            '1'  => 'کانوونی دووەم (1)',
+            '2'  => 'شوبات (2)',
+            '3'  => 'ئادار (3)',
+            '4'  => 'نیسان (4)',
+            '5'  => 'ئایار (5)',
+            '6'  => 'حوزەیران (6)',
+            '7'  => 'تەممووز (7)',
+            '8'  => 'ئاب (8)',
+            '9'  => 'ئەیلوول (9)',
+            '10' => 'تشرینی یەکەم (10)',
+            '11' => 'تشرینی دووەم (11)',
+            '12' => 'کانوونی یەکەم (12)',
+        ];
+        
+        $date_range = ($request->from ?? 'سەرەتا') . ' بۆ ' . ($request->to ?? 'ئێستا');
+        if ($request->filled('month')) {
+            $date_range = 'مانگی ' . ($month_names[$request->month] ?? $request->month);
+        }
+
+        $pdf_data = [
+            'payments' => $payments,
+            'school_name' => config('school.name', 'Future Generation Private Basic School'),
+            'date_range' => $date_range,
+            'grade_label' => $grade_label,
+            'total' => $payments->sum('amount_paid'),
+            'title' => 'ڕاپۆرتی داهاتی کتێب',
+        ];
+
+        return view('reports.book-payments', $pdf_data);
     }
 }

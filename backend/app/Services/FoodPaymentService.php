@@ -19,16 +19,20 @@ class FoodPaymentService
     public function createInstallment(array $data, int $userId): FoodInstallment
     {
         return DB::transaction(function () use ($data, $userId) {
-            $foodPayment = FoodPayment::lockForUpdate()->findOrFail($data['food_payment_id']);
-            $foodPayment->refresh();
-
-            $remainBalance = (float) $foodPayment->remain_balance;
-
-            if ((float) $data['amount_paid'] > $remainBalance) {
-                throw ValidationException::withMessages([
-                    'amount_paid' => ["Payment amount exceeds the remaining balance of {$remainBalance}."],
-                ]);
-            }
+            $academicYear = $data['academic_year'] ?? config('school.academic_year', '2025-2026');
+            
+            $foodPayment = FoodPayment::lockForUpdate()->firstOrCreate(
+                [
+                    'student_id' => $data['student_id'],
+                    'academic_year' => $academicYear,
+                ],
+                [
+                    'monthly_price' => 0,
+                    'discount' => 0,
+                    'total_paid' => 0,
+                    'notes' => 'Auto-created plan',
+                ]
+            );
 
             if ((float) $data['amount_paid'] <= 0) {
                 throw ValidationException::withMessages([
@@ -38,8 +42,8 @@ class FoodPaymentService
 
             $invoiceNo = $this->invoiceNumberService->getNextInvoiceNumber();
 
-            $remainBefore = $remainBalance;
-            $remainAfter = $remainBefore - (float) $data['amount_paid'];
+            $remainBefore = 0;
+            $remainAfter = 0;
 
             $installment = FoodInstallment::create([
                 'invoice_no' => $invoiceNo,
@@ -54,6 +58,7 @@ class FoodPaymentService
             ]);
 
             $foodPayment->increment('total_paid', (float) $data['amount_paid']);
+            $foodPayment->increment('monthly_price', (float) $data['amount_paid']);
 
             return $installment->load('student', 'foodPayment');
         });
@@ -75,6 +80,7 @@ class FoodPaymentService
 
             $foodPayment = FoodPayment::lockForUpdate()->findOrFail($installment->food_payment_id);
             $foodPayment->decrement('total_paid', (float) $installment->amount_paid);
+            $foodPayment->decrement('monthly_price', (float) $installment->amount_paid);
 
             $installment->update([
                 'is_returned' => true,

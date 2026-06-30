@@ -62,28 +62,6 @@ export default function StudentsPage() {
     }
   };
 
-  const handleExportCsv = () => {
-    if (!studentsData?.data) return;
-    const headers = 'سێریال,ناو,پۆل,قەرزی خوێندن,قەرزی نانخواردن\n';
-    const rows = studentsData.data
-      .map((student) =>
-        [
-          student.serial_number,
-          `"${student.full_name}"`,
-          gradeDisplay(student.grade),
-          student.study_balance || 0,
-          student.food_balance || 0,
-        ].join(',')
-      )
-      .join('\n');
-
-    const blob = new Blob([headers + rows], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `students_list_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-  };
 
   const columns: Column<any>[] = [
     { header: 'سێریال', accessor: 'serial_number', sortable: true },
@@ -126,9 +104,6 @@ export default function StudentsPage() {
           <p className="text-xs text-text-muted">بەڕێوەبردنی تۆمارەکانی قوتابییان و زانیارییەکانی تۆمارکردن</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="secondary" onClick={handleExportCsv}>
-            ناردنەوەی لیست
-          </Button>
           <Button variant="primary" onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-1.5">
             <HiOutlineUserPlus className="w-4 h-4" />
             <span>زیادکردنی قوتابی</span>

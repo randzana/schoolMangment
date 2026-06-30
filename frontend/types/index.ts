@@ -51,6 +51,7 @@ export interface Student {
   food_payments?: FoodPayment[];
   study_installments?: StudyInstallment[];
   food_installments?: FoodInstallment[];
+  clothes_book_payments?: ClothesBookPayment[];
 }
 
 export interface StudentSearch {
@@ -222,6 +223,7 @@ export interface DashboardData {
   total_students: number;
   study_revenue: number;
   food_revenue: number;
+  clothes_revenue: number;
   monthly_expenses: number;
   recent_transactions: (StudyInstallment | FoodInstallment)[];
   outstanding_balances: OutstandingBalance[];

@@ -2,7 +2,7 @@
 <html lang="ku" dir="rtl">
 <head>
     <meta charset="utf-8">
-    <title>ڕاپۆرتی قستەکانی خوێندن</title>
+    <title>ڕاپۆرتی داهاتی کتێب</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap');
         
@@ -24,7 +24,6 @@
             overflow: hidden;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-        /* Header style matching invoice */
         .header-container {
             display: flex;
             align-items: center;
@@ -114,15 +113,6 @@
             font-weight: 700;
         }
         .total-row td { border-top: 2px solid #D97706; }
-        .returned { color: #DC2626; text-decoration: line-through; opacity: 0.7; }
-        .status-active { 
-            background: #D1FAE5; color: #065F46; 
-            padding: 2px 8px; border-radius: 50px; font-size: 9px; font-weight: 700;
-        }
-        .status-returned { 
-            background: #FEE2E2; color: #991B1B; 
-            padding: 2px 8px; border-radius: 50px; font-size: 9px; font-weight: 700;
-        }
         .footer {
             padding: 15px 20px;
             border-top: 2px solid #1E3A5F;
@@ -132,7 +122,7 @@
             background: #F8FAFC;
         }
         .amount { font-family: monospace; font-weight: 600; }
-
+ 
         @media print {
             body { background: white; padding: 0; }
             .report-wrapper { border: none; box-shadow: none; max-width: 100%; border-radius: 0; }
@@ -142,7 +132,7 @@
     </style>
 </head>
 <body>
-
+ 
 <div class="report-wrapper">
     <div class="header-container">
         <div class="school-info">
@@ -155,7 +145,7 @@
         
         <div>
             <div class="title-badge">
-                ڕاپۆرتی وەرگرتنی کرێی خوێندن
+                {{ $title }}
             </div>
         </div>
         
@@ -164,15 +154,15 @@
             <div>ڕێکەوت: <strong>{{ now()->format('d/m/Y') }}</strong></div>
         </div>
     </div>
-
+ 
     <div class="meta">
-        <div class="meta-item"><strong>کۆی تۆمارەکان:</strong> {{ $installments->count() }}</div>
+        <div class="meta-item"><strong>کۆی فرۆشتنەکان:</strong> {{ $payments->count() }}</div>
         @if(isset($grade_label) && $grade_label)
             <div class="meta-item"><strong>پۆل:</strong> {{ $grade_label }}</div>
         @endif
-        <div class="meta-item"><strong>کۆی گشتی بڕی وەرگیراو:</strong> <span class="amount">{{ number_format($total, 0) }} دینار</span></div>
+        <div class="meta-item"><strong>کۆی داهات:</strong> <span class="amount">{{ number_format($total, 0) }} د.ع</span></div>
     </div>
-
+ 
     <table>
         <thead>
             <tr>
@@ -181,46 +171,38 @@
                 <th>ناوی قوتابی</th>
                 <th>پۆل</th>
                 <th>بڕی دراو</th>
-                <th>ماوەی قەرز</th>
-                <th>بارودۆخ</th>
+                <th>تێبینی</th>
             </tr>
         </thead>
         <tbody>
-            @foreach($installments as $inst)
-            <tr class="{{ $inst->is_returned ? 'returned' : '' }}">
-                <td style="font-family: monospace;">#{{ $inst->invoice_no }}</td>
-                <td>{{ $inst->payment_date->format('d/m/Y') }}</td>
-                <td>{{ $inst->student->full_name }}</td>
-                <td>{{ $inst->student->grade_display }}</td>
-                <td class="amount">{{ number_format($inst->amount_paid, 0) }} دینار</td>
-                <td class="amount">{{ number_format($inst->remain_after, 0) }} دینار</td>
-                <td>
-                    @if($inst->is_returned)
-                        <span class="status-returned">گەڕاوەتەوە</span>
-                    @else
-                        <span class="status-active">چالاک</span>
-                    @endif
-                </td>
+            @foreach($payments as $pay)
+            <tr>
+                <td style="font-family: monospace;">#{{ $pay->invoice_no }}</td>
+                <td>{{ $pay->payment_date?->format('d/m/Y') ?? 'N/A' }}</td>
+                <td style="font-weight: 500;">{{ $pay->student->full_name }}</td>
+                <td>{{ $pay->student->grade_display }}</td>
+                <td class="amount">{{ number_format($pay->amount_paid, 0) }} د.ع</td>
+                <td>{{ $pay->notes ?: '-' }}</td>
             </tr>
             @endforeach
         </tbody>
         <tfoot>
             <tr class="total-row">
                 <td colspan="4">کۆی گشتی</td>
-                <td class="amount">{{ number_format($total, 0) }} دینار</td>
-                <td colspan="2"></td>
+                <td class="amount" style="color: #047857;">{{ number_format($total, 0) }} د.ع</td>
+                <td></td>
             </tr>
         </tfoot>
     </table>
-
+ 
     <div class="footer">
         سیستەمی بەڕێوەبردنی دارایی — {{ $school_name }} — {{ now()->format('d/m/Y H:i') }}
     </div>
 </div>
-
+ 
 <script>
     window.onload = function() { window.print(); };
 </script>
-
+ 
 </body>
 </html>

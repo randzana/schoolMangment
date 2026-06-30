@@ -47,11 +47,13 @@ class FoodInstallmentController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'food_payment_id' => 'required|exists:food_payments,id',
+            'student_id' => 'required|exists:students,id',
             'amount_paid' => 'required|numeric|min:1',
             'payment_date' => 'sometimes|date',
             'notes' => 'nullable|string',
         ]);
+
+        $validated['academic_year'] = $request->get('academic_year', config('school.academic_year', '2025-2026'));
 
         $installment = $this->foodService->createInstallment(
             $validated,

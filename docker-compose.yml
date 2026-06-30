@@ -1,0 +1,112 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: school_db
+    restart: always
+    environment:
+      POSTGRES_DB: school_admin
+      POSTGRES_USER: randzana
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U randzana -d school_admin"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: school_backend
+    restart: always
+    ports:
+      - "8000:80"
+    environment:
+      APP_NAME: "School Admin System"
+      APP_ENV: local
+      APP_KEY: base64:H+o6khqAcVot0WjT68yJOYetIVYmDy6AB6nmWKo2TW0=
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: school_admin
+      DB_USERNAME: randzana
+      DB_PASSWORD: secret
+      SESSION_DRIVER: database
+      SESSION_LIFETIME: 120
+      SESSION_ENCRYPT: "false"
+      SESSION_PATH: /
+      SESSION_DOMAIN: localhost
+      BROADCAST_CONNECTION: log
+      FILESYSTEM_DISK: local
+      QUEUE_CONNECTION: database
+      CACHE_STORE: database
+      FRONTEND_URL: http://localhost:3000
+      SANCTUM_STATEFUL_DOMAINS: localhost:3000
+      MAIL_MAILER: log
+    depends_on:
+      db:
+        condition: service_healthy
+
+  queue:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: school_queue
+    restart: always
+    command: php artisan queue:listen --tries=1 --timeout=0
+    environment:
+      APP_NAME: "School Admin System"
+      APP_ENV: local
+      APP_KEY: base64:H+o6khqAcVot0WjT68yJOYetIVYmDy6AB6nmWKo2TW0=
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: school_admin
+      DB_USERNAME: randzana
+      DB_PASSWORD: secret
+      SESSION_DRIVER: database
+      SESSION_LIFETIME: 120
+      SESSION_ENCRYPT: "false"
+      SESSION_PATH: /
+      SESSION_DOMAIN: localhost
+      BROADCAST_CONNECTION: log
+      FILESYSTEM_DISK: local
+      QUEUE_CONNECTION: database
+      CACHE_STORE: database
+      FRONTEND_URL: http://localhost:3000
+      SANCTUM_STATEFUL_DOMAINS: localhost:3000
+      MAIL_MAILER: log
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000/api
+    container_name: school_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api
+      NEXT_PUBLIC_SCHOOL_NAME: "Future Generation Private Basic School"
+      NEXT_PUBLIC_ACADEMIC_YEAR: "2026-2027"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

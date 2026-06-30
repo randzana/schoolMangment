@@ -7,21 +7,7 @@
         }
     }
     
-    $kurdish_months = [
-        1 => 'کانوونی دووەم',
-        2 => 'شوبات',
-        3 => 'ئادار',
-        4 => 'نیسان',
-        5 => 'ئایار',
-        6 => 'حوزەیران',
-        7 => 'تەممووز',
-        8 => 'ئاب',
-        9 => 'ئەیلوول',
-        10 => 'تشرینی یەکەم',
-        11 => 'تشرینی دووەم',
-        12 => 'کانوونی یەکەم'
-    ];
-    $kurdish_month_name = $month_num ? ($kurdish_months[$month_num] ?? '') : '';
+    $kurdish_month_name = $month_num ? (string)$month_num : '';
 @endphp
 <!DOCTYPE html>
 <html lang="ku" dir="rtl">
@@ -281,9 +267,13 @@
             <div>
                 <div class="title-badge">
                     @if($invoice_type === 'Study Payment')
-                        پسوولەی قستی خوێندن
+                        پسوولەی وەرگرتنی کرێی خوێندن
                     @elseif($invoice_type === 'Food Payment')
                         پسوولەی نانخواردن
+                    @elseif($invoice_type === 'Clothes Payment')
+                        پسوولەی جلوبەرگ
+                    @elseif($invoice_type === 'Book Payment')
+                        پسوولەی کتێب
                     @else
                         پسوولەی جلوبەرگ و کتێب
                     @endif

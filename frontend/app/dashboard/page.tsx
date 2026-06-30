@@ -77,10 +77,10 @@ export default function DashboardPage() {
       color: 'bg-accent/10',
     },
     {
-      label: 'خەرجییەکان (مانگانە)',
-      value: formatCurrency(dashboard.monthly_expenses),
-      icon: <HiOutlineCurrencyDollar className="w-6 h-6 text-danger" />,
-      color: 'bg-danger/10',
+      label: 'داهاتی جل و کتێب (ساڵانە)',
+      value: formatCurrency(dashboard.clothes_revenue),
+      icon: <HiOutlineCurrencyDollar className="w-6 h-6 text-warning" />,
+      color: 'bg-warning/10',
     },
   ];
 
@@ -105,26 +105,8 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Charts & Outstanding Balances */}
+      {/* Balances & Recent Transactions */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Revenue vs Expenses Chart */}
-        <div className="lg:col-span-2 bg-white border border-border rounded-xl shadow-card p-6 flex flex-col">
-          <h3 className="font-semibold text-sm text-text mb-4">داهات بەرامبەر خەرجی</h3>
-          <div className="flex-1 min-h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dashboard.monthly_chart} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="month" stroke="#A0AEC0" fontSize={10} tickLine={false} />
-                <YAxis stroke="#A0AEC0" fontSize={10} tickLine={false} />
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                <Legend iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                <Bar dataKey="revenue" fill="var(--color-primary-light)" radius={[4, 4, 0, 0]} name="کۆی داهات" />
-                <Bar dataKey="expenses" fill="var(--color-danger)" radius={[4, 4, 0, 0]} name="کۆی خەرجی" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
         {/* Outstanding Balances list */}
         <div className="bg-white border border-border rounded-xl shadow-card p-6 flex flex-col">
           <div className="flex items-center gap-2 mb-4 text-warning">
@@ -148,42 +130,42 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
-      </div>
 
-      {/* Recent Transactions Table */}
-      <div className="bg-white border border-border rounded-xl shadow-card p-6">
-        <h3 className="font-semibold text-sm text-text mb-4">کۆتا مامەڵەکان</h3>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-border">
-            <thead>
-              <tr className="text-left text-xs font-semibold uppercase text-text-muted tracking-wider bg-surface-muted">
-                <th className="px-6 py-3">ژمارەی پسوولە</th>
-                <th className="px-6 py-3">ناوی قوتابی</th>
-                <th className="px-6 py-3">جۆر</th>
-                <th className="px-6 py-3">بڕی دراو</th>
-                <th className="px-6 py-3">بەروار</th>
-                <th className="px-6 py-3">بارودۆخ</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-border text-sm text-text">
-              {dashboard.recent_transactions.map((tx, idx) => (
-                <tr key={idx} className={`hover:bg-surface-muted/50 ${tx.is_returned ? 'line-through opacity-60 text-danger bg-red-50/20' : ''}`}>
-                  <td className="px-6 py-3 font-mono font-semibold">#{tx.invoice_no}</td>
-                  <td className="px-6 py-3 font-medium">{tx.student?.full_name}</td>
-                  <td className="px-6 py-3 uppercase text-xs font-bold text-text-muted">
-                    {tx.type === 'study' ? 'خوێندن' : 'نانخواردن'}
-                  </td>
-                  <td className="px-6 py-3 font-mono font-semibold text-primary">{formatCurrency(tx.amount_paid)}</td>
-                  <td className="px-6 py-3">{formatDate(tx.payment_date)}</td>
-                  <td className="px-6 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${tx.is_returned ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'}`}>
-                      {tx.is_returned ? 'گەڕاوەتەوە' : 'دراوە'}
-                    </span>
-                  </td>
+        {/* Recent Transactions Table */}
+        <div className="lg:col-span-2 bg-white border border-border rounded-xl shadow-card p-6">
+          <h3 className="font-semibold text-sm text-text mb-4">کۆتا مامەڵەکان</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-border">
+              <thead>
+                <tr className="text-left text-xs font-semibold uppercase text-text-muted tracking-wider bg-surface-muted">
+                  <th className="px-6 py-3">ژمارەی پسوولە</th>
+                  <th className="px-6 py-3">ناوی قوتابی</th>
+                  <th className="px-6 py-3">جۆر</th>
+                  <th className="px-6 py-3">بڕی دراو</th>
+                  <th className="px-6 py-3">بەروار</th>
+                  <th className="px-6 py-3">بارودۆخ</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-border text-sm text-text">
+                {dashboard.recent_transactions.map((tx, idx) => (
+                  <tr key={idx} className={`hover:bg-surface-muted/50 ${tx.is_returned ? 'line-through opacity-60 text-danger bg-red-50/20' : ''}`}>
+                    <td className="px-6 py-3 font-mono font-semibold">#{tx.invoice_no}</td>
+                    <td className="px-6 py-3 font-medium">{tx.student?.full_name}</td>
+                    <td className="px-6 py-3 uppercase text-xs font-bold text-text-muted">
+                      {tx.type === 'study' ? 'خوێندن' : 'نانخواردن'}
+                    </td>
+                    <td className="px-6 py-3 font-mono font-semibold text-primary">{formatCurrency(tx.amount_paid)}</td>
+                    <td className="px-6 py-3">{formatDate(tx.payment_date)}</td>
+                    <td className="px-6 py-3">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${tx.is_returned ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'}`}>
+                        {tx.is_returned ? 'گەڕاوەتەوە' : 'دراوە'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

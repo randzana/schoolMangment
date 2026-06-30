@@ -1,0 +1,122 @@
+'use client';
+ 
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import api from '@/lib/api';
+import { Button } from '@/components/ui/Button';
+import { Select } from '@/components/ui/Select';
+import { DataTable, Column } from '@/components/tables/DataTable';
+import { formatCurrency, GRADE_OPTIONS, GRADE_MAP } from '@/lib/utils';
+import { HiOutlineArrowDownTray, HiOutlinePrinter } from 'react-icons/hi2';
+ 
+export default function AnnualIncomeReportPage() {
+  const [academicYear, setAcademicYear] = useState('2026-2027');
+  const [grade, setGrade] = useState('');
+ 
+  const { data: reportResponse, isLoading } = useQuery({
+    queryKey: ['report-annual-income', academicYear, grade],
+    queryFn: async () => {
+      const res = await api.get('/reports/annual-income', {
+        params: { academic_year: academicYear, grade },
+      });
+      return res.data.data;
+    },
+  });
+ 
+  const records = reportResponse?.records || [];
+  const summary = reportResponse?.summary || { total_study: 0, total_food: 0, total_clothes: 0, total_books: 0, total_income: 0 };
+ 
+  const handleExportCsv = () => {
+    window.open(
+      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/reports/annual-income/export?academic_year=${academicYear}&grade=${grade}`,
+      '_blank'
+    );
+  };
+ 
+  const handlePrintPdf = () => {
+    window.open(
+      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/reports/annual-income/pdf?academic_year=${academicYear}&grade=${grade}`,
+      '_blank'
+    );
+  };
+ 
+  const columns: Column<any>[] = [
+    { header: 'ناوی قوتابی', accessor: 'full_name', className: 'font-medium text-text' },
+    { header: 'پۆل', accessor: (row) => GRADE_MAP[row.grade] || row.grade_display },
+    { header: 'دراوی خوێندن', accessor: (row) => formatCurrency(row.study_paid) },
+    { header: 'دراوی نان', accessor: (row) => formatCurrency(row.food_paid) },
+    { header: 'دراوی جلوبەرگ', accessor: (row) => formatCurrency(row.clothes_paid) },
+    { header: 'دراوی کتێب', accessor: (row) => formatCurrency(row.books_paid) },
+    { header: 'کۆی گشتی دراو', accessor: (row) => formatCurrency(row.grand_total_paid), className: 'text-primary font-bold' },
+  ];
+ 
+  return (
+    <div className="space-y-6">
+      {/* Filters */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-end bg-surface-muted p-4 border rounded-xl">
+        <Select
+          label="ساڵی خوێندن"
+          id="academic_year_filter"
+          options={[
+            { value: '2024-2025', label: '2024-2025' },
+            { value: '2025-2026', label: '2025-2026' },
+            { value: '2026-2027', label: '2026-2027' },
+          ]}
+          value={academicYear}
+          onChange={(e) => setAcademicYear(e.target.value)}
+        />
+        <Select
+          label="فلتەر بەپێی پۆل"
+          id="grade_filter"
+          options={GRADE_OPTIONS}
+          placeholder="هەموو پۆلەکان"
+          value={grade}
+          onChange={(e) => setGrade(e.target.value)}
+        />
+      </div>
+ 
+      {/* Summary Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="bg-surface-muted p-4 border rounded-xl">
+          <span className="text-[10px] text-text-muted font-bold">کۆی داهاتی خوێندن</span>
+          <p className="text-base font-bold text-success mt-0.5">{formatCurrency(summary.total_study)}</p>
+        </div>
+        <div className="bg-surface-muted p-4 border rounded-xl">
+          <span className="text-[10px] text-text-muted font-bold">کۆی داهاتی نانخواردن</span>
+          <p className="text-base font-bold text-success mt-0.5">{formatCurrency(summary.total_food)}</p>
+        </div>
+        <div className="bg-surface-muted p-4 border rounded-xl">
+          <span className="text-[10px] text-text-muted font-bold">کۆی داهاتی جلوبەرگ</span>
+          <p className="text-base font-bold text-success mt-0.5">{formatCurrency(summary.total_clothes)}</p>
+        </div>
+        <div className="bg-surface-muted p-4 border rounded-xl">
+          <span className="text-[10px] text-text-muted font-bold">کۆی داهاتی کتێب</span>
+          <p className="text-base font-bold text-success mt-0.5">{formatCurrency(summary.total_books)}</p>
+        </div>
+        <div className="bg-primary/5 p-4 border border-primary/20 rounded-xl">
+          <span className="text-[10px] text-primary font-bold">کۆی گشتی داهات</span>
+          <p className="text-base font-bold text-primary mt-0.5">{formatCurrency(summary.total_income)}</p>
+        </div>
+      </div>
+ 
+      {/* Actions */}
+      <div className="flex justify-end gap-3">
+        <Button variant="secondary" onClick={handleExportCsv} className="flex items-center gap-1.5">
+          <HiOutlineArrowDownTray className="w-4 h-4" />
+          <span>ناردنەوەی CSV</span>
+        </Button>
+        <Button variant="primary" onClick={handlePrintPdf} className="flex items-center gap-1.5">
+          <HiOutlinePrinter className="w-4 h-4" />
+          <span>چاپکردن</span>
+        </Button>
+      </div>
+ 
+      {/* Data Table */}
+      <DataTable
+        columns={columns}
+        data={records}
+        isLoading={isLoading}
+      />
+    </div>
+  );
+}

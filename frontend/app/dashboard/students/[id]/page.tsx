@@ -11,8 +11,8 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Spinner';
-import { formatCurrency, formatDate, GRADE_OPTIONS, gradeDisplay } from '@/lib/utils';
-import { HiOutlineUser, HiOutlinePencilSquare, HiOutlineArrowLeft } from 'react-icons/hi2';
+import { formatCurrency, formatDate, GRADE_OPTIONS, gradeDisplay, ITEM_TYPE_MAP } from '@/lib/utils';
+import { HiOutlineUser, HiOutlinePencilSquare, HiOutlineArrowLeft, HiOutlinePrinter } from 'react-icons/hi2';
 
 const updateStudentSchema = zod.object({
   full_name: zod.string().min(1, 'ناوی سیانی قوتابی داواکراوە').max(150),
@@ -198,6 +198,7 @@ export default function StudentDetailPage() {
                     <th className="px-4 py-2">بڕی دراو</th>
                     <th className="px-4 py-2">ماوەی قەرز</th>
                     <th className="px-4 py-2">بەروار</th>
+                    <th className="px-4 py-2 text-center">چاپکردن</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -207,6 +208,15 @@ export default function StudentDetailPage() {
                       <td className="px-4 py-2.5 font-mono text-primary font-bold">{formatCurrency(inst.amount_paid)}</td>
                       <td className="px-4 py-2.5 font-mono">{formatCurrency(inst.remain_after)}</td>
                       <td className="px-4 py-2.5">{formatDate(inst.payment_date)}</td>
+                      <td className="px-4 py-2.5 text-center">
+                        <button
+                          onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/study-installments/${inst.id}/invoice`, '_blank')}
+                          className="text-primary hover:text-primary-dark transition-colors cursor-pointer"
+                          title="چاپکردنەوەی پسوولە"
+                        >
+                          <HiOutlinePrinter className="w-4 h-4 mx-auto" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -219,7 +229,7 @@ export default function StudentDetailPage() {
 
         {/* Food installments history */}
         <div className="bg-white border border-border rounded-xl shadow-card p-6">
-          <h3 className="font-semibold text-sm text-text border-b pb-2 mb-4">مامەڵەکانی قستی نانخواردن</h3>
+          <h3 className="font-semibold text-sm text-text border-b pb-2 mb-4">مامەڵەکانی مانگانەی نانخواردن</h3>
           {student.food_installments && student.food_installments.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-border text-xs text-left">
@@ -229,6 +239,7 @@ export default function StudentDetailPage() {
                     <th className="px-4 py-2">بڕی دراو</th>
                     <th className="px-4 py-2">ماوەی قەرز</th>
                     <th className="px-4 py-2">بەروار</th>
+                    <th className="px-4 py-2 text-center">چاپکردن</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -238,6 +249,15 @@ export default function StudentDetailPage() {
                       <td className="px-4 py-2.5 font-mono text-primary font-bold">{formatCurrency(inst.amount_paid)}</td>
                       <td className="px-4 py-2.5 font-mono">{formatCurrency(inst.remain_after)}</td>
                       <td className="px-4 py-2.5">{formatDate(inst.payment_date)}</td>
+                      <td className="px-4 py-2.5 text-center">
+                        <button
+                          onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/food-installments/${inst.id}/invoice`, '_blank')}
+                          className="text-primary hover:text-primary-dark transition-colors cursor-pointer"
+                          title="چاپکردنەوەی پسوولە"
+                        >
+                          <HiOutlinePrinter className="w-4 h-4 mx-auto" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -245,6 +265,49 @@ export default function StudentDetailPage() {
             </div>
           ) : (
             <p className="text-xs text-text-muted text-center py-6">هیچ مامەڵەیەکی نانخواردن تۆمار نەکراوە.</p>
+          )}
+        </div>
+
+        {/* Clothes & Books history */}
+        <div className="bg-white border border-border rounded-xl shadow-card p-6 md:col-span-2">
+          <h3 className="font-semibold text-sm text-text border-b pb-2 mb-4">مامەڵەکانی جلوبەرگ و کتێب</h3>
+          {student.clothes_book_payments && student.clothes_book_payments.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-border text-xs text-left">
+                <thead>
+                  <tr className="text-text-muted font-semibold bg-surface-muted">
+                    <th className="px-4 py-2">ژمارەی پسوولە</th>
+                    <th className="px-4 py-2">جۆر</th>
+                    <th className="px-4 py-2">بڕی دراو</th>
+                    <th className="px-4 py-2">داشکاندن</th>
+                    <th className="px-4 py-2">بەروار</th>
+                    <th className="px-4 py-2 text-center">چاپکردن</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {student.clothes_book_payments.map((inst) => (
+                    <tr key={inst.id} className="hover:bg-surface-muted/50">
+                      <td className="px-4 py-2.5 font-semibold font-mono">#{inst.invoice_no || 'N/A'}</td>
+                      <td className="px-4 py-2.5 font-medium">{ITEM_TYPE_MAP[inst.item_type] || inst.item_type}</td>
+                      <td className="px-4 py-2.5 font-mono text-primary font-bold">{formatCurrency(inst.amount_paid)}</td>
+                      <td className="px-4 py-2.5 font-mono text-danger">-{formatCurrency(inst.discount)}</td>
+                      <td className="px-4 py-2.5">{inst.payment_date ? formatDate(inst.payment_date) : 'N/A'}</td>
+                      <td className="px-4 py-2.5 text-center">
+                        <button
+                          onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/clothes-books/${inst.id}/invoice`, '_blank')}
+                          className="text-primary hover:text-primary-dark transition-colors cursor-pointer"
+                          title="چاپکردنەوەی پسوولە"
+                        >
+                          <HiOutlinePrinter className="w-4 h-4 mx-auto" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-xs text-text-muted text-center py-6">هیچ مامەڵەیەکی جل و کتێب تۆمار نەکراوە.</p>
           )}
         </div>
       </div>

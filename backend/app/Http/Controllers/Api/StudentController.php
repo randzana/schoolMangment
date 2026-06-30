@@ -121,6 +121,7 @@ class StudentController extends Controller
             'foodPayments' => fn ($q) => $q->orderByDesc('academic_year'),
             'studyInstallments' => fn ($q) => $q->orderByDesc('payment_date')->limit(20),
             'foodInstallments' => fn ($q) => $q->orderByDesc('payment_date')->limit(20),
+            'clothesBookPayments' => fn ($q) => $q->orderByDesc('payment_date')->limit(20),
         ])->findOrFail($id);
 
         return response()->json([

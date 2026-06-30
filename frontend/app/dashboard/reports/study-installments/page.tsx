@@ -10,16 +10,32 @@ import { DataTable, Column } from '@/components/tables/DataTable';
 import { formatCurrency, formatDate, GRADE_OPTIONS, GRADE_MAP } from '@/lib/utils';
 import { HiOutlineArrowDownTray, HiOutlinePrinter } from 'react-icons/hi2';
 
+const MONTH_OPTIONS = [
+  { value: '1', label: 'کانوونی دووەم (1)' },
+  { value: '2', label: 'شوبات (2)' },
+  { value: '3', label: 'ئادار (3)' },
+  { value: '4', label: 'نیسان (4)' },
+  { value: '5', label: 'ئایار (5)' },
+  { value: '6', label: 'حوزەیران (6)' },
+  { value: '7', label: 'تەممووز (7)' },
+  { value: '8', label: 'ئاب (8)' },
+  { value: '9', label: 'ئەیلوول (9)' },
+  { value: '10', label: 'تشرینی یەکەم (10)' },
+  { value: '11', label: 'تشرینی دووەم (11)' },
+  { value: '12', label: 'کانوونی یەکەم (12)' },
+];
+
 export default function StudyInstallmentsReportPage() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [month, setMonth] = useState('');
   const [grade, setGrade] = useState('');
 
   const { data: reportResponse, isLoading } = useQuery({
-    queryKey: ['report-study-installments', from, to, grade],
+    queryKey: ['report-study-installments', from, to, month, grade],
     queryFn: async () => {
       const res = await api.get('/reports/study-installments', {
-        params: { from, to, grade },
+        params: { from, to, month, grade },
       });
       return res.data.data;
     },
@@ -30,14 +46,14 @@ export default function StudyInstallmentsReportPage() {
 
   const handleExportCsv = () => {
     window.open(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/reports/study-installments/export?from=${from}&to=${to}&grade=${grade}`,
+      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/reports/study-installments/export?from=${from}&to=${to}&month=${month}&grade=${grade}`,
       '_blank'
     );
   };
 
   const handlePrintPdf = () => {
     window.open(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/reports/study-installments/pdf?from=${from}&to=${to}&grade=${grade}`,
+      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/reports/study-installments/pdf?from=${from}&to=${to}&month=${month}&grade=${grade}`,
       '_blank'
     );
   };
@@ -62,20 +78,38 @@ export default function StudyInstallmentsReportPage() {
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <div className="grid gap-4 sm:grid-cols-3 items-end bg-surface-muted p-4 border rounded-xl">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-end bg-surface-muted p-4 border rounded-xl">
         <Input
           label="لە بەرواری"
           id="from_date"
           type="date"
           value={from}
-          onChange={(e) => setFrom(e.target.value)}
+          onChange={(e) => {
+            setFrom(e.target.value);
+            setMonth('');
+          }}
         />
         <Input
           label="بۆ بەرواری"
           id="to_date"
           type="date"
           value={to}
-          onChange={(e) => setTo(e.target.value)}
+          onChange={(e) => {
+            setTo(e.target.value);
+            setMonth('');
+          }}
+        />
+        <Select
+          label="فلتەر بەپێی مانگ"
+          id="month_filter"
+          options={MONTH_OPTIONS}
+          placeholder="هەموو مانگەکان"
+          value={month}
+          onChange={(e) => {
+            setMonth(e.target.value);
+            setFrom('');
+            setTo('');
+          }}
         />
         <Select
           label="فلتەر بەپێی پۆل"

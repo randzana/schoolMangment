@@ -1,0 +1,11 @@
+vendor
+node_modules
+.env
+bootstrap/cache/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*
+.git
+.github
+README.md

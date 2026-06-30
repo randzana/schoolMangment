@@ -18,6 +18,14 @@ Route::prefix('auth')->group(function () {
 Route::get('study-installments/{id}/invoice', [\App\Http\Controllers\Api\StudyInstallmentController::class, 'invoice']);
 Route::get('food-installments/{id}/invoice', [\App\Http\Controllers\Api\FoodInstallmentController::class, 'invoice']);
 Route::get('clothes-books/{id}/invoice', [\App\Http\Controllers\Api\ClothesBookController::class, 'invoice']);
+Route::get('reports/study-installments/export', [\App\Http\Controllers\Api\ReportController::class, 'exportStudyInstallments']);
+Route::get('reports/study-installments/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfStudyInstallments']);
+Route::get('reports/food-installments/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfFoodInstallments']);
+Route::get('reports/clothes-payments/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfClothesPayments']);
+Route::get('reports/book-payments/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfBookPayments']);
+Route::get('reports/annual-income/export', [\App\Http\Controllers\Api\ReportController::class, 'exportAnnualIncome']);
+Route::get('reports/annual-income/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfAnnualIncome']);
+Route::get('reports/food-income/export', [\App\Http\Controllers\Api\ReportController::class, 'exportFoodIncome']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -63,12 +71,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('reports')->group(function () {
         Route::get('/study-installments', [\App\Http\Controllers\Api\ReportController::class, 'studyInstallments']);
         Route::get('/food-installments', [\App\Http\Controllers\Api\ReportController::class, 'foodInstallments']);
+        Route::get('/clothes-payments', [\App\Http\Controllers\Api\ReportController::class, 'clothesPayments']);
+        Route::get('/book-payments', [\App\Http\Controllers\Api\ReportController::class, 'bookPayments']);
         Route::get('/study-income', [\App\Http\Controllers\Api\ReportController::class, 'studyIncome']);
         Route::get('/expenses', [\App\Http\Controllers\Api\ReportController::class, 'expenses']);
+        Route::get('/annual-income', [\App\Http\Controllers\Api\ReportController::class, 'annualIncome']);
+        Route::get('/food-income', [\App\Http\Controllers\Api\ReportController::class, 'foodIncome']);
 
         Route::get('/student-list', [\App\Http\Controllers\Api\ReportController::class, 'studentList']);
-        Route::get('/study-installments/export', [\App\Http\Controllers\Api\ReportController::class, 'exportStudyInstallments']);
-        Route::get('/study-installments/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfStudyInstallments']);
         Route::get('/dashboard', [\App\Http\Controllers\Api\ReportController::class, 'dashboard']);
     });
 

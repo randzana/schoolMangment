@@ -13,6 +13,7 @@ import {
   HiOutlineClipboardDocumentList,
   HiOutlineBuildingStorefront,
   HiOutlineBanknotes,
+  HiOutlineBookOpen,
   HiOutlineCurrencyDollar,
   HiOutlineDocumentChartBar,
   HiOutlineCog6Tooth,
@@ -52,27 +53,21 @@ const navigation: NavGroup[] = [
   {
     label: 'پارەدان',
     items: [
-      { label: 'پارەی خوێندن', href: '/dashboard/study-payments', icon: <HiOutlineCreditCard className="w-5 h-5" /> },
+      { label: 'خوێندن', href: '/dashboard/study-payments', icon: <HiOutlineAcademicCap className="w-5 h-5" /> },
       { label: 'قستەکانی خوێندن', href: '/dashboard/study-installments', icon: <HiOutlineClipboardDocumentList className="w-5 h-5" /> },
-      { label: 'پارەی نانخواردن', href: '/dashboard/food-payments', icon: <HiOutlineBuildingStorefront className="w-5 h-5" /> },
-      { label: 'قستەکانی نانخواردن', href: '/dashboard/food-installments', icon: <HiOutlineClipboardDocumentList className="w-5 h-5" /> },
-      { label: 'جل و کتێب', href: '/dashboard/clothes-books', icon: <HiOutlineBanknotes className="w-5 h-5" /> },
-    ],
-  },
-  {
-    label: 'دارایی',
-    items: [
-      { label: 'خەرجییەکان', href: '/dashboard/expenses', icon: <HiOutlineCurrencyDollar className="w-5 h-5" /> },
+      { label: 'مانگانەی نانخواردن', href: '/dashboard/food-installments', icon: <HiOutlineBuildingStorefront className="w-5 h-5" /> },
+      { label: 'جلوبەرگ', href: '/dashboard/clothes', icon: <HiOutlineBanknotes className="w-5 h-5" /> },
+      { label: 'کتێب', href: '/dashboard/books', icon: <HiOutlineBookOpen className="w-5 h-5" /> },
     ],
   },
   {
     label: 'ڕاپۆرتەکان',
     items: [
       { label: 'قستەکانی خوێندن', href: '/dashboard/reports/study-installments', icon: <HiOutlineDocumentChartBar className="w-5 h-5" /> },
-      { label: 'قستەکانی نانخواردن', href: '/dashboard/reports/food-installments', icon: <HiOutlineDocumentChartBar className="w-5 h-5" /> },
-      { label: 'داهاتی خوێندن', href: '/dashboard/reports/study-income', icon: <HiOutlineDocumentChartBar className="w-5 h-5" /> },
-      { label: 'ڕاپۆرتی خەرجییەکان', href: '/dashboard/reports/expenses', icon: <HiOutlineDocumentChartBar className="w-5 h-5" /> },
-      { label: 'لیستی قوتابییەکان', href: '/dashboard/reports/student-list', icon: <HiOutlineDocumentChartBar className="w-5 h-5" /> },
+      { label: 'مانگانەی نانخواردن', href: '/dashboard/reports/food-installments', icon: <HiOutlineDocumentChartBar className="w-5 h-5" /> },
+      { label: 'ڕاپۆرتی جلوبەرگ', href: '/dashboard/reports/clothes', icon: <HiOutlineDocumentChartBar className="w-5 h-5" /> },
+      { label: 'ڕاپۆرتی کتێب', href: '/dashboard/reports/books', icon: <HiOutlineDocumentChartBar className="w-5 h-5" /> },
+      { label: 'داهاتی ساڵانە', href: '/dashboard/reports/annual-income', icon: <HiOutlineDocumentChartBar className="w-5 h-5" /> },
     ],
   },
   {
@@ -80,7 +75,6 @@ const navigation: NavGroup[] = [
     adminOnly: true,
     items: [
       { label: 'بەکارهێنەران', href: '/dashboard/users', icon: <HiOutlineCog6Tooth className="w-5 h-5" />, adminOnly: true },
-      { label: 'پسوولە گەڕاوەکان', href: '/dashboard/returned-bills', icon: <HiOutlineExclamationTriangle className="w-5 h-5" />, adminOnly: true },
     ],
   },
 ];
