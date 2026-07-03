@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { HiOutlineXMark } from 'react-icons/hi2';
 
 interface ModalProps {
@@ -18,15 +19,27 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   size = 'md',
 }) => {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      setMounted(false);
+    };
+  }, []);
+
   // Prevent background scroll when modal is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
     }
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
     };
   }, [isOpen]);
 
@@ -39,7 +52,7 @@ export const Modal: React.FC<ModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const sizes = {
     sm: 'max-w-sm',
@@ -50,10 +63,10 @@ export const Modal: React.FC<ModalProps> = ({
     full: 'max-w-full m-4 h-[calc(100vh-2rem)]',
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+  const modalElement = (
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm animate-fade-in overflow-y-auto">
       <div 
-        className={`w-full bg-white rounded-xl shadow-lg flex flex-col overflow-hidden max-h-[90vh] ${sizes[size]} transition-all animate-slide-in`}
+        className={`w-full bg-white rounded-xl shadow-lg flex flex-col overflow-hidden my-4 sm:my-auto max-h-[calc(100vh-2rem)] sm:max-h-[90vh] ${sizes[size]} transition-all animate-slide-in`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -75,4 +88,6 @@ export const Modal: React.FC<ModalProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(modalElement, document.body);
 };

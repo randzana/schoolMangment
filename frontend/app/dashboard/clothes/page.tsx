@@ -1,12 +1,16 @@
 'use client';
- 
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as zod from 'zod';
+import { useQuery } from '@tanstack/react-query';
+import api from '@/lib/api';
+import { InventoryItem, ClothesBookPayment } from '@/types';
 import { useClothesBooks, useCreateClothesBook, useDeleteClothesBook } from '@/hooks';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { AutocompleteInput } from '@/components/forms/AutocompleteInput';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -14,24 +18,45 @@ import { DataTable, Column } from '@/components/tables/DataTable';
 import { TablePagination } from '@/components/tables/TablePagination';
 import { formatCurrency, formatDate, GRADE_MAP } from '@/lib/utils';
 import { HiOutlinePrinter, HiOutlineTrash, HiOutlinePlusCircle } from 'react-icons/hi2';
- 
+
 const purchaseSchema = zod.object({
   student_id: zod.number().min(1, 'تکایە قوتابییەک هەڵبژێرە'),
   amount_paid: zod.number().min(1, 'دەبێت بڕی پارە لە ٠ زیاتر بێت'),
+  uniform_size: zod.string().min(1, 'تکایە سایزی جلوبەرگ دیاری بکە'),
   notes: zod.string().optional(),
 });
- 
+
 type PurchaseFormValues = zod.infer<typeof purchaseSchema>;
- 
+
 export default function ClothesPage() {
   const [page, setPage] = useState(1);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
- 
-  const { data: purchasesData, isLoading } = useClothesBooks({ page, item_type: 'clothes' });
+
+  const { data: purchasesData, isLoading, refetch } = useClothesBooks({ page, item_type: 'clothes' });
   const createMutation = useCreateClothesBook();
   const deleteMutation = useDeleteClothesBook();
- 
+
+  // Fetch clothes inventory
+  const { data: inventory } = useQuery<InventoryItem[]>({
+    queryKey: ['inventory-list-clothes'],
+    queryFn: async () => {
+      const res = await api.get('/inventory?item_type=clothes');
+      return res.data.data;
+    },
+  });
+
+  const sizeOptions = React.useMemo(() => {
+    if (!inventory) return [];
+    return inventory.map((item) => {
+      const sizeName = item.name.replace('Uniform Size ', '');
+      return {
+        value: sizeName,
+        label: `${sizeName} (مەوجود: ${item.quantity} دانە)`,
+      };
+    });
+  }, [inventory]);
+
   const {
     register,
     handleSubmit,
@@ -42,19 +67,21 @@ export default function ClothesPage() {
     resolver: zodResolver(purchaseSchema),
     defaultValues: {
       amount_paid: 0,
+      uniform_size: '',
       notes: '',
     },
   });
- 
+
   const openAddModal = () => {
     reset({
       student_id: 0,
       amount_paid: 0,
+      uniform_size: '',
       notes: '',
     });
     setIsFormOpen(true);
   };
- 
+
   const onSubmit = (values: PurchaseFormValues) => {
     const payload = {
       student_id: values.student_id,
@@ -63,30 +90,36 @@ export default function ClothesPage() {
       discount: 0,
       amount_paid: values.amount_paid,
       payment_date: new Date().toISOString().split('T')[0],
+      uniform_size: values.uniform_size,
       notes: values.notes || '',
     };
- 
+
     createMutation.mutate(payload, {
       onSuccess: (res) => {
         setIsFormOpen(false);
+        refetch();
         const created = res.data;
         window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/clothes-books/${created.id}/invoice`, '_blank');
       },
     });
   };
- 
+
   const handleDelete = () => {
     if (deleteId) {
       deleteMutation.mutate(deleteId, {
-        onSuccess: () => setDeleteId(null),
+        onSuccess: () => {
+          setDeleteId(null);
+          refetch();
+        },
       });
     }
   };
- 
-  const columns: Column<any>[] = [
+
+  const columns: Column<ClothesBookPayment>[] = [
     { header: 'ژمارەی پسوولە', accessor: (row) => row.invoice_no ? `#${row.invoice_no}` : '-', sortable: true },
-    { header: 'ناوی قوتابی', accessor: (row) => row.student?.full_name },
-    { header: 'پۆل', accessor: (row) => GRADE_MAP[row.student?.grade] || row.student?.grade },
+    { header: 'ناوی قوتابی', accessor: (row) => row.student?.full_name || '-' },
+    { header: 'پۆل', accessor: (row) => row.student?.grade ? GRADE_MAP[row.student.grade] || row.student.grade : '-' },
+    { header: 'سایزی جل', accessor: (row) => row.uniform_size || '-' },
     { header: 'بڕی دراو', accessor: (row) => formatCurrency(row.amount_paid), className: 'text-success font-semibold' },
     { header: 'بەروار', accessor: (row) => formatDate(row.payment_date), sortable: true },
     {
@@ -114,7 +147,7 @@ export default function ClothesPage() {
       ),
     },
   ];
- 
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -128,7 +161,7 @@ export default function ClothesPage() {
           <span>تۆمارکردنی فرۆشتن</span>
         </Button>
       </div>
- 
+
       {/* History Data Table */}
       <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
         <DataTable
@@ -146,7 +179,7 @@ export default function ClothesPage() {
           />
         )}
       </div>
- 
+
       {/* Record Purchase Modal */}
       <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title="تۆمارکردنی فرۆشتنی جلوبەرگ">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -155,7 +188,15 @@ export default function ClothesPage() {
             onSelect={(student) => setValue('student_id', student.id)}
             error={errors.student_id?.message}
           />
- 
+
+          <Select
+            label="سایزی جلوبەرگ *"
+            placeholder="سایزی جلوبەرگ هەڵبژێرە"
+            options={sizeOptions}
+            error={errors.uniform_size?.message}
+            {...register('uniform_size')}
+          />
+
           <Input
             label="بڕی پارەی دراو (دینار) *"
             id="amount_paid"
@@ -164,7 +205,7 @@ export default function ClothesPage() {
             error={errors.amount_paid?.message}
             {...register('amount_paid', { valueAsNumber: true })}
           />
- 
+
           <div className="flex flex-col gap-1.5">
             <label htmlFor="notes" className="text-xs font-semibold text-text">
               تێبینی
@@ -172,12 +213,12 @@ export default function ClothesPage() {
             <textarea
               id="notes"
               rows={3}
-              placeholder="بۆ نموونە: قەبارەی جل ١٠، هتد."
+              placeholder="بۆ نموونە: تێبینییەکان لەم بەشە بنووسە"
               className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-text border-border focus:border-primary-light focus:outline-none focus:ring-2 focus:ring-primary-light/20 transition-all placeholder:text-text-light"
               {...register('notes')}
             />
           </div>
- 
+
           <div className="flex justify-end gap-3 pt-2 font-semibold">
             <Button variant="secondary" onClick={() => setIsFormOpen(false)}>
               پاشگەزبوونەوە
@@ -188,14 +229,14 @@ export default function ClothesPage() {
           </div>
         </form>
       </Modal>
- 
+
       {/* Delete Confirm Dialog */}
       <ConfirmDialog
         isOpen={deleteId !== null}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="سڕینەوەی تۆمار"
-        message="ئایا دڵنیایت لە سڕینەوەی ئەم تۆمارە؟ ئەم کردارە بە هەمیشەیی تۆماری کڕینەکە دەسڕێتەوە."
+        message="ئایا دڵنیایت لە سڕینەوەی ئەم تۆمارە؟ ئەم کردارە بە هەمیشەیی تۆماری کڕینەکە دەسڕێتەوە و ڕێژەی جلوبەرگ لە کۆگادا زیاد دەکاتەوە."
         isLoading={deleteMutation.isPending}
       />
     </div>

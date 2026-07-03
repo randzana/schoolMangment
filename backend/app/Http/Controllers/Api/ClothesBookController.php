@@ -7,6 +7,7 @@ use App\Models\ClothesBookPayment;
 use App\Services\InvoiceNumberService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class ClothesBookController extends Controller
@@ -58,6 +59,8 @@ class ClothesBookController extends Controller
             'amount_paid' => 'required|numeric|min:0',
             'payment_date' => 'sometimes|date',
             'notes' => 'nullable|string',
+            'uniform_size' => 'required_if:item_type,clothes,both|nullable|string',
+            'book_subject' => 'required_if:item_type,book,both|nullable|string',
         ]);
 
         $validated['academic_year'] = $validated['academic_year'] ?? config('school.academic_year', '2025-2026');
@@ -65,7 +68,32 @@ class ClothesBookController extends Controller
         $validated['created_by'] = $request->user()->id;
         $validated['payment_date'] = $validated['payment_date'] ?? now()->toDateString();
 
-        $payment = ClothesBookPayment::create($validated);
+        $payment = DB::transaction(function () use ($validated) {
+            // Adjust stock levels
+            if (in_array($validated['item_type'], ['clothes', 'both']) && !empty($validated['uniform_size'])) {
+                $sizeCode = 'uniform_' . strtolower($validated['uniform_size']);
+                $uniformItem = \App\Models\Inventory::where('code', $sizeCode)->first();
+                if (!$uniformItem || $uniformItem->quantity < 1) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'uniform_size' => ["ڕێژەی پێویست لەم سایزە نییە لە کۆگادا (مەوجود: " . ($uniformItem?->quantity ?? 0) . ")"],
+                    ]);
+                }
+                $uniformItem->decrement('quantity', 1);
+            }
+
+            if (in_array($validated['item_type'], ['book', 'both']) && !empty($validated['book_subject'])) {
+                $bookCode = 'book_' . strtolower(str_replace(' ', '_', $validated['book_subject']));
+                $bookItem = \App\Models\Inventory::where('code', $bookCode)->first();
+                if (!$bookItem || $bookItem->quantity < 1) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'book_subject' => ["ڕێژەی پێویست لەم کتێبە نییە لە کۆگادا (مەوجود: " . ($bookItem?->quantity ?? 0) . ")"],
+                    ]);
+                }
+                $bookItem->decrement('quantity', 1);
+            }
+
+            return ClothesBookPayment::create($validated);
+        });
 
         return response()->json([
             'success' => true,
@@ -95,9 +123,60 @@ class ClothesBookController extends Controller
             'discount' => 'sometimes|numeric|min:0',
             'amount_paid' => 'sometimes|numeric|min:0',
             'notes' => 'nullable|string',
+            'uniform_size' => 'sometimes|nullable|string',
+            'book_subject' => 'sometimes|nullable|string',
         ]);
 
-        $payment->update($validated);
+        $payment = DB::transaction(function () use ($payment, $validated) {
+            $oldType = $payment->item_type;
+            $oldSize = $payment->uniform_size;
+            $oldSubject = $payment->book_subject;
+
+            $newType = $validated['item_type'] ?? $oldType;
+            $newSize = array_key_exists('uniform_size', $validated) ? $validated['uniform_size'] : $oldSize;
+            $newSubject = array_key_exists('book_subject', $validated) ? $validated['book_subject'] : $oldSubject;
+
+            // 1. Revert OLD stock adjustments
+            if (in_array($oldType, ['clothes', 'both']) && !empty($oldSize)) {
+                $sizeCode = 'uniform_' . strtolower($oldSize);
+                $uniformItem = \App\Models\Inventory::where('code', $sizeCode)->first();
+                if ($uniformItem) {
+                    $uniformItem->increment('quantity', 1);
+                }
+            }
+            if (in_array($oldType, ['book', 'both']) && !empty($oldSubject)) {
+                $bookCode = 'book_' . strtolower(str_replace(' ', '_', $oldSubject));
+                $bookItem = \App\Models\Inventory::where('code', $bookCode)->first();
+                if ($bookItem) {
+                    $bookItem->increment('quantity', 1);
+                }
+            }
+
+            // 2. Apply NEW stock adjustments (and check availability)
+            if (in_array($newType, ['clothes', 'both']) && !empty($newSize)) {
+                $sizeCode = 'uniform_' . strtolower($newSize);
+                $uniformItem = \App\Models\Inventory::where('code', $sizeCode)->first();
+                if (!$uniformItem || $uniformItem->quantity < 1) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'uniform_size' => ["ڕێژەی پێویست لەم سایزە نییە لە کۆگادا (مەوجود: " . ($uniformItem?->quantity ?? 0) . ")"],
+                    ]);
+                }
+                $uniformItem->decrement('quantity', 1);
+            }
+            if (in_array($newType, ['book', 'both']) && !empty($newSubject)) {
+                $bookCode = 'book_' . strtolower(str_replace(' ', '_', $newSubject));
+                $bookItem = \App\Models\Inventory::where('code', $bookCode)->first();
+                if (!$bookItem || $bookItem->quantity < 1) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'book_subject' => ["ڕێژەی پێویست لەم کتێبە نییە لە کۆگادا (مەوجود: " . ($bookItem?->quantity ?? 0) . ")"],
+                    ]);
+                }
+                $bookItem->decrement('quantity', 1);
+            }
+
+            $payment->update($validated);
+            return $payment;
+        });
 
         return response()->json([
             'success' => true,
@@ -108,8 +187,28 @@ class ClothesBookController extends Controller
 
     public function destroy(int $id): JsonResponse
     {
-        $payment = ClothesBookPayment::findOrFail($id);
-        $payment->delete();
+        DB::transaction(function () use ($id) {
+            $payment = ClothesBookPayment::findOrFail($id);
+
+            // Revert stock levels
+            if (in_array($payment->item_type, ['clothes', 'both']) && !empty($payment->uniform_size)) {
+                $sizeCode = 'uniform_' . strtolower($payment->uniform_size);
+                $uniformItem = \App\Models\Inventory::where('code', $sizeCode)->first();
+                if ($uniformItem) {
+                    $uniformItem->increment('quantity', 1);
+                }
+            }
+
+            if (in_array($payment->item_type, ['book', 'both']) && !empty($payment->book_subject)) {
+                $bookCode = 'book_' . strtolower(str_replace(' ', '_', $payment->book_subject));
+                $bookItem = \App\Models\Inventory::where('code', $bookCode)->first();
+                if ($bookItem) {
+                    $bookItem->increment('quantity', 1);
+                }
+            }
+
+            $payment->delete();
+        });
 
         return response()->json([
             'success' => true,

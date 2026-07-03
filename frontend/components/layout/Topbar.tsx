@@ -6,41 +6,48 @@ import { getSchoolName, getAcademicYear } from '@/lib/utils';
 import { HiOutlineBars3, HiOutlineBell } from 'react-icons/hi2';
 
 export default function Topbar() {
-  const { toggleSidebar } = useUIStore();
+  const { toggleSidebar, setSidebarOpen } = useUIStore();
   const { user } = useAuthStore();
 
   return (
-    <header className="sticky top-0 z-30 h-16 bg-white border-b flex items-center justify-between px-6"
+    <header className="sticky top-0 z-30 h-14 md:h-16 bg-white border-b flex items-center justify-between px-4 md:px-6"
             style={{ borderColor: 'var(--color-border)' }}>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 md:gap-4">
         <button
-          onClick={toggleSidebar}
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors lg:hidden"
+          onClick={() => {
+            // On mobile, open the overlay sidebar; on desktop, toggle collapse
+            if (window.innerWidth < 1024) {
+              setSidebarOpen(true);
+            } else {
+              toggleSidebar();
+            }
+          }}
+          className="p-2 rounded-lg hover:bg-gray-100 transition-colors active:scale-95"
           aria-label="Toggle sidebar"
         >
           <HiOutlineBars3 className="w-5 h-5" style={{ color: 'var(--color-text-muted)' }} />
         </button>
 
-        <div>
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
+        <div className="min-w-0">
+          <h2 className="text-sm md:text-lg font-semibold truncate" style={{ color: 'var(--color-text)' }}>
             {getSchoolName()}
           </h2>
-          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          <p className="text-[10px] md:text-xs" style={{ color: 'var(--color-text-muted)' }}>
             ساڵی خوێندن: {getAcademicYear()}
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
         <button
-          className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors active:scale-95"
           aria-label="Notifications"
         >
           <HiOutlineBell className="w-5 h-5" style={{ color: 'var(--color-text-muted)' }} />
         </button>
 
-        <div className="flex items-center gap-3 pl-4 border-l" style={{ borderColor: 'var(--color-border)' }}>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold"
+        <div className="flex items-center gap-2 md:gap-3 pl-2 md:pl-4 border-l" style={{ borderColor: 'var(--color-border)' }}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0"
                style={{ backgroundColor: 'var(--color-primary)' }}>
             {user?.name?.charAt(0)?.toUpperCase() || 'U'}
           </div>

@@ -168,9 +168,22 @@ export interface ClothesBookPayment {
   notes: string | null;
   invoice_no: number | null;
   created_by: number | null;
+  uniform_size?: string;
+  book_subject?: string;
   created_at: string;
   updated_at: string;
   student?: Student;
+}
+
+// Inventory
+export interface InventoryItem {
+  id: number;
+  item_type: 'clothes' | 'book';
+  name: string;
+  code: string;
+  quantity: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Expense
@@ -221,6 +234,7 @@ export interface FoodPaymentSummary {
 // Dashboard
 export interface DashboardData {
   total_students: number;
+  total_study_tuition: number;
   study_revenue: number;
   food_revenue: number;
   clothes_revenue: number;

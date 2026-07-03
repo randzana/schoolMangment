@@ -23,6 +23,8 @@ class ClothesBookPayment extends Model
         'notes',
         'invoice_no',
         'created_by',
+        'uniform_size',
+        'book_subject',
     ];
 
     protected function casts(): array

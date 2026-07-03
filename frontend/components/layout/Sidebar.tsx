@@ -9,7 +9,6 @@ import {
   HiOutlineChartBarSquare,
   HiOutlineUserGroup,
   HiOutlineAcademicCap,
-  HiOutlineCreditCard,
   HiOutlineClipboardDocumentList,
   HiOutlineBuildingStorefront,
   HiOutlineBanknotes,
@@ -17,13 +16,12 @@ import {
   HiOutlineCurrencyDollar,
   HiOutlineDocumentChartBar,
   HiOutlineCog6Tooth,
-  HiOutlineExclamationTriangle,
-  HiOutlineChevronDown,
   HiOutlineChevronLeft,
   HiOutlineChevronRight,
   HiOutlineArrowLeftOnRectangle,
+  HiOutlineXMark,
 } from 'react-icons/hi2';
-import { useState } from 'react';
+import { useEffect, useCallback } from 'react';
 
 interface NavItem {
   label: string;
@@ -48,6 +46,8 @@ const navigation: NavGroup[] = [
     label: 'تۆمارەکان',
     items: [
       { label: 'قوتابییەکان', href: '/dashboard/students', icon: <HiOutlineUserGroup className="w-5 h-5" /> },
+      { label: 'خەرجییەکان', href: '/dashboard/expenses', icon: <HiOutlineCurrencyDollar className="w-5 h-5" /> },
+      { label: 'کۆگا', href: '/dashboard/inventory', icon: <HiOutlineBuildingStorefront className="w-5 h-5" /> },
     ],
   },
   {
@@ -67,6 +67,7 @@ const navigation: NavGroup[] = [
       { label: 'مانگانەی نانخواردن', href: '/dashboard/reports/food-installments', icon: <HiOutlineDocumentChartBar className="w-5 h-5" /> },
       { label: 'ڕاپۆرتی جلوبەرگ', href: '/dashboard/reports/clothes', icon: <HiOutlineDocumentChartBar className="w-5 h-5" /> },
       { label: 'ڕاپۆرتی کتێب', href: '/dashboard/reports/books', icon: <HiOutlineDocumentChartBar className="w-5 h-5" /> },
+      { label: 'ڕاپۆرتی خەرجییەکان', href: '/dashboard/reports/expenses', icon: <HiOutlineDocumentChartBar className="w-5 h-5" /> },
       { label: 'داهاتی ساڵانە', href: '/dashboard/reports/annual-income', icon: <HiOutlineDocumentChartBar className="w-5 h-5" /> },
     ],
   },
@@ -81,24 +82,41 @@ const navigation: NavGroup[] = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { sidebarCollapsed, toggleSidebar } = useUIStore();
+  const { sidebarCollapsed, toggleSidebar, sidebarOpen, setSidebarOpen } = useUIStore();
   const { user, logout } = useAuthStore();
-  const [reportsOpen, setReportsOpen] = useState(pathname.includes('/reports'));
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard';
     return pathname.startsWith(href);
   };
 
-  return (
-    <aside
-      className={`fixed top-0 ltr:left-0 rtl:right-0 h-screen flex flex-col transition-all duration-300 ease-in-out z-40 ${
-        sidebarCollapsed ? 'w-[68px]' : 'w-64'
-      }`}
-      style={{ backgroundColor: 'var(--color-sidebar)' }}
-    >
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname, setSidebarOpen]);
+
+  // Close mobile sidebar on Escape key
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') setSidebarOpen(false);
+  }, [setSidebarOpen]);
+
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [sidebarOpen, handleKeyDown]);
+
+  const sidebarContent = (
+    <>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 h-16 border-b border-white/10">
+      <div className="flex items-center justify-between px-4 h-16 border-b border-white/10 flex-shrink-0">
         {!sidebarCollapsed && (
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
@@ -110,12 +128,23 @@ export default function Sidebar() {
             </span>
           </div>
         )}
+
+        {/* Desktop: collapse toggle / Mobile: close button */}
         <button
-          onClick={toggleSidebar}
+          onClick={() => {
+            // On mobile, close the overlay; on desktop, toggle collapse
+            if (window.innerWidth < 1024) {
+              setSidebarOpen(false);
+            } else {
+              toggleSidebar();
+            }
+          }}
           className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label="Toggle sidebar"
         >
-          {sidebarCollapsed ? (
+          {window.innerWidth < 1024 ? (
+            <HiOutlineXMark className="w-5 h-5" />
+          ) : sidebarCollapsed ? (
             <HiOutlineChevronRight className="w-4 h-4" />
           ) : (
             <HiOutlineChevronLeft className="w-4 h-4" />
@@ -168,7 +197,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer / Logout */}
-      <div className="border-t border-white/10 p-3">
+      <div className="border-t border-white/10 p-3 flex-shrink-0">
         {!sidebarCollapsed && user && (
           <div className="px-3 py-2 mb-2">
             <p className="text-sm font-medium text-white truncate">{user.name}</p>
@@ -185,6 +214,40 @@ export default function Sidebar() {
           {!sidebarCollapsed && <span>چوونەدەرەوە</span>}
         </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile overlay backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Mobile sidebar (slide-in overlay) */}
+      <aside
+        className={`fixed top-0 rtl:right-0 ltr:left-0 h-screen w-72 flex flex-col z-50 lg:hidden
+          transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : 'rtl:translate-x-full ltr:-translate-x-full'}
+        `}
+        style={{ backgroundColor: 'var(--color-sidebar)' }}
+      >
+        {sidebarContent}
+      </aside>
+
+      {/* Desktop sidebar (fixed) */}
+      <aside
+        className={`fixed top-0 ltr:left-0 rtl:right-0 h-screen flex-col transition-all duration-300 ease-in-out z-40 hidden lg:flex ${
+          sidebarCollapsed ? 'w-[68px]' : 'w-64'
+        }`}
+        style={{ backgroundColor: 'var(--color-sidebar)' }}
+      >
+        {sidebarContent}
+      </aside>
+    </>
   );
 }

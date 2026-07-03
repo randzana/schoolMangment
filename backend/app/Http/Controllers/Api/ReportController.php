@@ -26,6 +26,9 @@ class ReportController extends Controller
         // Total active students
         $totalStudents = Student::active()->count();
 
+        // Total study contract amount (annual tuition fees expected)
+        $totalStudyTuition = StudyPayment::where('academic_year', $academicYear)->sum('price_after_discount');
+
         // Total study revenue (current year)
         $studyRevenue = StudyPayment::where('academic_year', $academicYear)->sum('total_paid');
 
@@ -101,6 +104,7 @@ class ReportController extends Controller
             'success' => true,
             'data' => [
                 'total_students' => $totalStudents,
+                'total_study_tuition' => (float) $totalStudyTuition,
                 'study_revenue' => (float) $studyRevenue,
                 'food_revenue' => (float) $foodRevenue,
                 'clothes_revenue' => (float) $clothesRevenue,
@@ -990,5 +994,103 @@ class ReportController extends Controller
         ];
 
         return view('reports.book-payments', $pdf_data);
+    }
+
+    /**
+     * Government Expenses report data
+     */
+    public function governmentExpenses(Request $request): JsonResponse
+    {
+        $query = Expense::query()->whereIn('category', [
+            'ڕاپۆرتی خەرجی حکومەت',
+            'ڕاپۆرتی پارەی کارەبای حکومەت'
+        ]);
+
+        if ($request->filled('from') || $request->filled('to')) {
+            $query->byDateRange($request->from, $request->to);
+        }
+
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
+        $expenses = $query->orderByDesc('expense_date')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'records' => $expenses,
+                'summary' => [
+                    'count' => $expenses->count(),
+                    'total_amount' => $expenses->sum('amount'),
+                ],
+            ],
+            'message' => 'Government expenses report generated',
+        ]);
+    }
+
+    /**
+     * PDF print of general expenses
+     */
+    public function pdfExpenses(Request $request)
+    {
+        $query = Expense::query();
+
+        if ($request->filled('from') || $request->filled('to')) {
+            $query->byDateRange($request->from, $request->to);
+        }
+
+        if ($request->filled('category')) {
+            $query->byCategory($request->category);
+        }
+
+        $expenses = $query->orderByDesc('expense_date')->get();
+
+        $date_range = ($request->from ?? 'سەرەتا') . ' بۆ ' . ($request->to ?? 'ئێستا');
+
+        $pdf_data = [
+            'expenses' => $expenses,
+            'school_name' => config('school.name', 'Future Generation Private Basic School'),
+            'date_range' => $date_range,
+            'category' => $request->category ?? 'هەموو جۆرەکان',
+            'total' => $expenses->sum('amount'),
+            'title' => 'ڕاپۆرتی گشتی خەرجییەکان',
+        ];
+
+        return view('reports.expenses', $pdf_data);
+    }
+
+    /**
+     * PDF print of government expenses
+     */
+    public function pdfGovernmentExpenses(Request $request)
+    {
+        $query = Expense::query()->whereIn('category', [
+            'ڕاپۆرتی خەرجی حکومەت',
+            'ڕاپۆرتی پارەی کارەبای حکومەت'
+        ]);
+
+        if ($request->filled('from') || $request->filled('to')) {
+            $query->byDateRange($request->from, $request->to);
+        }
+
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
+        $expenses = $query->orderByDesc('expense_date')->get();
+
+        $date_range = ($request->from ?? 'سەرەتا') . ' بۆ ' . ($request->to ?? 'ئێستا');
+
+        $pdf_data = [
+            'expenses' => $expenses,
+            'school_name' => config('school.name', 'Future Generation Private Basic School'),
+            'date_range' => $date_range,
+            'category' => $request->category ?? 'هەموو خەرجییە حکومییەکان',
+            'total' => $expenses->sum('amount'),
+            'title' => 'ڕاپۆرتی خەرجی حکومەت',
+        ];
+
+        return view('reports.government-expenses', $pdf_data);
     }
 }

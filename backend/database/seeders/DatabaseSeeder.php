@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             StudyPaymentSeeder::class,
             FoodPaymentSeeder::class,
             InstallmentSeeder::class,
+            InventorySeeder::class,
         ]);
     }
 }

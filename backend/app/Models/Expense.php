@@ -18,6 +18,7 @@ class Expense extends Model
         'category',
         'description',
         'receipt_no',
+        'items',
         'created_by',
     ];
 
@@ -26,6 +27,7 @@ class Expense extends Model
         return [
             'amount' => 'decimal:2',
             'expense_date' => 'date',
+            'items' => 'array',
         ];
     }
 

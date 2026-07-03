@@ -49,14 +49,16 @@ class ExpenseController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'title' => 'required|string|max:200',
+            'title' => 'nullable|string|max:200',
             'amount' => 'required|numeric|min:0',
             'expense_date' => 'sometimes|date',
-            'category' => 'nullable|string|max:100',
+            'category' => 'required|string|max:100',
             'description' => 'nullable|string',
             'receipt_no' => 'nullable|string|max:50',
+            'items' => 'nullable|array',
         ]);
 
+        $validated['title'] = $validated['title'] ?? $validated['category'] ?? 'خەرجی';
         $validated['created_by'] = $request->user()->id;
         $validated['expense_date'] = $validated['expense_date'] ?? now()->toDateString();
 
@@ -85,13 +87,18 @@ class ExpenseController extends Controller
         $expense = Expense::findOrFail($id);
 
         $validated = $request->validate([
-            'title' => 'sometimes|required|string|max:200',
+            'title' => 'nullable|string|max:200',
             'amount' => 'sometimes|required|numeric|min:0',
             'expense_date' => 'sometimes|date',
-            'category' => 'nullable|string|max:100',
+            'category' => 'sometimes|required|string|max:100',
             'description' => 'nullable|string',
             'receipt_no' => 'nullable|string|max:50',
+            'items' => 'nullable|array',
         ]);
+
+        if (isset($validated['category']) && !isset($validated['title'])) {
+            $validated['title'] = $validated['category'];
+        }
 
         $expense->update($validated);
 

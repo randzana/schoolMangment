@@ -53,13 +53,13 @@ export default function DashboardShell({ children }: DashboardShellProps) {
       
       <div
         className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
-          sidebarCollapsed ? 'ltr:lg:pl-[68px] rtl:lg:pr-[68px]' : 'ltr:lg:pl-64 rtl:lg:pr-64'
+          sidebarCollapsed ? 'lg:ltr:pl-[68px] lg:rtl:pr-[68px]' : 'lg:ltr:pl-64 lg:rtl:pr-64'
         }`}
       >
         <Topbar />
         
-        <main className="flex-grow p-6 md:p-8 overflow-y-auto">
-          <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
+        <main className="flex-grow p-4 md:p-6 lg:p-8 overflow-y-auto">
+          <div className="max-w-7xl mx-auto space-y-4 md:space-y-6 animate-fade-in">
             {children}
           </div>
         </main>

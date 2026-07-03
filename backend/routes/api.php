@@ -26,6 +26,8 @@ Route::get('reports/book-payments/pdf', [\App\Http\Controllers\Api\ReportControl
 Route::get('reports/annual-income/export', [\App\Http\Controllers\Api\ReportController::class, 'exportAnnualIncome']);
 Route::get('reports/annual-income/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfAnnualIncome']);
 Route::get('reports/food-income/export', [\App\Http\Controllers\Api\ReportController::class, 'exportFoodIncome']);
+Route::get('reports/expenses/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfExpenses']);
+Route::get('reports/government-expenses/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfGovernmentExpenses']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -62,6 +64,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Clothes & Books
     Route::apiResource('clothes-books', \App\Http\Controllers\Api\ClothesBookController::class);
 
+    // Inventory
+    Route::get('inventory', [\App\Http\Controllers\Api\InventoryController::class, 'index']);
+    Route::post('inventory', [\App\Http\Controllers\Api\InventoryController::class, 'store']);
+    Route::put('inventory/{id}', [\App\Http\Controllers\Api\InventoryController::class, 'update']);
+    Route::delete('inventory/{id}', [\App\Http\Controllers\Api\InventoryController::class, 'destroy']);
+
     // Expenses
     Route::apiResource('expenses', \App\Http\Controllers\Api\ExpenseController::class);
 
@@ -75,6 +83,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/book-payments', [\App\Http\Controllers\Api\ReportController::class, 'bookPayments']);
         Route::get('/study-income', [\App\Http\Controllers\Api\ReportController::class, 'studyIncome']);
         Route::get('/expenses', [\App\Http\Controllers\Api\ReportController::class, 'expenses']);
+        Route::get('/government-expenses', [\App\Http\Controllers\Api\ReportController::class, 'governmentExpenses']);
         Route::get('/annual-income', [\App\Http\Controllers\Api\ReportController::class, 'annualIncome']);
         Route::get('/food-income', [\App\Http\Controllers\Api\ReportController::class, 'foodIncome']);
 

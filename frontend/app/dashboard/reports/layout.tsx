@@ -16,6 +16,7 @@ export default function ReportsLayout({
     { label: 'مانگانەی نانخواردن', href: '/dashboard/reports/food-installments' },
     { label: 'ڕاپۆرتی جلوبەرگ', href: '/dashboard/reports/clothes' },
     { label: 'ڕاپۆرتی کتێب', href: '/dashboard/reports/books' },
+    { label: 'ڕاپۆرتی خەرجییەکان', href: '/dashboard/reports/expenses' },
     { label: 'داهاتی ساڵانە', href: '/dashboard/reports/annual-income' },
   ];
 

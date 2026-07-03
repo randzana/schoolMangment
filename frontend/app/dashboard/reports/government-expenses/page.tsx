@@ -5,19 +5,25 @@ import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { DataTable, Column } from '@/components/tables/DataTable';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { HiOutlineArrowDownTray, HiOutlinePrinter } from 'react-icons/hi2';
  
-export default function ExpensesReportPage() {
+const GOVT_CATEGORIES = [
+  { value: 'ڕاپۆرتی خەرجی حکومەت', label: 'ڕاپۆرتی خەرجی حکومەت' },
+  { value: 'ڕاپۆرتی پارەی کارەبای حکومەت', label: 'ڕاپۆرتی پارەی کارەبای حکومەت' }
+];
+ 
+export default function GovernmentExpensesReportPage() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [category, setCategory] = useState('');
  
   const { data: reportResponse, isLoading } = useQuery({
-    queryKey: ['report-expenses', from, to, category],
+    queryKey: ['report-government-expenses', from, to, category],
     queryFn: async () => {
-      const res = await api.get('/reports/expenses', {
+      const res = await api.get('/reports/government-expenses', {
         params: { from, to, category },
       });
       return res.data.data;
@@ -45,13 +51,13 @@ export default function ExpensesReportPage() {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `expenses_report_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `government_expenses_report_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
   };
  
   const handlePrintPdf = () => {
     window.open(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/reports/expenses/pdf?from=${from}&to=${to}&category=${category}`,
+      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/reports/government-expenses/pdf?from=${from}&to=${to}&category=${category}`,
       '_blank'
     );
   };
@@ -66,7 +72,7 @@ export default function ExpensesReportPage() {
             <div className="text-[10px] bg-surface-muted border border-border/60 rounded-lg p-2 space-y-1 text-text mt-1">
               {row.items.map((item: any, idx: number) => (
                 <div key={idx} className="flex justify-between gap-6 border-b border-border/20 last:border-b-0 py-0.5 animate-fade-in">
-                  <span className="font-medium">• {item.name} {item.month ? ` [${item.month}]` : ''}</span>
+                  <span className="font-medium">• {item.name} {item.receipt_no ? `(وەسڵ: #${item.receipt_no})` : ''}</span>
                   <span className="font-mono text-danger font-bold">{formatCurrency(item.amount)}</span>
                 </div>
               ))}
@@ -78,6 +84,7 @@ export default function ExpensesReportPage() {
     },
     { header: 'کۆی خەرجکراو', accessor: (row) => formatCurrency(row.amount), sortable: true, className: 'text-danger font-bold' },
     { header: 'بەروار', accessor: (row) => formatDate(row.expense_date), sortable: true },
+    { header: 'ژمارەی وەسڵ (سەرەکی)', accessor: (row) => row.receipt_no || '-' },
   ];
  
   return (
@@ -98,12 +105,13 @@ export default function ExpensesReportPage() {
           value={to}
           onChange={(e) => setTo(e.target.value)}
         />
-        <Input
-          label="فلتەر بەپێی جۆر"
+        <Select
+          label="فلتەر بەپێی پۆلێنی حکومی"
           id="category_filter"
-          placeholder="بۆ نموونە: چاککردنەوە، کارەبا"
+          placeholder="هەموو پۆلێنە حکومییەکان"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
+          options={GOVT_CATEGORIES}
         />
       </div>
  
