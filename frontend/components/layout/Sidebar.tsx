@@ -20,6 +20,7 @@ import {
   HiOutlineChevronRight,
   HiOutlineArrowLeftOnRectangle,
   HiOutlineXMark,
+  HiOutlineCake,
 } from 'react-icons/hi2';
 import { useEffect, useCallback } from 'react';
 
@@ -55,7 +56,7 @@ const navigation: NavGroup[] = [
     items: [
       { label: 'خوێندن', href: '/dashboard/study-payments', icon: <HiOutlineAcademicCap className="w-5 h-5" /> },
       { label: 'قستەکانی خوێندن', href: '/dashboard/study-installments', icon: <HiOutlineClipboardDocumentList className="w-5 h-5" /> },
-      { label: 'مانگانەی نانخواردن', href: '/dashboard/food-installments', icon: <HiOutlineBuildingStorefront className="w-5 h-5" /> },
+      { label: 'مانگانەی نانخواردن', href: '/dashboard/food-installments', icon: <HiOutlineCake className="w-5 h-5" /> },
       { label: 'جلوبەرگ', href: '/dashboard/clothes', icon: <HiOutlineBanknotes className="w-5 h-5" /> },
       { label: 'کتێب', href: '/dashboard/books', icon: <HiOutlineBookOpen className="w-5 h-5" /> },
     ],
@@ -75,7 +76,8 @@ const navigation: NavGroup[] = [
     label: 'بەڕێوەبردن',
     adminOnly: true,
     items: [
-      { label: 'بەکارهێنەران', href: '/dashboard/users', icon: <HiOutlineCog6Tooth className="w-5 h-5" />, adminOnly: true },
+      { label: 'بەکارهێنەران', href: '/dashboard/users', icon: <HiOutlineUserGroup className="w-5 h-5" />, adminOnly: true },
+      { label: 'ڕێکخستن', href: '/dashboard/settings', icon: <HiOutlineCog6Tooth className="w-5 h-5" />, adminOnly: true },
     ],
   },
 ];

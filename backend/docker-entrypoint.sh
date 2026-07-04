@@ -11,5 +11,11 @@ done
 echo "PostgreSQL is up! Running migrations..."
 php artisan migrate --force
 
-echo "Starting Apache..."
-exec apache2-foreground
+# If custom command is passed (e.g. from docker-compose command override), run it
+if [ $# -gt 0 ]; then
+  echo "Executing command: $@"
+  exec "$@"
+else
+  echo "Starting Apache..."
+  exec apache2-foreground
+fi

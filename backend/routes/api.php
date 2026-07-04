@@ -73,6 +73,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Expenses
     Route::apiResource('expenses', \App\Http\Controllers\Api\ExpenseController::class);
 
+    // Settings
+    Route::get('settings', [\App\Http\Controllers\Api\SettingController::class, 'index']);
+    Route::post('settings', [\App\Http\Controllers\Api\SettingController::class, 'update']);
+    Route::post('settings/reset-database', [\App\Http\Controllers\Api\SettingController::class, 'resetDatabase']);
+
 
 
     // Reports
