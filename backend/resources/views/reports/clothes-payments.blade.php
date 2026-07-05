@@ -179,8 +179,8 @@
             <tr>
                 <td style="font-family: monospace;">#{{ $pay->invoice_no }}</td>
                 <td>{{ $pay->payment_date?->format('d/m/Y') ?? 'N/A' }}</td>
-                <td style="font-weight: 500;">{{ $pay->student->full_name }}</td>
-                <td>{{ $pay->student->grade_display }}</td>
+                <td style="font-weight: 500;">{{ $pay->student?->full_name ?? 'قوتابی سڕاوەتەوە' }}</td>
+                <td>{{ $pay->student?->grade_display ?? 'N/A' }}</td>
                 <td class="amount">{{ number_format($pay->amount_paid, 0) }} د.ع</td>
                 <td>{{ $pay->notes ?: '-' }}</td>
             </tr>

@@ -189,8 +189,8 @@
             <tr class="{{ $inst->is_returned ? 'returned' : '' }}">
                 <td style="font-family: monospace;">#{{ $inst->invoice_no }}</td>
                 <td>{{ $inst->payment_date->format('d/m/Y') }}</td>
-                <td>{{ $inst->student->full_name }}</td>
-                <td>{{ $inst->student->grade_display }}</td>
+                <td>{{ $inst->student?->full_name ?? 'قوتابی سڕاوەتەوە' }}</td>
+                <td>{{ $inst->student?->grade_display ?? 'N/A' }}</td>
                 <td class="amount">{{ number_format($inst->amount_paid, 0) }} دینار</td>
                 <td>
                     @if($inst->is_returned)

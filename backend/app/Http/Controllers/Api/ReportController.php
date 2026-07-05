@@ -44,13 +44,13 @@ class ReportController extends Controller
             ->sum('amount');
 
         // Recent 10 transactions (study + food installments combined)
-        $recentStudy = StudyInstallment::with('student')
+        $recentStudy = StudyInstallment::with(['student' => fn($q) => $q->withTrashed()])
             ->select('id', 'invoice_no', 'student_id', 'amount_paid', 'payment_date', 'is_returned', DB::raw("'study' as type"))
             ->orderByDesc('created_at')
             ->limit(10)
             ->get();
 
-        $recentFood = FoodInstallment::with('student')
+        $recentFood = FoodInstallment::with(['student' => fn($q) => $q->withTrashed()])
             ->select('id', 'invoice_no', 'student_id', 'amount_paid', 'payment_date', 'is_returned', DB::raw("'food' as type"))
             ->orderByDesc('created_at')
             ->limit(10)
@@ -62,7 +62,8 @@ class ReportController extends Controller
             ->values();
 
         // Top 10 outstanding balances
-        $outstandingBalances = StudyPayment::with('student')
+        $outstandingBalances = StudyPayment::whereHas('student')
+            ->with('student')
             ->where('academic_year', $academicYear)
             ->whereRaw('annual_price - discount - total_paid > 0')
             ->orderByRaw('annual_price - discount - total_paid DESC')
@@ -122,7 +123,7 @@ class ReportController extends Controller
      */
     public function studyInstallments(Request $request): JsonResponse
     {
-        $query = StudyInstallment::with('student');
+        $query = StudyInstallment::with(['student' => fn ($q) => $q->withTrashed()]);
 
         if ($request->filled('from') || $request->filled('to')) {
             $query->byDateRange($request->from, $request->to);
@@ -160,7 +161,7 @@ class ReportController extends Controller
      */
     public function foodInstallments(Request $request): JsonResponse
     {
-        $query = FoodInstallment::with('student');
+        $query = FoodInstallment::with(['student' => fn ($q) => $q->withTrashed()]);
 
         if ($request->filled('from') || $request->filled('to')) {
             $query->byDateRange($request->from, $request->to);
@@ -331,7 +332,7 @@ class ReportController extends Controller
      */
     public function exportStudyInstallments(Request $request)
     {
-        $query = StudyInstallment::with('student');
+        $query = StudyInstallment::with(['student' => fn ($q) => $q->withTrashed()]);
 
         if ($request->filled('from') || $request->filled('to')) {
             $query->byDateRange($request->from, $request->to);
@@ -349,8 +350,8 @@ class ReportController extends Controller
             $csv .= implode(',', [
                 $inst->invoice_no,
                 $inst->payment_date->format('Y-m-d'),
-                '"' . $inst->student->full_name . '"',
-                $inst->student->grade_display,
+                '"' . ($inst->student?->full_name ?? 'Deleted Student') . '"',
+                $inst->student?->grade_display ?? 'N/A',
                 $inst->amount_paid,
                 $inst->remain_after,
                 $inst->is_returned ? 'Yes' : 'No',
@@ -367,7 +368,7 @@ class ReportController extends Controller
      */
     public function pdfStudyInstallments(Request $request)
     {
-        $query = StudyInstallment::with('student');
+        $query = StudyInstallment::with(['student' => fn ($q) => $q->withTrashed()]);
 
         if ($request->filled('from') || $request->filled('to')) {
             $query->byDateRange($request->from, $request->to);
@@ -437,7 +438,7 @@ class ReportController extends Controller
      */
     public function pdfFoodInstallments(Request $request)
     {
-        $query = FoodInstallment::with('student');
+        $query = FoodInstallment::with(['student' => fn ($q) => $q->withTrashed()]);
 
         if ($request->filled('from') || $request->filled('to')) {
             $query->byDateRange($request->from, $request->to);
@@ -784,7 +785,7 @@ class ReportController extends Controller
 
     public function clothesPayments(Request $request): JsonResponse
     {
-        $query = ClothesBookPayment::where('item_type', 'clothes')->with('student');
+        $query = ClothesBookPayment::where('item_type', 'clothes')->with(['student' => fn ($q) => $q->withTrashed()]);
 
         if ($request->filled('from') || $request->filled('to')) {
             $from = $request->from ?? '1970-01-01';
@@ -821,7 +822,7 @@ class ReportController extends Controller
 
     public function bookPayments(Request $request): JsonResponse
     {
-        $query = ClothesBookPayment::where('item_type', 'book')->with('student');
+        $query = ClothesBookPayment::where('item_type', 'book')->with(['student' => fn ($q) => $q->withTrashed()]);
 
         if ($request->filled('from') || $request->filled('to')) {
             $from = $request->from ?? '1970-01-01';
@@ -858,7 +859,7 @@ class ReportController extends Controller
 
     public function pdfClothesPayments(Request $request)
     {
-        $query = ClothesBookPayment::where('item_type', 'clothes')->with('student');
+        $query = ClothesBookPayment::where('item_type', 'clothes')->with(['student' => fn ($q) => $q->withTrashed()]);
 
         if ($request->filled('from') || $request->filled('to')) {
             $from = $request->from ?? '1970-01-01';
@@ -928,7 +929,7 @@ class ReportController extends Controller
 
     public function pdfBookPayments(Request $request)
     {
-        $query = ClothesBookPayment::where('item_type', 'book')->with('student');
+        $query = ClothesBookPayment::where('item_type', 'book')->with(['student' => fn ($q) => $q->withTrashed()]);
 
         if ($request->filled('from') || $request->filled('to')) {
             $from = $request->from ?? '1970-01-01';
