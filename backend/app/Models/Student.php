@@ -35,7 +35,24 @@ class Student extends Model
         'three' => 'Grade 3',
         'four'  => 'Grade 4',
         'five'  => 'Grade 5',
+        'six'   => 'Grade 6',
+        'seven' => 'Grade 7',
+        'eight' => 'Grade 8',
+        'nine'  => 'Grade 9',
     ];
+
+    /**
+     * When a student is soft-deleted, also delete their
+     * annual study and food payment records.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (Student $student) {
+            // Delete annual payment records for this student
+            $student->studyPayments()->delete();
+            $student->foodPayments()->delete();
+        });
+    }
 
     public function getGradeDisplayAttribute(): string
     {
@@ -85,3 +102,4 @@ class Student extends Model
         });
     }
 }
+

@@ -77,27 +77,35 @@ class ReportController extends Controller
                 ];
             });
 
-        // Monthly revenue vs expenses (current year)
+        // Monthly revenue vs expenses (current year) — 3 queries instead of 36
+        $currentYear = now()->year;
+
+        $studyMonthly = StudyInstallment::selectRaw('EXTRACT(MONTH FROM payment_date)::int as m, SUM(amount_paid) as total')
+            ->whereYear('payment_date', $currentYear)
+            ->where('is_returned', false)
+            ->groupByRaw('EXTRACT(MONTH FROM payment_date)')
+            ->pluck('total', 'm');
+
+        $foodMonthly = FoodInstallment::selectRaw('EXTRACT(MONTH FROM payment_date)::int as m, SUM(amount_paid) as total')
+            ->whereYear('payment_date', $currentYear)
+            ->where('is_returned', false)
+            ->groupByRaw('EXTRACT(MONTH FROM payment_date)')
+            ->pluck('total', 'm');
+
+        $expenseMonthly = Expense::selectRaw('EXTRACT(MONTH FROM expense_date)::int as m, SUM(amount) as total')
+            ->whereYear('expense_date', $currentYear)
+            ->groupByRaw('EXTRACT(MONTH FROM expense_date)')
+            ->pluck('total', 'm');
+
         $monthlyData = [];
         for ($month = 1; $month <= 12; $month++) {
-            $studyIncome = StudyInstallment::whereYear('payment_date', now()->year)
-                ->whereMonth('payment_date', $month)
-                ->where('is_returned', false)
-                ->sum('amount_paid');
-
-            $foodIncome = FoodInstallment::whereYear('payment_date', now()->year)
-                ->whereMonth('payment_date', $month)
-                ->where('is_returned', false)
-                ->sum('amount_paid');
-
-            $expenses = Expense::whereYear('expense_date', now()->year)
-                ->whereMonth('expense_date', $month)
-                ->sum('amount');
+            $revenue = (float) ($studyMonthly[$month] ?? 0) + (float) ($foodMonthly[$month] ?? 0);
+            $expenses = (float) ($expenseMonthly[$month] ?? 0);
 
             $monthlyData[] = [
                 'month' => date('M', mktime(0, 0, 0, $month, 1)),
-                'revenue' => (float) $studyIncome + (float) $foodIncome,
-                'expenses' => (float) $expenses,
+                'revenue' => $revenue,
+                'expenses' => $expenses,
             ];
         }
 
