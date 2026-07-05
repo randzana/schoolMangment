@@ -11,6 +11,11 @@ done
 echo "PostgreSQL is up! Running migrations..."
 php artisan migrate --force
 
+echo "Caching configurations, routes, and views..."
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
 # If custom command is passed (e.g. from docker-compose command override), run it
 if [ $# -gt 0 ]; then
   echo "Executing command: $@"
