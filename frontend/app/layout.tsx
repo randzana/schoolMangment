@@ -12,6 +12,10 @@ const araknFont = localFont({
 export const metadata: Metadata = {
   title: 'School Administration & Financial Management System',
   description: 'Modern web app for school records, tuition, food payments, expenses, salaries, and financial reports.',
+  icons: {
+    icon: '/logo.jpg',
+    apple: '/logo.jpg',
+  },
 };
 
 export default function RootLayout({
