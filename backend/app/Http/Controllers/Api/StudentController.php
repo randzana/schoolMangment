@@ -60,7 +60,7 @@ class StudentController extends Controller
                 return is_numeric($s->serial_number) ? (int)$s->serial_number : 0;
             })->max();
             
-            $nextSerial = $maxSerial ? ($maxSerial + 1) : 1001;
+            $nextSerial = $maxSerial ? ($maxSerial + 1) : 1;
             while (Student::where('serial_number', (string)$nextSerial)->exists()) {
                 $nextSerial++;
             }

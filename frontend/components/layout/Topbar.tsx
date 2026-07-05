@@ -2,12 +2,25 @@
 
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
-import { getSchoolName, getAcademicYear } from '@/lib/utils';
+import { getSchoolName } from '@/lib/utils';
 import { HiOutlineBars3, HiOutlineBell } from 'react-icons/hi2';
+import { useQuery } from '@tanstack/react-query';
+import api from '@/lib/api';
 
 export default function Topbar() {
   const { toggleSidebar, setSidebarOpen } = useUIStore();
   const { user } = useAuthStore();
+
+  // Fetch settings dynamically to get the current academic year
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: async () => {
+      const res = await api.get('/settings');
+      return res.data.data;
+    },
+  });
+
+  const academicYear = settings?.academic_year || '2026-2027';
 
   return (
     <header className="sticky top-0 z-30 h-14 md:h-16 bg-white border-b flex items-center justify-between px-4 md:px-6"
@@ -33,7 +46,7 @@ export default function Topbar() {
             {getSchoolName()}
           </h2>
           <p className="text-[10px] md:text-xs" style={{ color: 'var(--color-text-muted)' }}>
-            ساڵی خوێندن: {getAcademicYear()}
+            ساڵی خوێندن: {academicYear}
           </p>
         </div>
       </div>

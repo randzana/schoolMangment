@@ -73,7 +73,10 @@ class SettingController extends Controller
 
         DB::transaction(function () {
             // Wipes students, payments, expenses, etc. and restarts serial identifiers
-            DB::statement('TRUNCATE TABLE study_payments, study_installments, food_payments, food_installments, clothes_books_payments, expenses, students, invoice_sequences RESTART IDENTITY CASCADE;');
+            DB::statement('TRUNCATE TABLE study_payments, study_installments, food_payments, food_installments, clothes_books_payments, expenses, students RESTART IDENTITY CASCADE;');
+
+            // Resets invoice sequence back to 1000 instead of truncating it to prevent null pointer crashes
+            DB::table('invoice_sequence')->update(['last_invoice_no' => 1000]);
 
             // Wipes custom items from inventories and resets seeded items back to default values
             // 1. Delete custom items

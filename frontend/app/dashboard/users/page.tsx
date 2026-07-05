@@ -83,10 +83,10 @@ export default function UsersPage() {
   };
 
   const onSubmit = (values: UserFormValues) => {
-    // Filter out confirmation for backend
-    const { password_confirmation, ...postData } = values;
+    const postData = { ...values };
     if (!postData.password) {
       delete postData.password;
+      delete postData.password_confirmation;
     }
 
     if (editingUserId) {

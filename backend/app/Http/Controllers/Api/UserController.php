@@ -61,12 +61,17 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
 
-        $validated = $request->validate([
+        $rules = [
             'name' => 'sometimes|required|string|max:100',
             'username' => ['sometimes', 'required', 'string', 'max:50', Rule::unique('users')->ignore($user->id)],
-            'password' => 'sometimes|required|string|min:6|confirmed',
             'role' => ['sometimes', Rule::in(['admin', 'user'])],
-        ]);
+        ];
+
+        if ($request->filled('password')) {
+            $rules['password'] = 'required|string|min:6|confirmed';
+        }
+
+        $validated = $request->validate($rules);
 
         $user->update($validated);
 
