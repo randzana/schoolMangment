@@ -19,7 +19,11 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [env('FRONTEND_URL', 'http://localhost:3000')],
+    'allowed_origins' => [
+        'https://school-mangment-umber.vercel.app',
+        'https://school-mangment-umber.vercel.app/',
+        env('FRONTEND_URL', 'http://localhost:3000')
+    ],
 
     'allowed_origins_patterns' => [],
 
