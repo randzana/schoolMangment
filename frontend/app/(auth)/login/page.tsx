@@ -45,9 +45,8 @@ export default function LoginPage() {
   return (
     <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl border border-border shadow-lg animate-fade-in" dir="rtl">
       <div className="text-center">
-        <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg mx-auto mb-3 shadow-md"
-             style={{ backgroundColor: 'var(--color-primary)' }}>
-          S
+        <div className="w-20 h-20 mx-auto mb-3 overflow-hidden rounded-full shadow-md border border-border bg-white flex items-center justify-center">
+          <img src="/logo.jpg" alt="School Logo" className="w-full h-full object-cover" />
         </div>
         <h2 className="text-2xl font-bold tracking-tight text-text">
           {getSchoolName()}
