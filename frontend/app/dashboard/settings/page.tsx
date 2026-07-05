@@ -37,7 +37,7 @@ export default function SettingsPage() {
       return res.data;
     },
     onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ['settings'] });
+      queryClient.invalidateQueries();
       toast.success(res.message || 'ساڵی خوێندن بە سەرکەوتوویی گۆڕدرا');
     },
     onError: (err) => {

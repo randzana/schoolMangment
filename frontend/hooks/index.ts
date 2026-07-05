@@ -5,6 +5,24 @@ import api from '@/lib/api';
 import type { ApiResponse, PaginatedResponse, Student, StudyPayment, StudyInstallment, FoodPayment, FoodInstallment, ClothesBookPayment, Expense, User, ReportData, StudentListItem } from '@/types';
 import { toast } from 'sonner';
 
+/**
+ * Helper: invalidate all financial caches at once.
+ * Called after any mutation that changes money-related data
+ * so every page stays in sync without manual refresh.
+ */
+function invalidateFinancialCaches(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
+  queryClient.invalidateQueries({ queryKey: ['students'] });
+  queryClient.invalidateQueries({ queryKey: ['study-payments'] });
+  queryClient.invalidateQueries({ queryKey: ['study-payments-summary'] });
+  queryClient.invalidateQueries({ queryKey: ['study-installments'] });
+  queryClient.invalidateQueries({ queryKey: ['food-payments'] });
+  queryClient.invalidateQueries({ queryKey: ['food-payments-summary'] });
+  queryClient.invalidateQueries({ queryKey: ['food-installments'] });
+  queryClient.invalidateQueries({ queryKey: ['clothes-books'] });
+  queryClient.invalidateQueries({ queryKey: ['expenses'] });
+}
+
 // ==========================================
 // Students
 // ==========================================
@@ -37,11 +55,11 @@ export function useCreateStudent() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
-      toast.success('Student created successfully');
+      invalidateFinancialCaches(queryClient);
+      toast.success('قوتابی بە سەرکەوتوویی زیاد کرا');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to create student');
+      toast.error(err.response?.data?.message || 'هەڵە لە زیادکردنی قوتابی');
     },
   });
 }
@@ -54,12 +72,12 @@ export function useUpdateStudent(id: number) {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
+      invalidateFinancialCaches(queryClient);
       queryClient.invalidateQueries({ queryKey: ['student', id] });
-      toast.success('Student updated successfully');
+      toast.success('زانیاری قوتابی نوێ کرایەوە');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to update student');
+      toast.error(err.response?.data?.message || 'هەڵە لە نوێکردنەوەی زانیاری قوتابی');
     },
   });
 }
@@ -72,11 +90,11 @@ export function useDeleteStudent() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
-      toast.success('Student deleted successfully');
+      invalidateFinancialCaches(queryClient);
+      toast.success('قوتابی بە سەرکەوتوویی سڕایەوە');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to delete student');
+      toast.error(err.response?.data?.message || 'هەڵە لە سڕینەوەی قوتابی');
     },
   });
 }
@@ -113,12 +131,11 @@ export function useSaveStudyPayment() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['study-payments'] });
-      queryClient.invalidateQueries({ queryKey: ['study-payments-summary'] });
-      toast.success('Tuition fee record saved successfully');
+      invalidateFinancialCaches(queryClient);
+      toast.success('تۆماری کرێی خوێندن تۆمار کرا');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to save tuition record');
+      toast.error(err.response?.data?.message || 'هەڵە لە تۆمارکردنی کرێی خوێندن');
     },
   });
 }
@@ -131,12 +148,11 @@ export function useUpdateStudyPayment(id: number) {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['study-payments'] });
-      queryClient.invalidateQueries({ queryKey: ['study-payments-summary'] });
-      toast.success('Tuition fee record updated successfully');
+      invalidateFinancialCaches(queryClient);
+      toast.success('تۆماری کرێی خوێندن نوێ کرایەوە');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to update tuition record');
+      toast.error(err.response?.data?.message || 'هەڵە لە نوێکردنەوەی تۆمار');
     },
   });
 }
@@ -159,14 +175,11 @@ export function useCreateStudyInstallment() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['study-installments'] });
-      queryClient.invalidateQueries({ queryKey: ['study-payments'] });
-      queryClient.invalidateQueries({ queryKey: ['study-payments-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
-      toast.success('Installment payment recorded successfully');
+      invalidateFinancialCaches(queryClient);
+      toast.success('قیستی خوێندن تۆمار کرا');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to create installment');
+      toast.error(err.response?.data?.message || 'هەڵە لە تۆمارکردنی قیست');
     },
   });
 }
@@ -179,14 +192,11 @@ export function useReturnStudyInstallment() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['study-installments'] });
-      queryClient.invalidateQueries({ queryKey: ['study-payments'] });
-      queryClient.invalidateQueries({ queryKey: ['study-payments-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
-      toast.success('Bill marked as returned. Balance restored.');
+      invalidateFinancialCaches(queryClient);
+      toast.success('پسوڵە گەڕێنرایەوە. باڵانس گەڕایەوە.');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to return bill');
+      toast.error(err.response?.data?.message || 'هەڵە لە گەڕاندنەوەی پسوڵە');
     },
   });
 }
@@ -222,12 +232,11 @@ export function useSaveFoodPayment() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['food-payments'] });
-      queryClient.invalidateQueries({ queryKey: ['food-payments-summary'] });
-      toast.success('Food fee record saved successfully');
+      invalidateFinancialCaches(queryClient);
+      toast.success('تۆماری نانخواردن تۆمار کرا');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to save food record');
+      toast.error(err.response?.data?.message || 'هەڵە لە تۆمارکردنی نانخواردن');
     },
   });
 }
@@ -240,12 +249,11 @@ export function useUpdateFoodPayment(id: number) {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['food-payments'] });
-      queryClient.invalidateQueries({ queryKey: ['food-payments-summary'] });
-      toast.success('Food fee record updated successfully');
+      invalidateFinancialCaches(queryClient);
+      toast.success('تۆماری نانخواردن نوێ کرایەوە');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to update food record');
+      toast.error(err.response?.data?.message || 'هەڵە لە نوێکردنەوەی تۆمار');
     },
   });
 }
@@ -268,14 +276,11 @@ export function useCreateFoodInstallment() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['food-installments'] });
-      queryClient.invalidateQueries({ queryKey: ['food-payments'] });
-      queryClient.invalidateQueries({ queryKey: ['food-payments-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
-      toast.success('Food payment recorded successfully');
+      invalidateFinancialCaches(queryClient);
+      toast.success('قیستی نانخواردن تۆمار کرا');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to create food payment');
+      toast.error(err.response?.data?.message || 'هەڵە لە تۆمارکردنی قیست');
     },
   });
 }
@@ -288,14 +293,11 @@ export function useReturnFoodInstallment() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['food-installments'] });
-      queryClient.invalidateQueries({ queryKey: ['food-payments'] });
-      queryClient.invalidateQueries({ queryKey: ['food-payments-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
-      toast.success('Food bill returned successfully. Balance restored.');
+      invalidateFinancialCaches(queryClient);
+      toast.success('پسوڵەی نانخواردن گەڕێنرایەوە.');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to return food bill');
+      toast.error(err.response?.data?.message || 'هەڵە لە گەڕاندنەوەی پسوڵە');
     },
   });
 }
@@ -321,11 +323,11 @@ export function useCreateClothesBook() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clothes-books'] });
-      toast.success('Uniform/Book purchase recorded successfully');
+      invalidateFinancialCaches(queryClient);
+      toast.success('کڕینی جلوبەرگ/کتێب تۆمار کرا');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to create record');
+      toast.error(err.response?.data?.message || 'هەڵە لە تۆمارکردن');
     },
   });
 }
@@ -338,11 +340,11 @@ export function useDeleteClothesBook() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clothes-books'] });
-      toast.success('Record deleted successfully');
+      invalidateFinancialCaches(queryClient);
+      toast.success('تۆمار سڕایەوە');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to delete record');
+      toast.error(err.response?.data?.message || 'هەڵە لە سڕینەوەی تۆمار');
     },
   });
 }
@@ -368,12 +370,11 @@ export function useCreateExpense() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
-      toast.success('Expense recorded successfully');
+      invalidateFinancialCaches(queryClient);
+      toast.success('خەرجی تۆمار کرا');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to record expense');
+      toast.error(err.response?.data?.message || 'هەڵە لە تۆمارکردنی خەرجی');
     },
   });
 }
@@ -386,12 +387,11 @@ export function useUpdateExpense(id: number) {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
-      toast.success('Expense updated successfully');
+      invalidateFinancialCaches(queryClient);
+      toast.success('خەرجی نوێ کرایەوە');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to update expense');
+      toast.error(err.response?.data?.message || 'هەڵە لە نوێکردنەوەی خەرجی');
     },
   });
 }
@@ -404,12 +404,11 @@ export function useDeleteExpense() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
-      toast.success('Expense deleted successfully');
+      invalidateFinancialCaches(queryClient);
+      toast.success('خەرجی سڕایەوە');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to delete expense');
+      toast.error(err.response?.data?.message || 'هەڵە لە سڕینەوەی خەرجی');
     },
   });
 }
@@ -437,10 +436,10 @@ export function useCreateUser() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success('User account created successfully');
+      toast.success('بەکارهێنەر بە سەرکەوتوویی دروست کرا');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to create user');
+      toast.error(err.response?.data?.message || 'هەڵە لە دروستکردنی بەکارهێنەر');
     },
   });
 }
@@ -454,10 +453,10 @@ export function useUpdateUser(id: number) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success('User details updated successfully');
+      toast.success('زانیاری بەکارهێنەر نوێ کرایەوە');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to update user');
+      toast.error(err.response?.data?.message || 'هەڵە لە نوێکردنەوەی زانیاری');
     },
   });
 }
@@ -471,10 +470,10 @@ export function useDeleteUser() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success('User account deleted');
+      toast.success('بەکارهێنەر سڕایەوە');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to delete user');
+      toast.error(err.response?.data?.message || 'هەڵە لە سڕینەوەی بەکارهێنەر');
     },
   });
 }
@@ -488,10 +487,10 @@ export function useToggleUserActive() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success('User status toggled successfully');
+      toast.success('باری بەکارهێنەر گۆڕا');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to toggle status');
+      toast.error(err.response?.data?.message || 'هەڵە لە گۆڕینی بار');
     },
   });
 }
