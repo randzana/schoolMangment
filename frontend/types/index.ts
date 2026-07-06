@@ -182,6 +182,7 @@ export interface InventoryItem {
   name: string;
   code: string;
   quantity: number;
+  grade?: 'one' | 'two' | 'three' | 'four' | 'five' | 'six' | 'seven' | 'eight' | 'nine' | null;
   created_at?: string;
   updated_at?: string;
 }

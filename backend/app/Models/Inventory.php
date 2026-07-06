@@ -16,6 +16,7 @@ class Inventory extends Model
         'name',
         'code',
         'quantity',
+        'grade',
     ];
 
     protected $casts = [

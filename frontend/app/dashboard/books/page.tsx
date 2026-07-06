@@ -32,6 +32,7 @@ export default function BooksPage() {
   const [page, setPage] = useState(1);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [selectedStudentGrade, setSelectedStudentGrade] = useState<string | null>(null);
 
   const { data: purchasesData, isLoading, refetch } = useClothesBooks({ page, item_type: 'book' });
   const createMutation = useCreateClothesBook();
@@ -48,14 +49,17 @@ export default function BooksPage() {
 
   const bookOptions = React.useMemo(() => {
     if (!inventory) return [];
-    return inventory.map((item) => {
-      const subjectName = item.name.replace('Book: ', '');
-      return {
-        value: subjectName,
-        label: `${subjectName} (مەوجود: ${item.quantity} دانە)`,
-      };
-    });
-  }, [inventory]);
+    return inventory
+      .filter((item) => !selectedStudentGrade || !item.grade || item.grade === selectedStudentGrade)
+      .map((item) => {
+        const subjectName = item.name.replace('Book: ', '');
+        const gradeSuffix = item.grade ? ` (${GRADE_MAP[item.grade] || item.grade})` : '';
+        return {
+          value: subjectName,
+          label: `${subjectName}${gradeSuffix} (مەوجود: ${item.quantity} دانە)`,
+        };
+      });
+  }, [inventory, selectedStudentGrade]);
 
   const {
     register,
@@ -79,6 +83,7 @@ export default function BooksPage() {
       book_subject: '',
       notes: '',
     });
+    setSelectedStudentGrade(null);
     setIsFormOpen(true);
   };
 
@@ -185,7 +190,10 @@ export default function BooksPage() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <AutocompleteInput
             label="قوتابی هەڵبژێرە *"
-            onSelect={(student) => setValue('student_id', student.id)}
+            onSelect={(student) => {
+              setValue('student_id', student.id);
+              setSelectedStudentGrade(student.grade);
+            }}
             error={errors.student_id?.message}
           />
 

@@ -48,24 +48,23 @@ class InventoryController extends Controller
         ]);
     }
 
-    /**
-     * Create a new inventory item (uniform size or book subject)
-     */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'item_type' => 'required|string|in:clothes,book',
             'name' => 'required|string|max:100',
             'quantity' => 'required|integer|min:0',
+            'grade' => 'required_if:item_type,book|nullable|string|in:one,two,three,four,five,six,seven,eight,nine',
         ]);
 
-        // Auto-generate code e.g. uniform_42 or book_kurdish
+        // Auto-generate code e.g. uniform_42 or book_kurdish_one
         if ($validated['item_type'] === 'clothes') {
             $sizeName = str_replace('Uniform Size ', '', $validated['name']);
             $code = 'uniform_' . strtolower($sizeName);
         } else {
             $subjectName = str_replace('Book: ', '', $validated['name']);
-            $code = 'book_' . strtolower(str_replace(' ', '_', $subjectName));
+            $gradeSuffix = !empty($validated['grade']) ? '_' . strtolower($validated['grade']) : '';
+            $code = 'book_' . strtolower(str_replace(' ', '_', $subjectName)) . $gradeSuffix;
         }
 
         if (Inventory::where('code', $code)->exists()) {

@@ -7,9 +7,11 @@ import { InventoryItem } from '@/types';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { toast } from 'sonner';
+import { GRADE_OPTIONS, GRADE_MAP } from '@/lib/utils';
 import {
   HiOutlineBuildingStorefront,
   HiOutlinePencilSquare,
@@ -29,6 +31,7 @@ export default function InventoryPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createNameInput, setCreateNameInput] = useState('');
   const [createQuantityInput, setCreateQuantityInput] = useState('0');
+  const [createGradeInput, setCreateGradeInput] = useState('');
 
   // Delete states
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -44,7 +47,7 @@ export default function InventoryPage() {
 
   // Create item mutation
   const createMutation = useMutation({
-    mutationFn: async (payload: { item_type: 'clothes' | 'book'; name: string; quantity: number }) => {
+    mutationFn: async (payload: { item_type: 'clothes' | 'book'; name: string; quantity: number; grade?: string }) => {
       const res = await api.post('/inventory', payload);
       return res.data;
     },
@@ -54,6 +57,7 @@ export default function InventoryPage() {
       setIsCreateOpen(false);
       setCreateNameInput('');
       setCreateQuantityInput('0');
+      setCreateGradeInput('');
     },
     onError: (err) => {
       const apiErr = err as { response?: { data?: { message?: string } } };
@@ -126,16 +130,27 @@ export default function InventoryPage() {
       return;
     }
 
+    if (activeTab === 'book' && !createGradeInput) {
+      toast.error('تکایە پۆلێک هەڵبژێرە');
+      return;
+    }
+
     // Auto prefix to maintain format consistency
     const itemName = activeTab === 'clothes' 
       ? `Uniform Size ${createNameInput.trim()}`
       : `Book: ${createNameInput.trim()}`;
 
-    createMutation.mutate({
+    const payload: { item_type: 'clothes' | 'book'; name: string; quantity: number; grade?: string } = {
       item_type: activeTab,
       name: itemName,
       quantity: qty
-    });
+    };
+
+    if (activeTab === 'book' && createGradeInput) {
+      payload.grade = createGradeInput;
+    }
+
+    createMutation.mutate(payload);
   };
 
   const handleDeleteConfirm = () => {
@@ -232,7 +247,14 @@ export default function InventoryPage() {
 
                   return (
                     <tr key={item.id} className="hover:bg-surface-muted/50 transition-colors">
-                      <td className="px-6 py-4 font-semibold">{displayName}</td>
+                      <td className="px-6 py-4 font-semibold">
+                        {displayName}
+                        {item.item_type === 'book' && item.grade && (
+                          <span className="mr-2 text-xs font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary">
+                            {GRADE_MAP[item.grade] || item.grade}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-6 py-4 font-mono text-xs text-text-muted">{item.code}</td>
                       <td className="px-6 py-4">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold font-mono ${
@@ -283,7 +305,14 @@ export default function InventoryPage() {
                 return (
                   <div key={item.id} className="p-4 flex justify-between items-center bg-white active:bg-surface-muted/20">
                     <div className="space-y-1 min-w-0">
-                      <p className="text-xs font-semibold text-text truncate">{displayName}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-semibold text-text truncate">{displayName}</p>
+                        {item.item_type === 'book' && item.grade && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.25 rounded bg-primary/10 text-primary">
+                            {GRADE_MAP[item.grade] || item.grade}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[10px] text-text-muted font-mono">{item.code}</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -337,6 +366,17 @@ export default function InventoryPage() {
             onChange={(e) => setCreateNameInput(e.target.value)}
             className="w-full"
           />
+          {activeTab === 'book' && (
+            <Select
+              label="پۆل (بۆ نموونە: پۆلی یەکەم) *"
+              required
+              options={GRADE_OPTIONS}
+              placeholder="تکایە پۆلێک هەڵبژێرە"
+              value={createGradeInput}
+              onChange={(e) => setCreateGradeInput(e.target.value)}
+              className="w-full"
+            />
+          )}
           <Input
             label="بڕی سەرەتایی لە کۆگا *"
             type="number"

@@ -82,8 +82,14 @@ class ClothesBookController extends Controller
             }
 
             if (in_array($validated['item_type'], ['book', 'both']) && !empty($validated['book_subject'])) {
-                $bookCode = 'book_' . strtolower(str_replace(' ', '_', $validated['book_subject']));
-                $bookItem = \App\Models\Inventory::where('code', $bookCode)->first();
+                $student = \App\Models\Student::findOrFail($validated['student_id']);
+                $bookSubjectClean = strtolower(str_replace(' ', '_', $validated['book_subject']));
+                $gradeCode = 'book_' . $bookSubjectClean . '_' . strtolower($student->grade);
+                $generalCode = 'book_' . $bookSubjectClean;
+
+                $bookItem = \App\Models\Inventory::where('code', $gradeCode)->first()
+                    ?? \App\Models\Inventory::where('code', $generalCode)->first();
+
                 if (!$bookItem || $bookItem->quantity < 1) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
                         'book_subject' => ["ڕێژەی پێویست لەم کتێبە نییە لە کۆگادا (مەوجود: " . ($bookItem?->quantity ?? 0) . ")"],
@@ -145,8 +151,14 @@ class ClothesBookController extends Controller
                 }
             }
             if (in_array($oldType, ['book', 'both']) && !empty($oldSubject)) {
-                $bookCode = 'book_' . strtolower(str_replace(' ', '_', $oldSubject));
-                $bookItem = \App\Models\Inventory::where('code', $bookCode)->first();
+                $student = $payment->student;
+                $bookSubjectClean = strtolower(str_replace(' ', '_', $oldSubject));
+                $gradeCode = 'book_' . $bookSubjectClean . '_' . strtolower($student->grade);
+                $generalCode = 'book_' . $bookSubjectClean;
+
+                $bookItem = \App\Models\Inventory::where('code', $gradeCode)->first()
+                    ?? \App\Models\Inventory::where('code', $generalCode)->first();
+
                 if ($bookItem) {
                     $bookItem->increment('quantity', 1);
                 }
@@ -164,8 +176,15 @@ class ClothesBookController extends Controller
                 $uniformItem->decrement('quantity', 1);
             }
             if (in_array($newType, ['book', 'both']) && !empty($newSubject)) {
-                $bookCode = 'book_' . strtolower(str_replace(' ', '_', $newSubject));
-                $bookItem = \App\Models\Inventory::where('code', $bookCode)->first();
+                $studentId = $validated['student_id'] ?? $payment->student_id;
+                $student = \App\Models\Student::findOrFail($studentId);
+                $bookSubjectClean = strtolower(str_replace(' ', '_', $newSubject));
+                $gradeCode = 'book_' . $bookSubjectClean . '_' . strtolower($student->grade);
+                $generalCode = 'book_' . $bookSubjectClean;
+
+                $bookItem = \App\Models\Inventory::where('code', $gradeCode)->first()
+                    ?? \App\Models\Inventory::where('code', $generalCode)->first();
+
                 if (!$bookItem || $bookItem->quantity < 1) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
                         'book_subject' => ["ڕێژەی پێویست لەم کتێبە نییە لە کۆگادا (مەوجود: " . ($bookItem?->quantity ?? 0) . ")"],
@@ -200,8 +219,14 @@ class ClothesBookController extends Controller
             }
 
             if (in_array($payment->item_type, ['book', 'both']) && !empty($payment->book_subject)) {
-                $bookCode = 'book_' . strtolower(str_replace(' ', '_', $payment->book_subject));
-                $bookItem = \App\Models\Inventory::where('code', $bookCode)->first();
+                $student = $payment->student;
+                $bookSubjectClean = strtolower(str_replace(' ', '_', $payment->book_subject));
+                $gradeCode = 'book_' . $bookSubjectClean . '_' . strtolower($student->grade);
+                $generalCode = 'book_' . $bookSubjectClean;
+
+                $bookItem = \App\Models\Inventory::where('code', $gradeCode)->first()
+                    ?? \App\Models\Inventory::where('code', $generalCode)->first();
+
                 if ($bookItem) {
                     $bookItem->increment('quantity', 1);
                 }
