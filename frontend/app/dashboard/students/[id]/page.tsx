@@ -21,7 +21,6 @@ const updateStudentSchema = zod.object({
     message: 'دیاریکردنی پۆل داواکراوە',
   }),
   is_active: zod.boolean().optional(),
-  subscribe_food: zod.boolean().optional(),
 });
 
 export default function StudentDetailPage() {
@@ -47,16 +46,10 @@ export default function StudentDetailPage() {
   // Open edit modal and populate values
   const openEditModal = () => {
     if (!student) return;
-    const currentYear = getAcademicYear();
-    const isSubscribed = student.food_payments?.some(
-      (fp: any) => fp.academic_year === currentYear && parseFloat(fp.monthly_price) > 0
-    ) || false;
-
     reset({
       full_name: student.full_name,
       grade: student.grade,
       is_active: student.is_active,
-      subscribe_food: isSubscribed,
     });
     setIsEditModalOpen(true);
   };
@@ -348,20 +341,7 @@ export default function StudentDetailPage() {
             </label>
           </div>
 
-          <div className="flex items-center gap-3 p-3 bg-surface-muted/30 border border-border rounded-xl mt-2">
-            <input
-              type="checkbox"
-              id="subscribe_food"
-              className="w-4.5 h-4.5 rounded border-border text-primary focus:ring-primary/20 accent-primary cursor-pointer"
-              {...register('subscribe_food')}
-            />
-            <div className="space-y-0.5 cursor-pointer select-none">
-              <label htmlFor="subscribe_food" className="text-xs font-semibold text-text block cursor-pointer">
-                بەشداریکردن لە نانخواردنی قوتابخانە
-              </label>
-              <p className="text-[10px] text-text-muted">هەژمارکردنی مانگانەی نانخواردن (١٥٠,٠٠٠ دینار) بۆ ئەم قوتابییە</p>
-            </div>
-          </div>
+
 
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" onClick={() => setIsEditModalOpen(false)}>
