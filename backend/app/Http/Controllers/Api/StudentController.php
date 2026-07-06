@@ -75,6 +75,7 @@ class StudentController extends Controller
             'address' => 'nullable|string',
             'notes' => 'nullable|string',
             'tuition_price' => 'required|numeric|min:0',
+            'subscribe_food' => 'sometimes|boolean',
         ]);
 
         $student = Student::create([
@@ -98,14 +99,16 @@ class StudentController extends Controller
             'total_paid' => 0,
         ]);
 
-        // Auto-create food payment for current academic year
-        FoodPayment::create([
-            'student_id' => $student->id,
-            'academic_year' => $academicYear,
-            'monthly_price' => config('school.food_price', 150000),
-            'discount' => 0,
-            'total_paid' => 0,
-        ]);
+        // Auto-create food payment for current academic year ONLY if subscribed
+        if ($request->boolean('subscribe_food')) {
+            FoodPayment::create([
+                'student_id' => $student->id,
+                'academic_year' => $academicYear,
+                'monthly_price' => config('school.food_price', 150000),
+                'discount' => 0,
+                'total_paid' => 0,
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -143,9 +146,38 @@ class StudentController extends Controller
             'address' => 'nullable|string',
             'notes' => 'nullable|string',
             'is_active' => 'sometimes|boolean',
+            'subscribe_food' => 'sometimes|boolean',
         ]);
 
         $student->update($validated);
+
+        if ($request->has('subscribe_food')) {
+            $academicYear = config('school.academic_year', '2025-2026');
+            if ($request->boolean('subscribe_food')) {
+                FoodPayment::firstOrCreate(
+                    [
+                        'student_id' => $student->id,
+                        'academic_year' => $academicYear,
+                    ],
+                    [
+                        'monthly_price' => config('school.food_price', 150000),
+                        'discount' => 0,
+                        'total_paid' => 0,
+                    ]
+                );
+            } else {
+                $foodPayment = FoodPayment::where('student_id', $student->id)
+                    ->where('academic_year', $academicYear)
+                    ->first();
+                if ($foodPayment) {
+                    if ($foodPayment->total_paid == 0) {
+                        $foodPayment->delete();
+                    } else {
+                        $foodPayment->update(['monthly_price' => $foodPayment->total_paid]);
+                    }
+                }
+            }
+        }
 
         return response()->json([
             'success' => true,
