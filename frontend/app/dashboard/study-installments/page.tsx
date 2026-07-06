@@ -14,7 +14,7 @@ import { DataTable, Column } from '@/components/tables/DataTable';
 import { TablePagination } from '@/components/tables/TablePagination';
 import { formatCurrency, formatDate, GRADE_MAP } from '@/lib/utils';
 import { HiOutlinePrinter, HiOutlineTrash, HiOutlineArrowUturnLeft } from 'react-icons/hi2';
-import api from '@/lib/api';
+import api, { API_URL } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
 const installmentSchema = zod.object({
@@ -94,7 +94,7 @@ export default function StudyInstallmentsPage() {
       onSuccess: (res) => {
         const created = res.data;
         setInvoiceNo(created.invoice_no);
-        setInvoiceUrl(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/study-installments/${created.id}/invoice`);
+        setInvoiceUrl(`${API_URL}/study-installments/${created.id}/invoice`);
         setIsInvoiceOpen(true);
         
         // Reset form
@@ -140,7 +140,7 @@ export default function StudyInstallmentsPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/study-installments/${row.id}/invoice`, '_blank')}
+            onClick={() => window.open(`${API_URL}/study-installments/${row.id}/invoice`, '_blank')}
             title="چاپکردنەوەی پسوولە"
           >
             <HiOutlinePrinter className="w-4 h-4" />

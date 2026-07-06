@@ -2,7 +2,7 @@
  
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/api';
+import api, { API_URL } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { DataTable, Column } from '@/components/tables/DataTable';
@@ -28,14 +28,14 @@ export default function AnnualIncomeReportPage() {
  
   const handleExportCsv = () => {
     window.open(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/reports/annual-income/export?academic_year=${academicYear}&grade=${grade}`,
+      `${API_URL}/reports/annual-income/export?academic_year=${academicYear}&grade=${grade}`,
       '_blank'
     );
   };
  
   const handlePrintPdf = () => {
     window.open(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/reports/annual-income/pdf?academic_year=${academicYear}&grade=${grade}`,
+      `${API_URL}/reports/annual-income/pdf?academic_year=${academicYear}&grade=${grade}`,
       '_blank'
     );
   };

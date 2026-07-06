@@ -2,7 +2,7 @@
  
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/api';
+import api, { API_URL } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -57,7 +57,7 @@ export default function GovernmentExpensesReportPage() {
  
   const handlePrintPdf = () => {
     window.open(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/reports/government-expenses/pdf?from=${from}&to=${to}&category=${category}`,
+      `${API_URL}/reports/government-expenses/pdf?from=${from}&to=${to}&category=${category}`,
       '_blank'
     );
   };

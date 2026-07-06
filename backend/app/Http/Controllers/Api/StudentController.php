@@ -28,14 +28,22 @@ class StudentController extends Controller
             $query->whereNull('deleted_at');
         }
 
+        $academicYear = config('school.academic_year', '2025-2026');
+
         // Include payment balances
-        $query->withSum(['studyPayments as study_balance' => function ($q) {
-            $q->where('academic_year', config('school.academic_year', '2025-2026'));
+        $query->withSum(['studyPayments as study_balance' => function ($q) use ($academicYear) {
+            $q->where('academic_year', $academicYear);
         }], \Illuminate\Support\Facades\DB::raw('annual_price - discount - total_paid'));
 
-        $query->withSum(['foodPayments as food_balance' => function ($q) {
-            $q->where('academic_year', config('school.academic_year', '2025-2026'));
+        $query->withSum(['foodPayments as food_balance' => function ($q) use ($academicYear) {
+            $q->where('academic_year', $academicYear);
         }], \Illuminate\Support\Facades\DB::raw('monthly_price - discount - total_paid'));
+
+        // Check if subscribed to food
+        $query->withExists(['foodPayments as is_food_subscribed' => function ($q) use ($academicYear) {
+            $q->where('academic_year', $academicYear)
+              ->where('monthly_price', '>', 0);
+        }]);
 
         $perPage = $request->integer('per_page', 20);
         $students = $query->orderBy('full_name')->paginate($perPage);

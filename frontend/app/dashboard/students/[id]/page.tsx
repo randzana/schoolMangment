@@ -13,6 +13,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Spinner';
 import { formatCurrency, formatDate, GRADE_OPTIONS, gradeDisplay, ITEM_TYPE_MAP, getAcademicYear } from '@/lib/utils';
 import { HiOutlineUser, HiOutlinePencilSquare, HiOutlineArrowLeft, HiOutlinePrinter } from 'react-icons/hi2';
+import { API_URL } from '@/lib/api';
 
 const updateStudentSchema = zod.object({
   full_name: zod.string().min(1, 'ناوی سیانی قوتابی داواکراوە').max(150),
@@ -168,7 +169,6 @@ export default function StudentDetailPage() {
                       <th className="px-4 py-2">داشکاندن</th>
                       <th className="px-4 py-2">کۆیی گشتی</th>
                       <th className="px-4 py-2">کۆی دراو</th>
-                      <th className="px-4 py-2">قەرز (ماوە)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -179,7 +179,6 @@ export default function StudentDetailPage() {
                         <td className="px-4 py-2.5 font-mono text-danger">-{formatCurrency(fp.discount)}</td>
                         <td className="px-4 py-2.5 font-mono font-semibold">{formatCurrency(fp.price_after_discount)}</td>
                         <td className="px-4 py-2.5 font-mono text-success font-semibold">{formatCurrency(fp.total_paid)}</td>
-                        <td className="px-4 py-2.5 font-mono font-bold text-danger">{formatCurrency(fp.remain_balance)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -217,7 +216,7 @@ export default function StudentDetailPage() {
                       <td className="px-4 py-2.5">{formatDate(inst.payment_date)}</td>
                       <td className="px-4 py-2.5 text-center">
                         <button
-                          onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/study-installments/${inst.id}/invoice`, '_blank')}
+                          onClick={() => window.open(`${API_URL}/study-installments/${inst.id}/invoice`, '_blank')}
                           className="text-primary hover:text-primary-dark transition-colors cursor-pointer"
                           title="چاپکردنەوەی پسوولە"
                         >
@@ -258,7 +257,7 @@ export default function StudentDetailPage() {
                       <td className="px-4 py-2.5">{formatDate(inst.payment_date)}</td>
                       <td className="px-4 py-2.5 text-center">
                         <button
-                          onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/food-installments/${inst.id}/invoice`, '_blank')}
+                          onClick={() => window.open(`${API_URL}/food-installments/${inst.id}/invoice`, '_blank')}
                           className="text-primary hover:text-primary-dark transition-colors cursor-pointer"
                           title="چاپکردنەوەی پسوولە"
                         >
@@ -301,7 +300,7 @@ export default function StudentDetailPage() {
                       <td className="px-4 py-2.5">{inst.payment_date ? formatDate(inst.payment_date) : 'N/A'}</td>
                       <td className="px-4 py-2.5 text-center">
                         <button
-                          onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/clothes-books/${inst.id}/invoice`, '_blank')}
+                          onClick={() => window.open(`${API_URL}/clothes-books/${inst.id}/invoice`, '_blank')}
                           className="text-primary hover:text-primary-dark transition-colors cursor-pointer"
                           title="چاپکردنەوەی پسوولە"
                         >

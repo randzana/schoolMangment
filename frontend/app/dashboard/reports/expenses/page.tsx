@@ -2,7 +2,7 @@
  
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/api';
+import api, { API_URL } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { DataTable, Column } from '@/components/tables/DataTable';
@@ -51,7 +51,7 @@ export default function ExpensesReportPage() {
  
   const handlePrintPdf = () => {
     window.open(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/reports/expenses/pdf?from=${from}&to=${to}&category=${category}`,
+      `${API_URL}/reports/expenses/pdf?from=${from}&to=${to}&category=${category}`,
       '_blank'
     );
   };

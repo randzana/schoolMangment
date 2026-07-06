@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/api';
+import api, { API_URL } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -46,14 +46,14 @@ export default function StudyInstallmentsReportPage() {
 
   const handleExportCsv = () => {
     window.open(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/reports/study-installments/export?from=${from}&to=${to}&month=${month}&grade=${grade}`,
+      `${API_URL}/reports/study-installments/export?from=${from}&to=${to}&month=${month}&grade=${grade}`,
       '_blank'
     );
   };
 
   const handlePrintPdf = () => {
     window.open(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/reports/study-installments/pdf?from=${from}&to=${to}&month=${month}&grade=${grade}`,
+      `${API_URL}/reports/study-installments/pdf?from=${from}&to=${to}&month=${month}&grade=${grade}`,
       '_blank'
     );
   };

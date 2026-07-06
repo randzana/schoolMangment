@@ -16,6 +16,7 @@ import { TablePagination } from '@/components/tables/TablePagination';
 import { formatCurrency, formatDate, GRADE_MAP } from '@/lib/utils';
 import { HiOutlinePrinter, HiOutlineTrash, HiOutlineArrowUturnLeft, HiOutlinePlusCircle } from 'react-icons/hi2';
 import { useAuthStore } from '@/store/authStore';
+import { API_URL } from '@/lib/api';
  
 const foodInstallmentSchema = zod.object({
   student_id: zod.number().min(1, 'تکایە قوتابییەک هەڵبژێرە'),
@@ -78,7 +79,7 @@ export default function FoodInstallmentsPage() {
         setIsFormOpen(false);
         const created = res.data;
         setInvoiceNo(created.invoice_no);
-        setInvoiceUrl(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/food-installments/${created.id}/invoice`);
+        setInvoiceUrl(`${API_URL}/food-installments/${created.id}/invoice`);
         setIsInvoiceOpen(true);
       },
     });
@@ -113,7 +114,7 @@ export default function FoodInstallmentsPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/food-installments/${row.id}/invoice`, '_blank')}
+            onClick={() => window.open(`${API_URL}/food-installments/${row.id}/invoice`, '_blank')}
             title="چاپکردنەوەی پسوولە"
           >
             <HiOutlinePrinter className="w-4 h-4" />

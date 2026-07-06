@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as zod from 'zod';
 import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/api';
+import api, { API_URL } from '@/lib/api';
 import { InventoryItem, ClothesBookPayment } from '@/types';
 import { useClothesBooks, useCreateClothesBook, useDeleteClothesBook } from '@/hooks';
 import { Button } from '@/components/ui/Button';
@@ -104,7 +104,7 @@ export default function BooksPage() {
         setIsFormOpen(false);
         refetch();
         const created = res.data;
-        window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/clothes-books/${created.id}/invoice`, '_blank');
+        window.open(`${API_URL}/clothes-books/${created.id}/invoice`, '_blank');
       },
     });
   };
@@ -134,7 +134,7 @@ export default function BooksPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/clothes-books/${row.id}/invoice`, '_blank')}
+            onClick={() => window.open(`${API_URL}/clothes-books/${row.id}/invoice`, '_blank')}
             title="چاپکردنەوەی پسوولە"
           >
             <HiOutlinePrinter className="w-4 h-4" />

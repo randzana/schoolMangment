@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/api';
+import api, { API_URL } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -70,7 +70,7 @@ export default function FoodInstallmentsReportPage() {
 
   const handlePrintPdf = () => {
     window.open(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/reports/food-installments/pdf?from=${from}&to=${to}&month=${month}&grade=${grade}`,
+      `${API_URL}/reports/food-installments/pdf?from=${from}&to=${to}&month=${month}&grade=${grade}`,
       '_blank'
     );
   };

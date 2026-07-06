@@ -2,7 +2,7 @@
  
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/api';
+import api, { API_URL } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { DataTable, Column } from '@/components/tables/DataTable';
@@ -66,7 +66,7 @@ export default function ClothesReportPage() {
  
   const handlePrintPdf = () => {
     window.open(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/reports/clothes-payments/pdf?month=${month}&grade=${grade}`,
+      `${API_URL}/reports/clothes-payments/pdf?month=${month}&grade=${grade}`,
       '_blank'
     );
   };

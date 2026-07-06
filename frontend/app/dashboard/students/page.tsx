@@ -69,7 +69,18 @@ export default function StudentsPage() {
     { header: 'ناو', accessor: 'full_name', sortable: true },
     { header: 'پۆل', accessor: (row) => gradeDisplay(row.grade) },
     { header: 'قەرزی خوێندن', accessor: (row) => formatCurrency(row.study_balance || 0) },
-    { header: 'قەرزی نانخواردن', accessor: (row) => formatCurrency(row.food_balance || 0) },
+    {
+      header: 'بەشداری نانخواردن',
+      accessor: (row) => (
+        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+          row.is_food_subscribed
+            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+            : 'bg-gray-100 text-gray-500 border border-gray-200'
+        }`}>
+          {row.is_food_subscribed ? 'بەشدارە' : 'بەشدار نییە'}
+        </span>
+      ),
+    },
     {
       header: 'کردارەکان',
       accessor: (row) => (
