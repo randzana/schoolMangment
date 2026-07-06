@@ -151,7 +151,7 @@
         
         <div class="invoice-meta">
             <div>بۆ ماوەی: <strong>{{ $date_range }}</strong></div>
-            <div>ڕێکەوت: <strong>{{ now()->format('d/m/Y') }}</strong></div>
+            <div>ڕێکەوت: <strong><span id="print-date"></span></strong></div>
         </div>
     </div>
  
@@ -204,12 +204,27 @@
     </table>
  
     <div class="footer">
-        سیستەمی بەڕێوەبردنی دارایی — {{ $school_name }} — {{ now()->format('d/m/Y H:i') }}
+        سیستەمی بەڕێوەبردنی دارایی — {{ $school_name }} — <span id="print-datetime"></span>
     </div>
 </div>
  
 <script>
-    window.onload = function() { window.print(); };
+    (function() {
+        const now = new Date();
+        const dd = String(now.getDate()).padStart(2, '0');
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const yyyy = now.getFullYear();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        
+        const dateStr = dd + '/' + mm + '/' + yyyy;
+        const dateTimeStr = dateStr + ' ' + hh + ':' + min;
+        
+        document.getElementById('print-date').textContent = dateStr;
+        document.getElementById('print-datetime').textContent = dateTimeStr;
+        
+        window.onload = function() { window.print(); };
+    })();
 </script>
  
 </body>
