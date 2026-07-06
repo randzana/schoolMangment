@@ -286,7 +286,7 @@ class ReportController extends Controller
             $query->byGrade($request->grade);
         }
 
-        $students = $query->active()->orderBy('full_name')->get();
+        $students = $query->active()->orderByRaw('LENGTH(serial_number) ASC, serial_number ASC')->get();
 
         // Add payment status
         $students = $students->map(function ($student) {
@@ -529,7 +529,7 @@ class ReportController extends Controller
             'studyPayments' => fn ($q) => $q->where('academic_year', $academicYear),
             'foodPayments' => fn ($q) => $q->where('academic_year', $academicYear),
             'clothesBookPayments' => fn ($q) => $q->where('academic_year', $academicYear),
-        ])->orderBy('full_name')->get();
+        ])->orderByRaw('LENGTH(serial_number) ASC, serial_number ASC')->get();
 
         $data = $students->map(function ($student) {
             $sp = $student->studyPayments->first();
@@ -603,7 +603,7 @@ class ReportController extends Controller
             'studyPayments' => fn ($q) => $q->where('academic_year', $academicYear),
             'foodPayments' => fn ($q) => $q->where('academic_year', $academicYear),
             'clothesBookPayments' => fn ($q) => $q->where('academic_year', $academicYear),
-        ])->orderBy('full_name')->get();
+        ])->orderByRaw('LENGTH(serial_number) ASC, serial_number ASC')->get();
 
         $csv = "Student Name,Grade,Study Paid,Food Paid,Clothes Paid,Books Paid,Total Paid\n";
 
@@ -652,7 +652,7 @@ class ReportController extends Controller
             'studyPayments' => fn ($q) => $q->where('academic_year', $academicYear),
             'foodPayments' => fn ($q) => $q->where('academic_year', $academicYear),
             'clothesBookPayments' => fn ($q) => $q->where('academic_year', $academicYear),
-        ])->orderBy('full_name')->get();
+        ])->orderByRaw('LENGTH(serial_number) ASC, serial_number ASC')->get();
 
         $records = $students->map(function ($student) {
             $sp = $student->studyPayments->first();
@@ -1101,5 +1101,169 @@ class ReportController extends Controller
         ];
 
         return view('reports.government-expenses', $pdf_data);
+    }
+
+    /**
+     * Study debts report (students with remaining tuition balance)
+     */
+    public function studyDebts(Request $request): JsonResponse
+    {
+        $academicYear = $request->get('academic_year', config('school.academic_year', '2026-2027'));
+        $grade = $request->get('grade');
+
+        $query = Student::active()->whereHas('studyPayments', function ($q) use ($academicYear) {
+            $q->where('academic_year', $academicYear)
+              ->whereRaw('annual_price - discount - total_paid > 0');
+        });
+
+        if ($grade) {
+            $query->byGrade($grade);
+        }
+
+        $students = $query->with([
+            'studyPayments' => fn ($q) => $q->where('academic_year', $academicYear)
+        ])->orderByRaw('LENGTH(serial_number) ASC, serial_number ASC')->get();
+
+        $records = $students->map(function ($student) {
+            $sp = $student->studyPayments->first();
+            
+            $annualPrice = $sp ? (float) $sp->annual_price : 0;
+            $discount = $sp ? (float) $sp->discount : 0;
+            $priceAfterDiscount = $sp ? (float) $sp->price_after_discount : 0;
+            $totalPaid = $sp ? (float) $sp->total_paid : 0;
+            $remainBalance = $sp ? (float) $sp->remain_balance : 0;
+
+            return [
+                'id' => $student->id,
+                'serial_number' => $student->serial_number,
+                'full_name' => $student->full_name,
+                'grade' => $student->grade,
+                'grade_display' => $student->grade_display,
+                'annual_price' => $annualPrice,
+                'discount' => $discount,
+                'price_after_discount' => $priceAfterDiscount,
+                'total_paid' => $totalPaid,
+                'remain_balance' => $remainBalance,
+            ];
+        });
+
+        $totalDebt = $records->sum('remain_balance');
+        $totalPaid = $records->sum('total_paid');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'records' => $records,
+                'summary' => [
+                    'count' => $records->count(),
+                    'total_paid' => $totalPaid,
+                    'total_debt' => $totalDebt,
+                ],
+            ],
+            'message' => 'Study debts report generated',
+        ]);
+    }
+
+    /**
+     * Export study debts report as CSV
+     */
+    public function exportStudyDebts(Request $request)
+    {
+        $academicYear = $request->get('academic_year', config('school.academic_year', '2026-2027'));
+        $grade = $request->get('grade');
+
+        $query = Student::active()->whereHas('studyPayments', function ($q) use ($academicYear) {
+            $q->where('academic_year', $academicYear)
+              ->whereRaw('annual_price - discount - total_paid > 0');
+        });
+
+        if ($grade) {
+            $query->byGrade($grade);
+        }
+
+        $students = $query->with([
+            'studyPayments' => fn ($q) => $q->where('academic_year', $academicYear)
+        ])->orderByRaw('LENGTH(serial_number) ASC, serial_number ASC')->get();
+
+        $csv = "Serial,Student Name,Grade,Tuition Price,Paid Amount,Remaining Debt\n";
+
+        foreach ($students as $student) {
+            $sp = $student->studyPayments->first();
+            $priceAfterDiscount = $sp ? (float) $sp->price_after_discount : 0;
+            $totalPaid = $sp ? (float) $sp->total_paid : 0;
+            $remainBalance = $sp ? (float) $sp->remain_balance : 0;
+
+            $csv .= implode(',', [
+                $student->serial_number,
+                '"' . $student->full_name . '"',
+                $student->grade_display,
+                $priceAfterDiscount,
+                $totalPaid,
+                $remainBalance,
+            ]) . "\n";
+        }
+
+        return response($csv)
+            ->header('Content-Type', 'text/csv')
+            ->header('Content-Disposition', 'attachment; filename="study_debts_report_' . $academicYear . '.csv"');
+    }
+
+    /**
+     * PDF print layout for study debts report
+     */
+    public function pdfStudyDebts(Request $request)
+    {
+        $academicYear = $request->get('academic_year', config('school.academic_year', '2026-2027'));
+        $grade = $request->get('grade');
+
+        $query = Student::active()->whereHas('studyPayments', function ($q) use ($academicYear) {
+            $q->where('academic_year', $academicYear)
+              ->whereRaw('annual_price - discount - total_paid > 0');
+        });
+
+        if ($grade) {
+            $query->byGrade($grade);
+        }
+
+        $students = $query->with([
+            'studyPayments' => fn ($q) => $q->where('academic_year', $academicYear)
+        ])->orderByRaw('LENGTH(serial_number) ASC, serial_number ASC')->get();
+
+        $records = $students->map(function ($student) {
+            $sp = $student->studyPayments->first();
+            return [
+                'serial_number' => $student->serial_number,
+                'full_name' => $student->full_name,
+                'grade_display' => $student->grade_display,
+                'price_after_discount' => $sp ? (float) $sp->price_after_discount : 0,
+                'total_paid' => $sp ? (float) $sp->total_paid : 0,
+                'remain_balance' => $sp ? (float) $sp->remain_balance : 0,
+            ];
+        });
+
+        $grade_map = [
+            'one'   => 'پۆلی یەکەم',
+            'two'   => 'پۆلی دووەم',
+            'three' => 'پۆلی سێیەم',
+            'four'  => 'پۆلی چوارەم',
+            'five'  => 'پۆلی پێنجەم',
+            'six'   => 'پۆلی شەشەم',
+            'seven' => 'پۆلی حەوتەم',
+            'eight' => 'پۆلی هەشتەم',
+            'nine'  => 'پۆلی نۆیەم',
+        ];
+        
+        $grade_label = $grade ? ($grade_map[$grade] ?? $grade) : null;
+
+        $pdf_data = [
+            'records' => $records,
+            'school_name' => config('school.name', 'Future Generation Private Basic School'),
+            'academic_year' => $academicYear,
+            'grade_label' => $grade_label,
+            'total_paid' => $records->sum('total_paid'),
+            'total_debt' => $records->sum('remain_balance'),
+        ];
+
+        return view('reports.study-debts', $pdf_data);
     }
 }

@@ -65,6 +65,7 @@ const navigation: NavGroup[] = [
     label: 'ڕاپۆرتەکان',
     items: [
       { label: 'قستەکانی خوێندن', href: '/dashboard/reports/study-installments', icon: <HiOutlineDocumentChartBar className="w-5 h-5" /> },
+      { label: 'قەرزەکانی خوێندن', href: '/dashboard/reports/study-debts', icon: <HiOutlineDocumentChartBar className="w-5 h-5" /> },
       { label: 'مانگانەی نانخواردن', href: '/dashboard/reports/food-installments', icon: <HiOutlineDocumentChartBar className="w-5 h-5" /> },
       { label: 'ڕاپۆرتی جلوبەرگ', href: '/dashboard/reports/clothes', icon: <HiOutlineDocumentChartBar className="w-5 h-5" /> },
       { label: 'ڕاپۆرتی کتێب', href: '/dashboard/reports/books', icon: <HiOutlineDocumentChartBar className="w-5 h-5" /> },

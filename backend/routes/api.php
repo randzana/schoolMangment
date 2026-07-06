@@ -28,6 +28,8 @@ Route::get('reports/annual-income/pdf', [\App\Http\Controllers\Api\ReportControl
 Route::get('reports/food-income/export', [\App\Http\Controllers\Api\ReportController::class, 'exportFoodIncome']);
 Route::get('reports/expenses/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfExpenses']);
 Route::get('reports/government-expenses/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfGovernmentExpenses']);
+Route::get('reports/study-debts/export', [\App\Http\Controllers\Api\ReportController::class, 'exportStudyDebts']);
+Route::get('reports/study-debts/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfStudyDebts']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -91,6 +93,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/government-expenses', [\App\Http\Controllers\Api\ReportController::class, 'governmentExpenses']);
         Route::get('/annual-income', [\App\Http\Controllers\Api\ReportController::class, 'annualIncome']);
         Route::get('/food-income', [\App\Http\Controllers\Api\ReportController::class, 'foodIncome']);
+        Route::get('/study-debts', [\App\Http\Controllers\Api\ReportController::class, 'studyDebts']);
 
         Route::get('/student-list', [\App\Http\Controllers\Api\ReportController::class, 'studentList']);
         Route::get('/dashboard', [\App\Http\Controllers\Api\ReportController::class, 'dashboard']);

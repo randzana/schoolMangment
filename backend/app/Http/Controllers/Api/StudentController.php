@@ -46,7 +46,7 @@ class StudentController extends Controller
         }]);
 
         $perPage = $request->integer('per_page', 20);
-        $students = $query->orderBy('full_name')->paginate($perPage);
+        $students = $query->orderByRaw('LENGTH(serial_number) ASC, serial_number ASC')->paginate($perPage);
 
         return response()->json([
             'success' => true,
@@ -225,6 +225,7 @@ class StudentController extends Controller
             ->search($q)
             ->active()
             ->select('id', 'serial_number', 'full_name', 'grade')
+            ->orderByRaw('LENGTH(serial_number) ASC, serial_number ASC')
             ->limit(10)
             ->get()
             ->map(function ($student) {

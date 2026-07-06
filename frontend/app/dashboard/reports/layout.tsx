@@ -13,6 +13,7 @@ export default function ReportsLayout({
 
   const reportTabs = [
     { label: 'قستەکانی خوێندن', href: '/dashboard/reports/study-installments' },
+    { label: 'قەرزەکانی خوێندن', href: '/dashboard/reports/study-debts' },
     { label: 'مانگانەی نانخواردن', href: '/dashboard/reports/food-installments' },
     { label: 'ڕاپۆرتی جلوبەرگ', href: '/dashboard/reports/clothes' },
     { label: 'ڕاپۆرتی کتێب', href: '/dashboard/reports/books' },

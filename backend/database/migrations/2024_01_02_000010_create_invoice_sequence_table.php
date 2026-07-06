@@ -11,11 +11,11 @@ return new class extends Migration
     {
         Schema::create('invoice_sequence', function (Blueprint $table) {
             $table->id();
-            $table->bigInteger('last_invoice_no')->default(1000);
+            $table->bigInteger('last_invoice_no')->default(0);
         });
 
         // Seed the sequence with initial row
-        DB::table('invoice_sequence')->insert(['last_invoice_no' => 1000]);
+        DB::table('invoice_sequence')->insert(['last_invoice_no' => 0]);
     }
 
     public function down(): void
