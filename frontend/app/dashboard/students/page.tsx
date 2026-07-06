@@ -22,7 +22,6 @@ const studentSchema = zod.object({
     message: 'دیاریکردنی پۆل داواکراوە',
   }),
   tuition_price: zod.coerce.number().min(0, 'نابێت لە سفر کەمتر بێت'),
-  subscribe_food: zod.boolean().optional(),
 });
 
 export default function StudentsPage() {
@@ -205,20 +204,7 @@ export default function StudentsPage() {
             {...register('tuition_price')}
           />
 
-          <div className="flex items-center gap-3 p-3 bg-surface-muted/30 border border-border rounded-xl">
-            <input
-              type="checkbox"
-              id="subscribe_food"
-              className="w-4.5 h-4.5 rounded border-border text-primary focus:ring-primary/20 accent-primary cursor-pointer"
-              {...register('subscribe_food')}
-            />
-            <div className="space-y-0.5 cursor-pointer select-none">
-              <label htmlFor="subscribe_food" className="text-xs font-semibold text-text block cursor-pointer">
-                بەشداریکردن لە نانخواردنی قوتابخانە
-              </label>
-              <p className="text-[10px] text-text-muted">هەژمارکردنی مانگانەی نانخواردن (١٥٠,٠٠٠ دینار) بۆ ئەم قوتابییە</p>
-            </div>
-          </div>
+
 
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" onClick={() => setIsAddModalOpen(false)}>
