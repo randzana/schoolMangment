@@ -19,7 +19,7 @@
         
         @page { 
             size: A5 landscape; 
-            margin: 5mm 6mm; 
+            margin: 0; 
         }
         
         * { 
@@ -33,7 +33,7 @@
             font-size: 11px; 
             color: #1E293B; 
             background-color: #FFFFFF;
-            padding: 2px;
+            padding: 5mm 6mm;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }

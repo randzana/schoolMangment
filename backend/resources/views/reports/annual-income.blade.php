@@ -6,13 +6,13 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap');
         
-        @page { size: A4 portrait; margin: 15mm; }
+        @page { size: A4 portrait; margin: 0; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             font-family: 'Noto Sans Arabic', 'Tahoma', 'Arial', sans-serif; 
             font-size: 10px; 
             color: #1A202C; 
-            padding: 15px;
+            padding: 15mm;
             background-color: #F8FAFC;
         }
         .report-wrapper {
