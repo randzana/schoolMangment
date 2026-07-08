@@ -249,7 +249,6 @@ class ClothesBookController extends Controller
     {
         $validated = $request->validate([
             'student_id'     => 'required|exists:students,id',
-            'price_per_book' => 'required|numeric|min:0',
             'notes'          => 'nullable|string',
         ]);
 
@@ -269,10 +268,9 @@ class ClothesBookController extends Controller
         }
 
         $academicYear = config('school.academic_year', '2025-2026');
-        $pricePerBook = $validated['price_per_book'];
         $notes        = $validated['notes'] ?? '';
 
-        $payments = DB::transaction(function () use ($gradeBooks, $student, $academicYear, $pricePerBook, $notes, $request) {
+        $payments = DB::transaction(function () use ($gradeBooks, $student, $academicYear, $notes, $request) {
             $created = [];
 
             foreach ($gradeBooks as $bookItem) {
@@ -285,6 +283,7 @@ class ClothesBookController extends Controller
 
                 // Get the subject name from the inventory item name
                 $subjectName = str_replace('Book: ', '', $bookItem->name);
+                $bookPrice = $bookItem->price;
 
                 $invoiceNo = $this->invoiceService->getNextInvoiceNumber();
 
@@ -292,9 +291,9 @@ class ClothesBookController extends Controller
                     'student_id'    => $student->id,
                     'academic_year' => $academicYear,
                     'item_type'     => 'book',
-                    'price'         => $pricePerBook,
+                    'price'         => $bookPrice,
                     'discount'      => 0,
-                    'amount_paid'   => $pricePerBook,
+                    'amount_paid'   => $bookPrice,
                     'payment_date'  => now()->toDateString(),
                     'notes'         => $notes,
                     'invoice_no'    => $invoiceNo,

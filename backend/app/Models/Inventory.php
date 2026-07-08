@@ -16,10 +16,12 @@ class Inventory extends Model
         'name',
         'code',
         'quantity',
+        'price',
         'grade',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
+        'price' => 'decimal:2',
     ];
 }

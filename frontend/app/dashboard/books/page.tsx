@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as zod from 'zod';
@@ -17,11 +17,11 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { DataTable, Column } from '@/components/tables/DataTable';
 import { TablePagination } from '@/components/tables/TablePagination';
 import { formatCurrency, formatDate, GRADE_MAP } from '@/lib/utils';
-import { HiOutlinePrinter, HiOutlineTrash, HiOutlinePlusCircle, HiOutlineBookOpen } from 'react-icons/hi2';
+import { HiOutlinePrinter, HiOutlineTrash, HiOutlinePlusCircle } from 'react-icons/hi2';
 
 const purchaseSchema = zod.object({
   student_id: zod.number().min(1, 'تکایە قوتابییەک هەڵبژێرە'),
-  amount_paid: zod.number().min(1, 'دەبێت بڕی پارە لە ٠ زیاتر بێت'),
+  amount_paid: zod.number().min(0, 'بڕی پێویست نییە'),
   book_subject: zod.string().min(1, 'تکایە بابەتی کتێب دیاری بکە'),
   notes: zod.string().optional(),
 });
@@ -31,16 +31,8 @@ type PurchaseFormValues = zod.infer<typeof purchaseSchema>;
 export default function BooksPage() {
   const [page, setPage] = useState(1);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [selectedStudentGrade, setSelectedStudentGrade] = useState<string | null>(null);
-
-  // Bulk modal state
-  const [bulkStudentId, setBulkStudentId] = useState<number | null>(null);
-  const [bulkStudentName, setBulkStudentName] = useState('');
-  const [bulkStudentGrade, setBulkStudentGrade] = useState<string | null>(null);
-  const [bulkPricePerBook, setBulkPricePerBook] = useState<number>(0);
-  const [bulkNotes, setBulkNotes] = useState('');
 
   const { data: purchasesData, isLoading, refetch } = useClothesBooks({ page, item_type: 'book' });
   const createMutation = useCreateClothesBook();
@@ -66,7 +58,7 @@ export default function BooksPage() {
       const gradeSuffix = item.grade ? ` (${GRADE_MAP[item.grade] || item.grade})` : '';
       return {
         value: subjectName,
-        label: `${subjectName}${gradeSuffix} (مەوجود: ${item.quantity} دانە)`,
+        label: `${subjectName}${gradeSuffix} (مەوجود: ${item.quantity} دانە • نرخ: ${formatCurrency(item.price || 0)})`,
       };
     });
 
@@ -80,14 +72,6 @@ export default function BooksPage() {
 
     return mapped;
   }, [inventory, selectedStudentGrade]);
-
-  // Books matching the bulk student's grade
-  const bulkGradeBooks = useMemo(() => {
-    if (!inventory || !bulkStudentGrade) return [];
-    return inventory.filter(
-      (item) => item.grade === bulkStudentGrade
-    );
-  }, [inventory, bulkStudentGrade]);
 
   const {
     register,
@@ -108,6 +92,28 @@ export default function BooksPage() {
   const watchSubject = watch('book_subject');
   const watchAmountPaid = watch('amount_paid') || 0;
 
+  // Auto-populate price based on selected subject/book from inventory
+  useEffect(() => {
+    if (!watchSubject || !inventory) return;
+
+    if (watchSubject === 'all_books') {
+      const totalGradeBooksPrice = inventory
+        .filter((item) => item.grade === selectedStudentGrade && item.item_type === 'book')
+        .reduce((sum, item) => sum + Number(item.price || 0), 0);
+
+      setValue('amount_paid', totalGradeBooksPrice);
+    } else {
+      const bookItem = inventory.find(
+        (item) => item.item_type === 'book' && 
+                  item.name.replace('Book: ', '') === watchSubject && 
+                  (!selectedStudentGrade || item.grade === selectedStudentGrade)
+      );
+      if (bookItem) {
+        setValue('amount_paid', Number(bookItem.price || 0));
+      }
+    }
+  }, [watchSubject, inventory, selectedStudentGrade, setValue]);
+
   const openAddModal = () => {
     reset({
       student_id: 0,
@@ -119,21 +125,11 @@ export default function BooksPage() {
     setIsFormOpen(true);
   };
 
-  const openBulkModal = () => {
-    setBulkStudentId(null);
-    setBulkStudentName('');
-    setBulkStudentGrade(null);
-    setBulkPricePerBook(0);
-    setBulkNotes('');
-    setIsBulkOpen(true);
-  };
-
   const onSubmit = (values: PurchaseFormValues) => {
     if (values.book_subject === 'all_books') {
       bulkMutation.mutate(
         {
           student_id: values.student_id,
-          price_per_book: values.amount_paid,
           notes: values.notes || undefined,
         },
         {
@@ -169,30 +165,6 @@ export default function BooksPage() {
         },
       });
     }
-  };
-
-  const onBulkSubmit = () => {
-    if (!bulkStudentId || bulkPricePerBook <= 0) return;
-
-    bulkMutation.mutate(
-      {
-        student_id: bulkStudentId,
-        price_per_book: bulkPricePerBook,
-        notes: bulkNotes || undefined,
-      },
-      {
-        onSuccess: (res) => {
-          setIsBulkOpen(false);
-          refetch();
-          // Open the last created payment's invoice
-          const payments = res.data;
-          if (payments && payments.length > 0) {
-            const lastPayment = payments[payments.length - 1];
-            window.open(`${API_URL}/clothes-books/${lastPayment.id}/invoice`, '_blank');
-          }
-        },
-      }
-    );
   };
 
   const handleDelete = () => {
@@ -247,16 +219,10 @@ export default function BooksPage() {
           <h1 className="text-2xl font-bold tracking-tight text-text">کتێب</h1>
           <p className="text-xs text-text-muted">تۆمارکردنی مامەڵەکانی فرۆشتنی کتێبی خوێندن</p>
         </div>
-        <div className="flex items-center gap-2 self-start">
-          <Button variant="secondary" onClick={openBulkModal} className="flex items-center gap-1.5 font-semibold">
-            <HiOutlineBookOpen className="w-4 h-4" />
-            <span>کڕینی هەموو کتێبەکانی پۆل</span>
-          </Button>
-          <Button variant="primary" onClick={openAddModal} className="flex items-center gap-1.5 font-semibold">
-            <HiOutlinePlusCircle className="w-4 h-4" />
-            <span>تۆمارکردنی فرۆشتن</span>
-          </Button>
-        </div>
+        <Button variant="primary" onClick={openAddModal} className="flex items-center gap-1.5 self-start font-semibold">
+          <HiOutlinePlusCircle className="w-4 h-4" />
+          <span>تۆمارکردنی فرۆشتن</span>
+        </Button>
       </div>
 
       {/* History Data Table */}
@@ -277,7 +243,7 @@ export default function BooksPage() {
         )}
       </div>
 
-      {/* Record Single Purchase Modal */}
+      {/* Record Book Purchase Modal */}
       <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title="تۆمارکردنی فرۆشتنی کتێب">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <AutocompleteInput
@@ -298,10 +264,12 @@ export default function BooksPage() {
           />
 
           <Input
-            label={watchSubject === 'all_books' ? "نرخی هەر کتێبێک (دینار) *" : "بڕی پارەی دراو (دینار) *"}
+            label={watchSubject === 'all_books' ? "کۆی گشتی نرخی سەرجەم کتێبەکان (دینار) *" : "نرخی کتێب (دینار) *"}
             id="amount_paid"
             type="number"
-            placeholder={watchSubject === 'all_books' ? "بۆ نموونە: 5000" : "بڕی پارەی دراو لە ئێستادا"}
+            readOnly={true}
+            className="bg-slate-50 font-semibold cursor-not-allowed text-primary"
+            placeholder="نرخەکە لێرە خۆکارانە دادەنرێت"
             error={errors.amount_paid?.message}
             {...register('amount_paid', { valueAsNumber: true })}
           />
@@ -309,11 +277,11 @@ export default function BooksPage() {
           {watchSubject === 'all_books' && selectedStudentGrade && (
             <div className="bg-blue-50 rounded-lg p-3 border border-blue-200 text-sm">
               <div className="flex justify-between">
-                <span className="text-blue-700 font-semibold">کۆی گشتی:</span>
+                <span className="text-blue-700 font-semibold">کۆ گشتی:</span>
                 <span className="text-blue-900 font-bold">
-                  {formatCurrency(watchAmountPaid * (bookOptions.length - 1))}
+                  {formatCurrency(watchAmountPaid)}
                   <span className="text-xs text-blue-600 mr-1">
-                    ({bookOptions.length - 1} کتێب × {formatCurrency(watchAmountPaid)})
+                    (بۆ هەموو کتێبەکانی ئەم پۆلە)
                   </span>
                 </span>
               </div>
@@ -342,119 +310,6 @@ export default function BooksPage() {
             </Button>
           </div>
         </form>
-      </Modal>
-
-      {/* Bulk Purchase Modal */}
-      <Modal isOpen={isBulkOpen} onClose={() => setIsBulkOpen(false)} title="کڕینی هەموو کتێبەکانی پۆل">
-        <div className="space-y-4">
-          <AutocompleteInput
-            label="قوتابی هەڵبژێرە *"
-            onSelect={(student) => {
-              setBulkStudentId(student.id);
-              setBulkStudentName(student.full_name);
-              setBulkStudentGrade(student.grade);
-            }}
-          />
-
-          {bulkStudentGrade && (
-            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold text-text">
-                  {bulkStudentName} — {GRADE_MAP[bulkStudentGrade] || bulkStudentGrade}
-                </span>
-                <span className="text-xs text-text-muted">
-                  {bulkGradeBooks.length} کتێب
-                </span>
-              </div>
-
-              {bulkGradeBooks.length === 0 ? (
-                <p className="text-sm text-amber-600 font-medium">
-                  هیچ کتێبێک بۆ ئەم پۆلە لە کۆگادا تۆمار نەکراوە
-                </p>
-              ) : (
-                <div className="overflow-hidden rounded-lg border border-slate-200">
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-100">
-                      <tr>
-                        <th className="text-right py-2 px-3 font-semibold text-text">#</th>
-                        <th className="text-right py-2 px-3 font-semibold text-text">ناوی کتێب</th>
-                        <th className="text-right py-2 px-3 font-semibold text-text">مەوجود</th>
-                        <th className="text-right py-2 px-3 font-semibold text-text">بار</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bulkGradeBooks.map((book, i) => (
-                        <tr key={book.id} className="border-t border-slate-100">
-                          <td className="py-2 px-3 text-text-muted">{i + 1}</td>
-                          <td className="py-2 px-3">{book.name.replace('Book: ', '')}</td>
-                          <td className="py-2 px-3">{book.quantity} دانە</td>
-                          <td className="py-2 px-3">
-                            {book.quantity >= 1 ? (
-                              <span className="text-green-600 font-medium">✓ بەردەستە</span>
-                            ) : (
-                              <span className="text-red-500 font-medium">✗ نییە</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          <Input
-            label="نرخی هەر کتێبێک (دینار) *"
-            id="bulk_price"
-            type="number"
-            placeholder="بۆ نموونە: 5000"
-            value={bulkPricePerBook || ''}
-            onChange={(e) => setBulkPricePerBook(Number(e.target.value))}
-          />
-
-          {bulkGradeBooks.length > 0 && bulkPricePerBook > 0 && (
-            <div className="bg-blue-50 rounded-lg p-3 border border-blue-200 text-sm">
-              <div className="flex justify-between">
-                <span className="text-blue-700 font-semibold">کۆی گشتی:</span>
-                <span className="text-blue-900 font-bold">
-                  {formatCurrency(bulkPricePerBook * bulkGradeBooks.length)}
-                  <span className="text-xs text-blue-600 mr-1">
-                    ({bulkGradeBooks.length} کتێب × {formatCurrency(bulkPricePerBook)})
-                  </span>
-                </span>
-              </div>
-            </div>
-          )}
-
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="bulk_notes" className="text-xs font-semibold text-text">
-              تێبینی
-            </label>
-            <textarea
-              id="bulk_notes"
-              rows={2}
-              placeholder="تێبینییەکان (ئیختیاری)"
-              className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-text border-border focus:border-primary-light focus:outline-none focus:ring-2 focus:ring-primary-light/20 transition-all placeholder:text-text-light"
-              value={bulkNotes}
-              onChange={(e) => setBulkNotes(e.target.value)}
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-2 font-semibold">
-            <Button variant="secondary" onClick={() => setIsBulkOpen(false)}>
-              پاشگەزبوونەوە
-            </Button>
-            <Button
-              variant="primary"
-              onClick={onBulkSubmit}
-              isLoading={bulkMutation.isPending}
-              disabled={!bulkStudentId || bulkPricePerBook <= 0 || bulkGradeBooks.length === 0}
-            >
-              تۆمارکردنی هەموو کتێبەکان
-            </Button>
-          </div>
-        </div>
       </Modal>
 
       {/* Delete Confirm Dialog */}

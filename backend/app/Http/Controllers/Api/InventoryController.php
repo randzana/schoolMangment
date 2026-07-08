@@ -30,12 +30,13 @@ class InventoryController extends Controller
     }
 
     /**
-     * Update stock count for a specific inventory item
+     * Update stock count or price for a specific inventory item
      */
     public function update(Request $request, int $id): JsonResponse
     {
         $validated = $request->validate([
-            'quantity' => 'required|integer|min:0',
+            'quantity' => 'sometimes|integer|min:0',
+            'price' => 'sometimes|numeric|min:0',
         ]);
 
         $item = Inventory::findOrFail($id);
@@ -44,7 +45,7 @@ class InventoryController extends Controller
         return response()->json([
             'success' => true,
             'data' => $item,
-            'message' => 'Inventory stock updated successfully',
+            'message' => 'کۆگا بە سەرکەوتوویی نوێکرایەوە',
         ]);
     }
 
@@ -54,6 +55,7 @@ class InventoryController extends Controller
             'item_type' => 'required|string|in:clothes,book',
             'name' => 'required|string|max:100',
             'quantity' => 'required|integer|min:0',
+            'price' => 'sometimes|numeric|min:0',
             'grade' => 'required_if:item_type,book|nullable|string|in:one,two,three,four,five,six,seven,eight,nine',
         ]);
 
