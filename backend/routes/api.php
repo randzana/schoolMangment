@@ -64,6 +64,7 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('role:admin');
 
     // Clothes & Books
+    Route::post('clothes-books/bulk-books', [\App\Http\Controllers\Api\ClothesBookController::class, 'storeBulkBooks']);
     Route::apiResource('clothes-books', \App\Http\Controllers\Api\ClothesBookController::class);
 
     // Inventory

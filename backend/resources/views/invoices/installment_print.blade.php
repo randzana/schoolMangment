@@ -33,7 +33,7 @@
             font-size: 11px; 
             color: #1E293B; 
             background-color: #FFFFFF;
-            padding: 5mm 6mm;
+            padding: 8mm 10mm;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
@@ -44,7 +44,7 @@
             height: 100%;
             border: 1px solid #CBD5E1;
             border-radius: 8px;
-            padding: 10px 12px;
+            padding: 15px 18px;
             background: #FFFFFF;
             overflow: hidden;
         }
@@ -281,7 +281,9 @@
             </div>
             
             <div class="invoice-meta">
-                <div>بەروار: <strong>{{ $date }}</strong></div>
+                @if(stripos($invoice_type, 'food') === false)
+                    <div>بەروار: <strong>{{ $date }}</strong></div>
+                @endif
             </div>
         </div>
 
@@ -304,6 +306,14 @@
             <div class="detail-row highlight-paid">
                 <span class="detail-label">بڕی پارەی دراو:</span>
                 <span class="detail-value">{{ number_format($amount_paid, 0) }} د.ع</span>
+            </div>
+            
+            <!-- Amount in Words -->
+            <div class="detail-row" style="background-color: #FFFBEB; border-color: #FDE68A;">
+                <span class="detail-label">بڕی دراو بە نووسین:</span>
+                <span class="detail-value" style="font-weight: 500; font-size: 11px; color: #78350F;">
+                    {{ \App\Helpers\NumberToWords::toKurdish($amount_paid) }} دینار
+                </span>
             </div>
             
             <!-- Remaining Balance -->

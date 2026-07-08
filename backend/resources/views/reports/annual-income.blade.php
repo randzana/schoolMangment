@@ -132,8 +132,8 @@
         .amount { font-family: monospace; font-weight: 600; }
  
         @media print {
-            body { background: white; padding: 0; }
-            .report-wrapper { border: none; box-shadow: none; max-width: 100%; border-radius: 0; }
+            body { background: white; padding: 8mm 10mm; }
+            .report-wrapper { border: 1px solid #CBD5E1; box-shadow: none; max-width: 100%; border-radius: 8px; }
             .no-print { display: none; }
             tr:hover { background: inherit; }
         }

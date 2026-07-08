@@ -349,6 +349,24 @@ export function useDeleteClothesBook() {
   });
 }
 
+export function useCreateBulkBooks() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { student_id: number; price_per_book: number; notes?: string }) => {
+      const res = await api.post('/clothes-books/bulk-books', data);
+      return res.data;
+    },
+    onSuccess: (res) => {
+      invalidateFinancialCaches(queryClient);
+      queryClient.invalidateQueries({ queryKey: ['inventory-list-books'] });
+      toast.success(res.message || 'هەموو کتێبەکان بە سەرکەوتوویی تۆمار کران');
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'هەڵە لە تۆمارکردنی کتێبەکان');
+    },
+  });
+}
+
 // ==========================================
 // Expenses
 // ==========================================

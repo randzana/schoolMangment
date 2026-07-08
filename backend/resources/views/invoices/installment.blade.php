@@ -5,7 +5,7 @@
     <title>Invoice #{{ $invoice_no }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'DejaVu Sans', sans-serif; font-size: 12px; color: #1A202C; padding: 20px; }
+        body { font-family: 'DejaVu Sans', sans-serif; font-size: 12px; color: #1A202C; padding: 30px; }
         .invoice { border: 2px solid #1E3A5F; max-width: 500px; margin: 0 auto; }
         .header { background: #1E3A5F; color: white; text-align: center; padding: 15px; }
         .header h1 { font-size: 18px; margin-bottom: 3px; }
@@ -45,10 +45,12 @@
             <div class="cell label">Invoice No:</div>
             <div class="cell value">#{{ $invoice_no }}</div>
         </div>
+        @if(stripos($invoice_type, 'food') === false)
         <div class="row">
             <div class="cell label">Date:</div>
             <div class="cell value">{{ $date }}</div>
         </div>
+        @endif
         <div class="row">
             <div class="cell label">Invoice Type:</div>
             <div class="cell value">{{ $invoice_type }}</div>
@@ -91,6 +93,10 @@
         <div class="row amount-row total-row">
             <div class="cell label">Amount Paid This Time:</div>
             <div class="cell value">{{ number_format($amount_paid, 0) }} IQD</div>
+        </div>
+        <div class="row" style="background: #FFFBEB; border-bottom: 1px solid #FCD34D;">
+            <div class="cell label" style="color: #92400E; font-size: 11px;">Amount in Words:</div>
+            <div class="cell value" style="color: #92400E; font-size: 11px; font-style: italic;">{{ \App\Helpers\NumberToWords::toEnglish($amount_paid) }} Dinars</div>
         </div>
         <div class="row remain-row">
             <div class="cell label">Remaining Balance:</div>

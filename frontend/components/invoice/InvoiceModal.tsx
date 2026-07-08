@@ -20,7 +20,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
 }) => {
   const handlePrint = () => {
     if (invoiceUrl) {
-      window.open(invoiceUrl, '_blank');
+      const separator = invoiceUrl.includes('?') ? '&' : '?';
+      window.open(`${invoiceUrl}${separator}t=${Date.now()}`, '_blank');
     }
   };
 
@@ -34,7 +35,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
         {invoiceUrl && (
           <div className="w-full h-96 border rounded-lg overflow-hidden bg-surface-muted relative">
             <iframe
-              src={invoiceUrl}
+              src={`${invoiceUrl}${invoiceUrl.includes('?') ? '&' : '?'}t=${Date.now()}`}
               className="w-full h-full"
               title={`Invoice #${invoiceNo} Preview`}
             />

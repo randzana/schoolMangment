@@ -242,6 +242,82 @@ class ClothesBookController extends Controller
         ]);
     }
 
+    /**
+     * Bulk-purchase ALL books for a student's grade in one transaction.
+     */
+    public function storeBulkBooks(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'student_id'     => 'required|exists:students,id',
+            'price_per_book' => 'required|numeric|min:0',
+            'notes'          => 'nullable|string',
+        ]);
+
+        $student = \App\Models\Student::findOrFail($validated['student_id']);
+        $grade   = strtolower($student->grade);
+
+        // Find all book inventory items matching this grade
+        $gradeBooks = \App\Models\Inventory::where('item_type', 'book')
+            ->where('grade', $grade)
+            ->get();
+
+        if ($gradeBooks->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'هیچ کتێبێک بۆ ئەم پۆلە لە کۆگادا تۆمار نەکراوە',
+            ], 422);
+        }
+
+        $academicYear = config('school.academic_year', '2025-2026');
+        $pricePerBook = $validated['price_per_book'];
+        $notes        = $validated['notes'] ?? '';
+
+        $payments = DB::transaction(function () use ($gradeBooks, $student, $academicYear, $pricePerBook, $notes, $request) {
+            $created = [];
+
+            foreach ($gradeBooks as $bookItem) {
+                // Check stock
+                if ($bookItem->quantity < 1) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'stock' => ["کتێبی \"{$bookItem->name}\" لە کۆگادا نییە (مەوجود: 0)"],
+                    ]);
+                }
+
+                // Get the subject name from the inventory item name
+                $subjectName = str_replace('Book: ', '', $bookItem->name);
+
+                $invoiceNo = $this->invoiceService->getNextInvoiceNumber();
+
+                $payment = ClothesBookPayment::create([
+                    'student_id'    => $student->id,
+                    'academic_year' => $academicYear,
+                    'item_type'     => 'book',
+                    'price'         => $pricePerBook,
+                    'discount'      => 0,
+                    'amount_paid'   => $pricePerBook,
+                    'payment_date'  => now()->toDateString(),
+                    'notes'         => $notes,
+                    'invoice_no'    => $invoiceNo,
+                    'created_by'    => $request->user()->id,
+                    'book_subject'  => $subjectName,
+                ]);
+
+                // Decrement stock
+                $bookItem->decrement('quantity', 1);
+
+                $created[] = $payment;
+            }
+
+            return $created;
+        });
+
+        return response()->json([
+            'success' => true,
+            'data'    => collect($payments)->map(fn ($p) => $p->load('student')),
+            'message' => count($payments) . ' کتێب بە سەرکەوتوویی تۆمار کران',
+        ], 201);
+    }
+
     public function invoice(int $id)
     {
         $payment = ClothesBookPayment::with('student')->findOrFail($id);
