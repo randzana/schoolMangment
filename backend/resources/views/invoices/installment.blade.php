@@ -102,6 +102,12 @@
             <div class="cell label">Remaining Balance:</div>
             <div class="cell value">{{ number_format($remain_after, 0) }} IQD</div>
         </div>
+        @if($remain_after > 0)
+        <div class="row" style="background: #FEF2F2; border-bottom: 1px solid #FECACA;">
+            <div class="cell label" style="color: #991B1B; font-size: 11px;">Remaining in Words:</div>
+            <div class="cell value" style="color: #7F1D1D; font-size: 11px; font-style: italic;">{{ \App\Helpers\NumberToWords::toEnglish($remain_after) }} Dinars</div>
+        </div>
+        @endif
 
         <div class="footer">
             <div class="footer-grid">

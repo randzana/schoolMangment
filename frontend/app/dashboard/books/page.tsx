@@ -58,16 +58,27 @@ export default function BooksPage() {
 
   const bookOptions = useMemo(() => {
     if (!inventory) return [];
-    return inventory
-      .filter((item) => !selectedStudentGrade || !item.grade || item.grade === selectedStudentGrade)
-      .map((item) => {
-        const subjectName = item.name.replace('Book: ', '');
-        const gradeSuffix = item.grade ? ` (${GRADE_MAP[item.grade] || item.grade})` : '';
-        return {
-          value: subjectName,
-          label: `${subjectName}${gradeSuffix} (مەوجود: ${item.quantity} دانە)`,
-        };
+    const filtered = inventory.filter(
+      (item) => !selectedStudentGrade || !item.grade || item.grade === selectedStudentGrade
+    );
+    const mapped = filtered.map((item) => {
+      const subjectName = item.name.replace('Book: ', '');
+      const gradeSuffix = item.grade ? ` (${GRADE_MAP[item.grade] || item.grade})` : '';
+      return {
+        value: subjectName,
+        label: `${subjectName}${gradeSuffix} (مەوجود: ${item.quantity} دانە)`,
+      };
+    });
+
+    if (selectedStudentGrade && filtered.length > 0) {
+      const gradeName = GRADE_MAP[selectedStudentGrade] || selectedStudentGrade;
+      mapped.unshift({
+        value: 'all_books',
+        label: `📚 هەموو کتێبەکانی ${gradeName} (${filtered.length} کتێب)`,
       });
+    }
+
+    return mapped;
   }, [inventory, selectedStudentGrade]);
 
   // Books matching the bulk student's grade
@@ -82,6 +93,7 @@ export default function BooksPage() {
     register,
     handleSubmit,
     setValue,
+    watch,
     reset,
     formState: { errors },
   } = useForm<PurchaseFormValues>({
@@ -92,6 +104,9 @@ export default function BooksPage() {
       notes: '',
     },
   });
+
+  const watchSubject = watch('book_subject');
+  const watchAmountPaid = watch('amount_paid') || 0;
 
   const openAddModal = () => {
     reset({
@@ -114,25 +129,46 @@ export default function BooksPage() {
   };
 
   const onSubmit = (values: PurchaseFormValues) => {
-    const payload = {
-      student_id: values.student_id,
-      item_type: 'book' as const,
-      price: values.amount_paid,
-      discount: 0,
-      amount_paid: values.amount_paid,
-      payment_date: new Date().toISOString().split('T')[0],
-      book_subject: values.book_subject,
-      notes: values.notes || '',
-    };
+    if (values.book_subject === 'all_books') {
+      bulkMutation.mutate(
+        {
+          student_id: values.student_id,
+          price_per_book: values.amount_paid,
+          notes: values.notes || undefined,
+        },
+        {
+          onSuccess: (res) => {
+            setIsFormOpen(false);
+            refetch();
+            const payments = res.data;
+            if (payments && payments.length > 0) {
+              const lastPayment = payments[payments.length - 1];
+              window.open(`${API_URL}/clothes-books/${lastPayment.id}/invoice`, '_blank');
+            }
+          },
+        }
+      );
+    } else {
+      const payload = {
+        student_id: values.student_id,
+        item_type: 'book' as const,
+        price: values.amount_paid,
+        discount: 0,
+        amount_paid: values.amount_paid,
+        payment_date: new Date().toISOString().split('T')[0],
+        book_subject: values.book_subject,
+        notes: values.notes || '',
+      };
 
-    createMutation.mutate(payload, {
-      onSuccess: (res) => {
-        setIsFormOpen(false);
-        refetch();
-        const created = res.data;
-        window.open(`${API_URL}/clothes-books/${created.id}/invoice`, '_blank');
-      },
-    });
+      createMutation.mutate(payload, {
+        onSuccess: (res) => {
+          setIsFormOpen(false);
+          refetch();
+          const created = res.data;
+          window.open(`${API_URL}/clothes-books/${created.id}/invoice`, '_blank');
+        },
+      });
+    }
   };
 
   const onBulkSubmit = () => {
@@ -262,13 +298,27 @@ export default function BooksPage() {
           />
 
           <Input
-            label="بڕی پارەی دراو (دینار) *"
+            label={watchSubject === 'all_books' ? "نرخی هەر کتێبێک (دینار) *" : "بڕی پارەی دراو (دینار) *"}
             id="amount_paid"
             type="number"
-            placeholder="بڕی پارەی دراو لە ئێستادا"
+            placeholder={watchSubject === 'all_books' ? "بۆ نموونە: 5000" : "بڕی پارەی دراو لە ئێستادا"}
             error={errors.amount_paid?.message}
             {...register('amount_paid', { valueAsNumber: true })}
           />
+
+          {watchSubject === 'all_books' && selectedStudentGrade && (
+            <div className="bg-blue-50 rounded-lg p-3 border border-blue-200 text-sm">
+              <div className="flex justify-between">
+                <span className="text-blue-700 font-semibold">کۆی گشتی:</span>
+                <span className="text-blue-900 font-bold">
+                  {formatCurrency(watchAmountPaid * (bookOptions.length - 1))}
+                  <span className="text-xs text-blue-600 mr-1">
+                    ({bookOptions.length - 1} کتێب × {formatCurrency(watchAmountPaid)})
+                  </span>
+                </span>
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="notes" className="text-xs font-semibold text-text">
@@ -287,7 +337,7 @@ export default function BooksPage() {
             <Button variant="secondary" onClick={() => setIsFormOpen(false)}>
               پاشگەزبوونەوە
             </Button>
-            <Button type="submit" variant="primary" isLoading={createMutation.isPending}>
+            <Button type="submit" variant="primary" isLoading={createMutation.isPending || bulkMutation.isPending}>
               تۆمارکردن و چاپ
             </Button>
           </div>

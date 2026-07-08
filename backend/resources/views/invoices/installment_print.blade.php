@@ -42,7 +42,7 @@
             position: relative;
             width: 100%;
             height: 100%;
-            border: 1px solid #CBD5E1;
+            border: 2px solid #1E3A5F;
             border-radius: 8px;
             padding: 15px 18px;
             background: #FFFFFF;
@@ -236,7 +236,7 @@
                 margin: 0 !important;
             }
             .invoice-wrapper {
-                border: 1px solid #94A3B8 !important;
+                border: 2px solid #1E3A5F !important;
                 box-shadow: none !important;
                 border-radius: 6px !important;
             }
@@ -322,6 +322,16 @@
                 <span class="detail-label">بڕی پارەی ماوە (قەرز):</span>
                 <span class="detail-value">{{ number_format($remain_after, 0) }} د.ع</span>
             </div>
+            
+            <!-- Remaining in Words -->
+            @if($remain_after > 0)
+            <div class="detail-row" style="background-color: #FEF2F2; border-color: #FECACA;">
+                <span class="detail-label" style="color: #991B1B;">بڕی قەرز بە نووسین:</span>
+                <span class="detail-value" style="font-weight: 500; font-size: 11px; color: #7F1D1D;">
+                    {{ \App\Helpers\NumberToWords::toKurdish($remain_after) }} دینار
+                </span>
+            </div>
+            @endif
             @endif
             
             <!-- Notes -->
