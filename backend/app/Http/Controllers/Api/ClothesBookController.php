@@ -220,15 +220,25 @@ class ClothesBookController extends Controller
 
             if (in_array($payment->item_type, ['book', 'both']) && !empty($payment->book_subject)) {
                 $student = $payment->student;
-                $bookSubjectClean = strtolower(str_replace(' ', '_', $payment->book_subject));
-                $gradeCode = 'book_' . $bookSubjectClean . '_' . strtolower($student->grade);
-                $generalCode = 'book_' . $bookSubjectClean;
+                if ($payment->book_subject === 'سەرجەم کتێبەکان') {
+                    $grade = strtolower($student->grade);
+                    $gradeBooks = \App\Models\Inventory::where('item_type', 'book')
+                        ->where('grade', $grade)
+                        ->get();
+                    foreach ($gradeBooks as $bookItem) {
+                        $bookItem->increment('quantity', 1);
+                    }
+                } else {
+                    $bookSubjectClean = strtolower(str_replace(' ', '_', $payment->book_subject));
+                    $gradeCode = 'book_' . $bookSubjectClean . '_' . strtolower($student->grade);
+                    $generalCode = 'book_' . $bookSubjectClean;
 
-                $bookItem = \App\Models\Inventory::where('code', $gradeCode)->first()
-                    ?? \App\Models\Inventory::where('code', $generalCode)->first();
+                    $bookItem = \App\Models\Inventory::where('code', $gradeCode)->first()
+                        ?? \App\Models\Inventory::where('code', $generalCode)->first();
 
-                if ($bookItem) {
-                    $bookItem->increment('quantity', 1);
+                    if ($bookItem) {
+                        $bookItem->increment('quantity', 1);
+                    }
                 }
             }
 
@@ -250,7 +260,7 @@ class ClothesBookController extends Controller
         $validated = $request->validate([
             'student_id'     => 'required|exists:students,id',
             'notes'          => 'nullable|string',
-            'price'          => 'nullable|numeric|min:0',
+            'price'          => 'required|numeric|min:0',
         ]);
 
         $student = \App\Models\Student::findOrFail($validated['student_id']);
@@ -270,16 +280,10 @@ class ClothesBookController extends Controller
 
         $academicYear = config('school.academic_year', '2025-2026');
         $notes        = $validated['notes'] ?? '';
-        $customPrice  = isset($validated['price']) ? (float)$validated['price'] : null;
+        $totalPrice   = (float)$validated['price'];
 
-        $payments = DB::transaction(function () use ($gradeBooks, $student, $academicYear, $notes, $customPrice, $request) {
-            $created = [];
-            $bookCount = count($gradeBooks);
-            $remainingPrice = $customPrice;
-
-            for ($i = 0; $i < $bookCount; $i++) {
-                $bookItem = $gradeBooks[$i];
-
+        $payment = DB::transaction(function () use ($gradeBooks, $student, $academicYear, $notes, $totalPrice, $request) {
+            foreach ($gradeBooks as $bookItem) {
                 // Check stock
                 if ($bookItem->quantity < 1) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
@@ -287,49 +291,32 @@ class ClothesBookController extends Controller
                     ]);
                 }
 
-                // Get the subject name from the inventory item name
-                $subjectName = str_replace('Book: ', '', $bookItem->name);
-                
-                if ($customPrice !== null) {
-                    if ($i === $bookCount - 1) {
-                        $bookPrice = $remainingPrice;
-                    } else {
-                        $bookPrice = round($customPrice / $bookCount, 2);
-                        $remainingPrice -= $bookPrice;
-                    }
-                } else {
-                    $bookPrice = $bookItem->price;
-                }
-
-                $invoiceNo = $this->invoiceService->getNextInvoiceNumber();
-
-                $payment = ClothesBookPayment::create([
-                    'student_id'    => $student->id,
-                    'academic_year' => $academicYear,
-                    'item_type'     => 'book',
-                    'price'         => $bookPrice,
-                    'discount'      => 0,
-                    'amount_paid'   => $bookPrice,
-                    'payment_date'  => now()->toDateString(),
-                    'notes'         => $notes,
-                    'invoice_no'    => $invoiceNo,
-                    'created_by'    => $request->user()->id,
-                    'book_subject'  => $subjectName,
-                ]);
-
                 // Decrement stock
                 $bookItem->decrement('quantity', 1);
-
-                $created[] = $payment;
             }
 
-            return $created;
+            $invoiceNo = $this->invoiceService->getNextInvoiceNumber();
+
+            // Create a single payment record for all books
+            return ClothesBookPayment::create([
+                'student_id'    => $student->id,
+                'academic_year' => $academicYear,
+                'item_type'     => 'book',
+                'price'         => $totalPrice,
+                'discount'      => 0,
+                'amount_paid'   => $totalPrice,
+                'payment_date'  => now()->toDateString(),
+                'notes'         => $notes,
+                'invoice_no'    => $invoiceNo,
+                'created_by'    => $request->user()->id,
+                'book_subject'  => 'سەرجەم کتێبەکان',
+            ]);
         });
 
         return response()->json([
             'success' => true,
-            'data'    => collect($payments)->map(fn ($p) => $p->load('student')),
-            'message' => count($payments) . ' کتێب بە سەرکەوتوویی تۆمار کران',
+            'data'    => [$payment->load('student')],
+            'message' => 'سەرجەم کتێبەکان بە سەرکەوتوویی تۆمار کران',
         ], 201);
     }
 
