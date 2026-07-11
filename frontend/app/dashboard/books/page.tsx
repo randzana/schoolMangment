@@ -58,7 +58,7 @@ export default function BooksPage() {
       const gradeSuffix = item.grade ? ` (${GRADE_MAP[item.grade] || item.grade})` : '';
       return {
         value: subjectName,
-        label: `${subjectName}${gradeSuffix} (مەوجود: ${item.quantity} دانە • نرخ: ${formatCurrency(item.price || 0)})`,
+        label: `${subjectName}${gradeSuffix} (مەوجود: ${item.quantity} دانە)`,
       };
     });
 
@@ -131,6 +131,7 @@ export default function BooksPage() {
         {
           student_id: values.student_id,
           notes: values.notes || undefined,
+          price: values.amount_paid,
         },
         {
           onSuccess: (res) => {
@@ -267,9 +268,9 @@ export default function BooksPage() {
             label={watchSubject === 'all_books' ? "کۆی گشتی نرخی سەرجەم کتێبەکان (دینار) *" : "نرخی کتێب (دینار) *"}
             id="amount_paid"
             type="number"
-            readOnly={true}
-            className="bg-slate-50 font-semibold cursor-not-allowed text-primary"
-            placeholder="نرخەکە لێرە خۆکارانە دادەنرێت"
+            readOnly={false}
+            className="font-semibold text-primary"
+            placeholder="نرخەکە لێرە بنووسە"
             error={errors.amount_paid?.message}
             {...register('amount_paid', { valueAsNumber: true })}
           />

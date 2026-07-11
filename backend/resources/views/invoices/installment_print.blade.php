@@ -33,7 +33,7 @@
             font-size: 11px; 
             color: #1E293B; 
             background-color: #FFFFFF;
-            padding: 8mm 10mm;
+            padding: 10mm 12mm;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
@@ -42,11 +42,12 @@
             position: relative;
             width: 100%;
             height: 100%;
-            border: 2px solid #1E3A5F;
-            border-radius: 8px;
+            border: 1px solid #E2E8F0;
+            border-radius: 12px;
             padding: 15px 18px;
             background: #FFFFFF;
             overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
         
         /* Header style */
@@ -232,13 +233,13 @@
         @media print {
             body { 
                 background: #FFFFFF !important; 
-                padding: 0 !important;
+                padding: 10mm 12mm !important;
                 margin: 0 !important;
             }
             .invoice-wrapper {
-                border: 2px solid #1E3A5F !important;
+                border: 1px solid #CBD5E1 !important;
                 box-shadow: none !important;
-                border-radius: 6px !important;
+                border-radius: 12px !important;
             }
             .no-print {
                 display: none !important;

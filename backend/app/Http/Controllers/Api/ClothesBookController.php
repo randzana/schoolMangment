@@ -250,6 +250,7 @@ class ClothesBookController extends Controller
         $validated = $request->validate([
             'student_id'     => 'required|exists:students,id',
             'notes'          => 'nullable|string',
+            'price'          => 'nullable|numeric|min:0',
         ]);
 
         $student = \App\Models\Student::findOrFail($validated['student_id']);
@@ -269,11 +270,16 @@ class ClothesBookController extends Controller
 
         $academicYear = config('school.academic_year', '2025-2026');
         $notes        = $validated['notes'] ?? '';
+        $customPrice  = isset($validated['price']) ? (float)$validated['price'] : null;
 
-        $payments = DB::transaction(function () use ($gradeBooks, $student, $academicYear, $notes, $request) {
+        $payments = DB::transaction(function () use ($gradeBooks, $student, $academicYear, $notes, $customPrice, $request) {
             $created = [];
+            $bookCount = count($gradeBooks);
+            $remainingPrice = $customPrice;
 
-            foreach ($gradeBooks as $bookItem) {
+            for ($i = 0; $i < $bookCount; $i++) {
+                $bookItem = $gradeBooks[$i];
+
                 // Check stock
                 if ($bookItem->quantity < 1) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
@@ -283,7 +289,17 @@ class ClothesBookController extends Controller
 
                 // Get the subject name from the inventory item name
                 $subjectName = str_replace('Book: ', '', $bookItem->name);
-                $bookPrice = $bookItem->price;
+                
+                if ($customPrice !== null) {
+                    if ($i === $bookCount - 1) {
+                        $bookPrice = $remainingPrice;
+                    } else {
+                        $bookPrice = round($customPrice / $bookCount, 2);
+                        $remainingPrice -= $bookPrice;
+                    }
+                } else {
+                    $bookPrice = $bookItem->price;
+                }
 
                 $invoiceNo = $this->invoiceService->getNextInvoiceNumber();
 

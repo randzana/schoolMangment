@@ -44,17 +44,47 @@ class SettingController extends Controller
             'academic_year.regex' => 'تکایە ساڵی خوێندن بە فۆرماتی دروست بنووسە (بۆ نموونە: 2026-2027)',
         ]);
 
-        Setting::setValue('academic_year', $validated['academic_year']);
-        
-        // Dynamic reload for current process
-        config(['school.academic_year' => $validated['academic_year']]);
+        $oldYear = Setting::getValue('academic_year', config('school.academic_year'));
+        $newYear = $validated['academic_year'];
+
+        if ($oldYear !== $newYear) {
+            DB::transaction(function () use ($newYear) {
+                Setting::setValue('academic_year', $newYear);
+                config(['school.academic_year' => $newYear]);
+
+                // Wipes students, payments, expenses, etc. and restarts serial identifiers
+                DB::statement('TRUNCATE TABLE study_payments, study_installments, food_payments, food_installments, clothes_books_payments, expenses, students RESTART IDENTITY CASCADE;');
+
+                // Resets invoice sequence back to 0
+                DB::table('invoice_sequence')->update(['last_invoice_no' => 0]);
+
+                // Wipes custom items from inventories and resets seeded items back to default values
+                Inventory::whereNotIn('code', [
+                    'uniform_s', 'uniform_m', 'uniform_l', 'uniform_xl', 'uniform_xxl', 
+                    'uniform_28', 'uniform_30', 'uniform_32', 'uniform_34', 'uniform_36', 'uniform_38', 'uniform_40',
+                    'book_kurdish', 'book_mathematics', 'book_english', 'book_science', 'book_art', 'book_computer_science', 'book_social_studies'
+                ])->delete();
+
+                // Reset standard uniforms to 100
+                Inventory::where('item_type', 'clothes')->update(['quantity' => 100]);
+
+                // Reset standard books to 150
+                Inventory::where('item_type', 'book')->update(['quantity' => 150]);
+            });
+
+            $message = 'ساڵی خوێندن گۆڕدرا و سەرجەم زانیارییەکان بە سەرکەوتوویی سڕانەوە و سیستەمەکە سفر کرایەوە';
+        } else {
+            Setting::setValue('academic_year', $newYear);
+            config(['school.academic_year' => $newYear]);
+            $message = 'ساڵی خوێندن بە سەرکەوتوویی نوێکرایەوە';
+        }
 
         return response()->json([
             'success' => true,
             'data' => [
-                'academic_year' => $validated['academic_year'],
+                'academic_year' => $newYear,
             ],
-            'message' => 'ساڵی خوێندن بە سەرکەوتوویی نوێکرایەوە',
+            'message' => $message,
         ]);
     }
 

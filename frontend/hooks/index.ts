@@ -352,7 +352,7 @@ export function useDeleteClothesBook() {
 export function useCreateBulkBooks() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { student_id: number; notes?: string }) => {
+    mutationFn: async (data: { student_id: number; notes?: string; price?: number }) => {
       const res = await api.post('/clothes-books/bulk-books', data);
       return res.data;
     },

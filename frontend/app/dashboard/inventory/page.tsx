@@ -121,8 +121,8 @@ export default function InventoryPage() {
       return;
     }
 
-    const price = parseFloat(priceInput);
-    if (isNaN(price) || price < 0) {
+    const price = editingItem.item_type === 'clothes' ? parseFloat(priceInput) : 0;
+    if (editingItem.item_type === 'clothes' && (isNaN(price) || price < 0)) {
       toast.error('تکایە نرخێکی دروست بنووسە');
       return;
     }
@@ -143,8 +143,8 @@ export default function InventoryPage() {
       return;
     }
 
-    const price = parseFloat(createPriceInput);
-    if (isNaN(price) || price < 0) {
+    const price = activeTab === 'clothes' ? parseFloat(createPriceInput) : 0;
+    if (activeTab === 'clothes' && (isNaN(price) || price < 0)) {
       toast.error('تکایە نرخێکی دروست بنووسە');
       return;
     }
@@ -163,7 +163,7 @@ export default function InventoryPage() {
       item_type: activeTab,
       name: itemName,
       quantity: qty,
-      price,
+      price: activeTab === 'clothes' ? price : 0,
     };
 
     if (activeTab === 'book' && createGradeInput) {
@@ -255,7 +255,7 @@ export default function InventoryPage() {
                 <tr className="text-right text-xs font-bold uppercase text-text-muted tracking-wider bg-surface-muted">
                   <th className="px-6 py-4">ناوی بابەت</th>
                   <th className="px-6 py-4">کۆدی بابەت</th>
-                  <th className="px-6 py-4">نرخی بابەت</th>
+                  {activeTab !== 'book' && <th className="px-6 py-4">نرخی بابەت</th>}
                   <th className="px-6 py-4">ژمارەی مەوجود لە کۆگا</th>
                   <th className="px-6 py-4 text-left">کردارەکان</th>
                 </tr>
@@ -277,7 +277,9 @@ export default function InventoryPage() {
                         )}
                       </td>
                       <td className="px-6 py-4 font-mono text-xs text-text-muted">{item.code}</td>
-                      <td className="px-6 py-4 font-semibold text-primary">{formatCurrency(item.price || 0)}</td>
+                      {activeTab !== 'book' && (
+                        <td className="px-6 py-4 font-semibold text-primary">{formatCurrency(item.price || 0)}</td>
+                      )}
                       <td className="px-6 py-4">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold font-mono ${
                           item.quantity === 0
@@ -336,7 +338,7 @@ export default function InventoryPage() {
                         )}
                       </div>
                       <p className="text-[10px] text-text-muted font-mono">{item.code}</p>
-                      <p className="text-xs text-primary font-bold">{formatCurrency(item.price || 0)}</p>
+                      {activeTab !== 'book' && <p className="text-xs text-primary font-bold">{formatCurrency(item.price || 0)}</p>}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
@@ -400,7 +402,28 @@ export default function InventoryPage() {
               className="w-full"
             />
           )}
-          <div className="grid grid-cols-2 gap-4">
+          {activeTab === 'clothes' ? (
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="بڕی سەرەتایی لە کۆگا *"
+                type="number"
+                min="0"
+                required
+                value={createQuantityInput}
+                onChange={(e) => setCreateQuantityInput(e.target.value)}
+                className="w-full font-mono text-center"
+              />
+              <Input
+                label="نرخی فرۆشتن (دینار) *"
+                type="number"
+                min="0"
+                required
+                value={createPriceInput}
+                onChange={(e) => setCreatePriceInput(e.target.value)}
+                className="w-full font-mono text-center"
+              />
+            </div>
+          ) : (
             <Input
               label="بڕی سەرەتایی لە کۆگا *"
               type="number"
@@ -410,16 +433,7 @@ export default function InventoryPage() {
               onChange={(e) => setCreateQuantityInput(e.target.value)}
               className="w-full font-mono text-center"
             />
-            <Input
-              label="نرخی فرۆشتن (دینار) *"
-              type="number"
-              min="0"
-              required
-              value={createPriceInput}
-              onChange={(e) => setCreatePriceInput(e.target.value)}
-              className="w-full font-mono text-center"
-            />
-          </div>
+          )}
           <div className="flex justify-end gap-3 pt-2 font-semibold">
             <Button
               type="button"
@@ -452,7 +466,34 @@ export default function InventoryPage() {
             <div>
               <p className="text-xs text-text-muted mb-2">ناوی بابەت: <strong className="text-text font-bold">{editingItem.name}</strong></p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            {editingItem.item_type === 'clothes' ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="quantity" className="block text-xs font-semibold text-text mb-1">ژمارەی مەوجود لە کۆگا</label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min="0"
+                    required
+                    value={quantityInput}
+                    onChange={(e) => setQuantityInput(e.target.value)}
+                    className="w-full font-mono text-center font-bold text-lg"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="price" className="block text-xs font-semibold text-text mb-1">نرخی فرۆشتن (دینار)</label>
+                  <Input
+                    id="price"
+                    type="number"
+                    min="0"
+                    required
+                    value={priceInput}
+                    onChange={(e) => setPriceInput(e.target.value)}
+                    className="w-full font-mono text-center font-bold text-lg"
+                  />
+                </div>
+              </div>
+            ) : (
               <div>
                 <label htmlFor="quantity" className="block text-xs font-semibold text-text mb-1">ژمارەی مەوجود لە کۆگا</label>
                 <Input
@@ -465,19 +506,7 @@ export default function InventoryPage() {
                   className="w-full font-mono text-center font-bold text-lg"
                 />
               </div>
-              <div>
-                <label htmlFor="price" className="block text-xs font-semibold text-text mb-1">نرخی فرۆشتن (دینار)</label>
-                <Input
-                  id="price"
-                  type="number"
-                  min="0"
-                  required
-                  value={priceInput}
-                  onChange={(e) => setPriceInput(e.target.value)}
-                  className="w-full font-mono text-center font-bold text-lg"
-                />
-              </div>
-            </div>
+            )}
             <div className="flex justify-end gap-3 pt-2 font-semibold">
               <Button
                 type="button"
