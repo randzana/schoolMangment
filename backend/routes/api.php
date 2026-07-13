@@ -50,7 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('study-payments-summary', [\App\Http\Controllers\Api\StudyPaymentController::class, 'summary']);
 
     // Study Installments
-    Route::apiResource('study-installments', \App\Http\Controllers\Api\StudyInstallmentController::class)->except(['update']);
+    Route::apiResource('study-installments', \App\Http\Controllers\Api\StudyInstallmentController::class);
     Route::put('study-installments/{id}/return', [\App\Http\Controllers\Api\StudyInstallmentController::class, 'returnBill'])
         ->middleware('role:admin');
 
@@ -59,7 +59,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('food-payments-summary', [\App\Http\Controllers\Api\FoodPaymentController::class, 'summary']);
 
     // Food Installments
-    Route::apiResource('food-installments', \App\Http\Controllers\Api\FoodInstallmentController::class)->except(['update']);
+    Route::apiResource('food-installments', \App\Http\Controllers\Api\FoodInstallmentController::class);
     Route::put('food-installments/{id}/return', [\App\Http\Controllers\Api\FoodInstallmentController::class, 'returnBill'])
         ->middleware('role:admin');
 

@@ -93,6 +93,48 @@ class FoodPaymentService
     }
 
     /**
+     * Update a food installment and adjust totals.
+     */
+    public function updateInstallment(int $installmentId, array $data, int $userId): FoodInstallment
+    {
+        return DB::transaction(function () use ($installmentId, $data, $userId) {
+            $installment = FoodInstallment::lockForUpdate()->findOrFail($installmentId);
+            
+            if ($installment->is_returned) {
+                throw ValidationException::withMessages([
+                    'amount_paid' => ['Cannot edit a returned installment.'],
+                ]);
+            }
+
+            $oldAmount = (float) $installment->amount_paid;
+            $newAmount = isset($data['amount_paid']) ? (float) $data['amount_paid'] : $oldAmount;
+
+            if ($newAmount <= 0) {
+                throw ValidationException::withMessages([
+                    'amount_paid' => ['Payment amount must be greater than 0.'],
+                ]);
+            }
+
+            $diff = $newAmount - $oldAmount;
+
+            $foodPayment = FoodPayment::lockForUpdate()->findOrFail($installment->food_payment_id);
+            $foodPayment->increment('total_paid', $diff);
+            $foodPayment->increment('monthly_price', $diff);
+
+            $installment->amount_paid = $newAmount;
+            if (isset($data['payment_date'])) {
+                $installment->payment_date = $data['payment_date'];
+            }
+            if (isset($data['notes'])) {
+                $installment->notes = $data['notes'];
+            }
+            $installment->save();
+
+            return $installment->load('student', 'foodPayment');
+        });
+    }
+
+    /**
      * Get summary of all food payments for current academic year.
      */
     public function getSummary(?string $academicYear = null): array

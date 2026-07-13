@@ -89,6 +89,27 @@ class StudyInstallmentController extends Controller
         ]);
     }
 
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'amount_paid' => 'required|numeric|min:1',
+            'payment_date' => 'sometimes|date',
+            'notes' => 'nullable|string',
+        ]);
+
+        $installment = $this->studyService->updateInstallment(
+            $id,
+            $validated,
+            $request->user()->id
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => $installment,
+            'message' => 'Study installment updated successfully',
+        ]);
+    }
+
     /**
      * GET /api/study-installments/{id}/invoice — returns PDF stream
      */

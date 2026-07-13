@@ -90,6 +90,27 @@ class FoodInstallmentController extends Controller
         ]);
     }
 
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'amount_paid' => 'required|numeric|min:1',
+            'payment_date' => 'sometimes|date',
+            'notes' => 'nullable|string',
+        ]);
+
+        $installment = $this->foodService->updateInstallment(
+            $id,
+            $validated,
+            $request->user()->id
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => $installment,
+            'message' => 'Food installment updated successfully',
+        ]);
+    }
+
     public function invoice(int $id)
     {
         $installment = FoodInstallment::with(['student', 'foodPayment'])->findOrFail($id);

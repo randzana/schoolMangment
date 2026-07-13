@@ -184,6 +184,23 @@ export function useCreateStudyInstallment() {
   });
 }
 
+export function useUpdateStudyInstallment(id: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: any) => {
+      const res = await api.put(`/study-installments/${id}`, data);
+      return res.data;
+    },
+    onSuccess: () => {
+      invalidateFinancialCaches(queryClient);
+      toast.success('تۆماری قیستی خوێندن نوێ کرایەوە');
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'هەڵە لە نوێکردنەوەی قیست');
+    },
+  });
+}
+
 export function useReturnStudyInstallment() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -285,6 +302,23 @@ export function useCreateFoodInstallment() {
   });
 }
 
+export function useUpdateFoodInstallment(id: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: any) => {
+      const res = await api.put(`/food-installments/${id}`, data);
+      return res.data;
+    },
+    onSuccess: () => {
+      invalidateFinancialCaches(queryClient);
+      toast.success('تۆماری قیستی نانخواردن نوێ کرایەوە');
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'هەڵە لە نوێکردنەوەی قیست');
+    },
+  });
+}
+
 export function useReturnFoodInstallment() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -328,6 +362,23 @@ export function useCreateClothesBook() {
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.message || 'هەڵە لە تۆمارکردن');
+    },
+  });
+}
+
+export function useUpdateClothesBook(id: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: any) => {
+      const res = await api.put(`/clothes-books/${id}`, data);
+      return res.data;
+    },
+    onSuccess: () => {
+      invalidateFinancialCaches(queryClient);
+      toast.success('تۆمار بە سەرکەوتوویی نوێ کرایەوە');
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'هەڵە لە نوێکردنەوەی تۆمار');
     },
   });
 }

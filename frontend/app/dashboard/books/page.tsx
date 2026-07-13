@@ -7,7 +7,7 @@ import * as zod from 'zod';
 import { useQuery } from '@tanstack/react-query';
 import api, { API_URL } from '@/lib/api';
 import { InventoryItem, ClothesBookPayment } from '@/types';
-import { useClothesBooks, useCreateClothesBook, useDeleteClothesBook, useCreateBulkBooks } from '@/hooks';
+import { useClothesBooks, useCreateClothesBook, useDeleteClothesBook, useCreateBulkBooks, useUpdateClothesBook } from '@/hooks';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -17,7 +17,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { DataTable, Column } from '@/components/tables/DataTable';
 import { TablePagination } from '@/components/tables/TablePagination';
 import { formatCurrency, formatDate, GRADE_MAP } from '@/lib/utils';
-import { HiOutlinePrinter, HiOutlineTrash, HiOutlinePlusCircle } from 'react-icons/hi2';
+import { HiOutlinePrinter, HiOutlineTrash, HiOutlinePlusCircle, HiOutlinePencil } from 'react-icons/hi2';
 
 const purchaseSchema = zod.object({
   student_id: zod.number().min(1, 'تکایە قوتابییەک هەڵبژێرە'),
@@ -33,6 +33,7 @@ export default function BooksPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [selectedStudentGrade, setSelectedStudentGrade] = useState<string | null>(null);
+  const [editingPurchase, setEditingPurchase] = useState<any | null>(null);
 
   const { data: purchasesData, isLoading, refetch } = useClothesBooks({ page, item_type: 'book' });
   const createMutation = useCreateClothesBook();
@@ -134,14 +135,9 @@ export default function BooksPage() {
           price: values.amount_paid,
         },
         {
-          onSuccess: (res) => {
+          onSuccess: () => {
             setIsFormOpen(false);
             refetch();
-            const payments = res.data;
-            if (payments && payments.length > 0) {
-              const lastPayment = payments[payments.length - 1];
-              window.open(`${API_URL}/clothes-books/${lastPayment.id}/invoice`, '_blank');
-            }
           },
         }
       );
@@ -158,11 +154,9 @@ export default function BooksPage() {
       };
 
       createMutation.mutate(payload, {
-        onSuccess: (res) => {
+        onSuccess: () => {
           setIsFormOpen(false);
           refetch();
-          const created = res.data;
-          window.open(`${API_URL}/clothes-books/${created.id}/invoice`, '_blank');
         },
       });
     }
@@ -198,6 +192,17 @@ export default function BooksPage() {
           >
             <HiOutlinePrinter className="w-4 h-4" />
           </Button>
+          {row.book_subject !== 'سەرجەم کتێبەکان' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-primary hover:bg-primary-light"
+              onClick={() => setEditingPurchase(row)}
+              title="دەستکاریکردنی تۆمار"
+            >
+              <HiOutlinePencil className="w-4 h-4" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -307,7 +312,7 @@ export default function BooksPage() {
               پاشگەزبوونەوە
             </Button>
             <Button type="submit" variant="primary" isLoading={createMutation.isPending || bulkMutation.isPending}>
-              تۆمارکردن و چاپ
+              تۆمارکردن
             </Button>
           </div>
         </form>
@@ -322,6 +327,129 @@ export default function BooksPage() {
         message="ئایا دڵنیایت لە سڕینەوەی ئەم تۆمارە؟ ئەم کردارە بە هەمیشەیی تۆماری کڕینەکە دەسڕێتەوە و ڕێژەی کتێب لە کۆگادا زیاد دەکاتەوە."
         isLoading={deleteMutation.isPending}
       />
+
+      {/* Edit Purchase Modal */}
+      {editingPurchase && (
+        <EditBookModal
+          purchase={editingPurchase}
+          inventory={inventory}
+          onClose={() => setEditingPurchase(null)}
+          onSuccess={() => refetch()}
+        />
+      )}
     </div>
+  );
+}
+
+function EditBookModal({ purchase, inventory, onClose, onSuccess }: { purchase: any; inventory: any[] | undefined; onClose: () => void; onSuccess: () => void }) {
+  const updateMutation = useUpdateClothesBook(purchase.id);
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<{
+    amount_paid: number;
+    book_subject: string;
+    payment_date: string;
+    notes: string;
+  }>({
+    defaultValues: {
+      amount_paid: Number(purchase.amount_paid),
+      book_subject: purchase.book_subject || '',
+      payment_date: purchase.payment_date ? new Date(purchase.payment_date).toISOString().split('T')[0] : '',
+      notes: purchase.notes || '',
+    }
+  });
+
+  const watchSubject = watch('book_subject');
+  const studentGrade = purchase.student?.grade;
+
+  const filteredBookOptions = useMemo(() => {
+    if (!inventory) return [];
+    const filtered = inventory.filter(
+      (item) => !studentGrade || !item.grade || item.grade === studentGrade
+    );
+    const mapped = filtered.map((item) => {
+      const subjectName = item.name.replace('Book: ', '');
+      const gradeSuffix = item.grade ? ` (${GRADE_MAP[item.grade] || item.grade})` : '';
+      return {
+        value: subjectName,
+        label: `${subjectName}${gradeSuffix} (مەوجود: ${item.quantity} دانە)`,
+      };
+    });
+    return mapped;
+  }, [inventory, studentGrade]);
+
+  // Auto-populate price when book changes
+  React.useEffect(() => {
+    if (!watchSubject || !inventory) return;
+    const bookItem = inventory.find(
+      (item) => item.item_type === 'book' && 
+                item.name.replace('Book: ', '') === watchSubject && 
+                (!studentGrade || item.grade === studentGrade)
+    );
+    if (bookItem) {
+      setValue('amount_paid', Number(bookItem.price || 0));
+    }
+  }, [watchSubject, inventory, studentGrade, setValue]);
+
+  const onSubmit = (values: any) => {
+    const payload = {
+      amount_paid: values.amount_paid,
+      price: values.amount_paid, // Sync price and amount_paid
+      book_subject: values.book_subject,
+      payment_date: values.payment_date,
+      notes: values.notes || '',
+    };
+
+    updateMutation.mutate(payload, {
+      onSuccess: () => {
+        onSuccess();
+        onClose();
+      }
+    });
+  };
+
+  return (
+    <Modal isOpen={true} onClose={onClose} title="دەستکاریکردنی کڕینی کتێب">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <Select
+          label="بابەتی کتێب *"
+          placeholder="بابەتی کتێب هەڵبژێرە"
+          options={filteredBookOptions}
+          error={errors.book_subject?.message}
+          {...register('book_subject', { required: 'تکایە بابەتێک دیاری بکە' })}
+        />
+        <Input
+          label="نرخی کتێب (دینار) *"
+          id="edit_amount_paid"
+          type="number"
+          error={errors.amount_paid?.message}
+          {...register('amount_paid', { valueAsNumber: true, required: 'تکایە بڕی پارەکە بنووسە' })}
+        />
+        <Input
+          label="بەرواری پارەدان *"
+          id="edit_payment_date"
+          type="date"
+          error={errors.payment_date?.message}
+          {...register('payment_date', { required: 'تکایە بەروارەکە دیاری بکە' })}
+        />
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="edit_notes" className="text-xs font-semibold text-text">
+            تێبینی
+          </label>
+          <textarea
+            id="edit_notes"
+            rows={3}
+            className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-text border-border focus:border-primary-light focus:outline-none focus:ring-2 focus:ring-primary-light/20 transition-all placeholder:text-text-light"
+            {...register('notes')}
+          />
+        </div>
+        <div className="flex justify-end gap-3 pt-2 font-semibold">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            پاشگەزبوونەوە
+          </Button>
+          <Button type="submit" variant="primary" isLoading={updateMutation.isPending}>
+            پاشەکەوتکردن
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

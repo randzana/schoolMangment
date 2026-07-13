@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as zod from 'zod';
-import { useFoodInstallments, useCreateFoodInstallment, useReturnFoodInstallment } from '@/hooks';
+import { useFoodInstallments, useCreateFoodInstallment, useReturnFoodInstallment, useUpdateFoodInstallment } from '@/hooks';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
@@ -14,7 +14,7 @@ import { InvoiceModal } from '@/components/invoice/InvoiceModal';
 import { DataTable, Column } from '@/components/tables/DataTable';
 import { TablePagination } from '@/components/tables/TablePagination';
 import { formatCurrency, formatDate, GRADE_MAP } from '@/lib/utils';
-import { HiOutlinePrinter, HiOutlineTrash, HiOutlineArrowUturnLeft, HiOutlinePlusCircle } from 'react-icons/hi2';
+import { HiOutlinePrinter, HiOutlineTrash, HiOutlineArrowUturnLeft, HiOutlinePlusCircle, HiOutlinePencil } from 'react-icons/hi2';
 import { useAuthStore } from '@/store/authStore';
 import { API_URL } from '@/lib/api';
  
@@ -39,8 +39,9 @@ export default function FoodInstallmentsPage() {
  
   // Return bill state
   const [returnId, setReturnId] = useState<number | null>(null);
+  const [editingInstallment, setEditingInstallment] = useState<any | null>(null);
  
-  const { data: installmentsData, isLoading } = useFoodInstallments({ page });
+  const { data: installmentsData, isLoading, refetch } = useFoodInstallments({ page });
   const createMutation = useCreateFoodInstallment();
   const returnMutation = useReturnFoodInstallment();
  
@@ -75,12 +76,8 @@ export default function FoodInstallmentsPage() {
  
   const onSubmit = (values: FoodInstallmentFormValues) => {
     createMutation.mutate(values, {
-      onSuccess: (res) => {
+      onSuccess: () => {
         setIsFormOpen(false);
-        const created = res.data;
-        setInvoiceNo(created.invoice_no);
-        setInvoiceUrl(`${API_URL}/food-installments/${created.id}/invoice`);
-        setIsInvoiceOpen(true);
       },
     });
   };
@@ -119,6 +116,17 @@ export default function FoodInstallmentsPage() {
           >
             <HiOutlinePrinter className="w-4 h-4" />
           </Button>
+          {!row.is_returned && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-primary hover:bg-primary-light"
+              onClick={() => setEditingInstallment(row)}
+              title="دەستکاریکردنی پسوولە"
+            >
+              <HiOutlinePencil className="w-4 h-4" />
+            </Button>
+          )}
           {!row.is_returned && user?.role === 'admin' && (
             <Button
               variant="ghost"
@@ -215,7 +223,7 @@ export default function FoodInstallmentsPage() {
               پاشگەزبوونەوە
             </Button>
             <Button type="submit" variant="primary" isLoading={createMutation.isPending}>
-              تۆمارکردن و چاپ
+              تۆمارکردن
             </Button>
           </div>
         </form>
@@ -238,6 +246,79 @@ export default function FoodInstallmentsPage() {
         message="ئایا دڵنیای لە هەڵوەشاندنەوەی ئەم پارەدانەی نانخواردنە؟ هەڵوەشاندنەوە بڕە پارە دراوەکە دەگەڕێنێتەوە و قەرزی قوتابییەکە زیاد دەکاتەوە."
         isLoading={returnMutation.isPending}
       />
+
+      {/* Edit Installment Modal */}
+      {editingInstallment && (
+        <EditFoodInstallmentModal
+          installment={editingInstallment}
+          onClose={() => setEditingInstallment(null)}
+          onSuccess={() => refetch()}
+        />
+      )}
     </div>
+  );
+}
+
+function EditFoodInstallmentModal({ installment, onClose, onSuccess }: { installment: any; onClose: () => void; onSuccess: () => void }) {
+  const updateMutation = useUpdateFoodInstallment(installment.id);
+  const { register, handleSubmit, formState: { errors } } = useForm<{
+    amount_paid: number;
+    payment_date: string;
+    notes: string;
+  }>({
+    defaultValues: {
+      amount_paid: Number(installment.amount_paid),
+      payment_date: installment.payment_date ? new Date(installment.payment_date).toISOString().split('T')[0] : '',
+      notes: installment.notes || '',
+    }
+  });
+
+  const onSubmit = (values: any) => {
+    updateMutation.mutate(values, {
+      onSuccess: () => {
+        onSuccess();
+        onClose();
+      }
+    });
+  };
+
+  return (
+    <Modal isOpen={true} onClose={onClose} title="دەستکاریکردنی قیستی نانخواردن">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <Input
+          label="بڕی پارەی دراو (دینار) *"
+          id="edit_amount_paid"
+          type="number"
+          error={errors.amount_paid?.message}
+          {...register('amount_paid', { valueAsNumber: true, required: 'تکایە بڕی پارەکە بنووسە' })}
+        />
+        <Input
+          label="بەرواری پارەدان *"
+          id="edit_payment_date"
+          type="date"
+          error={errors.payment_date?.message}
+          {...register('payment_date', { required: 'تکایە بەروارەکە دیاری بکە' })}
+        />
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="edit_notes" className="text-xs font-semibold text-text">
+            تێبینی
+          </label>
+          <textarea
+            id="edit_notes"
+            rows={3}
+            className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-text border-border focus:border-primary-light focus:outline-none focus:ring-2 focus:ring-primary-light/20 transition-all placeholder:text-text-light"
+            {...register('notes')}
+          />
+        </div>
+        <div className="flex justify-end gap-3 pt-2 font-semibold">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            پاشگەزبوونەوە
+          </Button>
+          <Button type="submit" variant="primary" isLoading={updateMutation.isPending}>
+            پاشەکەوتکردن
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

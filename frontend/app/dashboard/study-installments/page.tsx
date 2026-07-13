@@ -4,16 +4,17 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as zod from 'zod';
-import { useStudyInstallments, useCreateStudyInstallment, useReturnStudyInstallment } from '@/hooks';
+import { useStudyInstallments, useCreateStudyInstallment, useReturnStudyInstallment, useUpdateStudyInstallment } from '@/hooks';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Modal } from '@/components/ui/Modal';
 import { AutocompleteInput } from '@/components/forms/AutocompleteInput';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { InvoiceModal } from '@/components/invoice/InvoiceModal';
 import { DataTable, Column } from '@/components/tables/DataTable';
 import { TablePagination } from '@/components/tables/TablePagination';
 import { formatCurrency, formatDate, GRADE_MAP } from '@/lib/utils';
-import { HiOutlinePrinter, HiOutlineTrash, HiOutlineArrowUturnLeft } from 'react-icons/hi2';
+import { HiOutlinePrinter, HiOutlineTrash, HiOutlineArrowUturnLeft, HiOutlinePencil } from 'react-icons/hi2';
 import api, { API_URL } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
@@ -39,8 +40,9 @@ export default function StudyInstallmentsPage() {
   
   // Return bill state
   const [returnId, setReturnId] = useState<number | null>(null);
+  const [editingInstallment, setEditingInstallment] = useState<any | null>(null);
 
-  const { data: installmentsData, isLoading } = useStudyInstallments({ page });
+  const { data: installmentsData, isLoading, refetch } = useStudyInstallments({ page });
   const createMutation = useCreateStudyInstallment();
   const returnMutation = useReturnStudyInstallment();
 
@@ -91,12 +93,7 @@ export default function StudyInstallmentsPage() {
     }
 
     createMutation.mutate(values, {
-      onSuccess: (res) => {
-        const created = res.data;
-        setInvoiceNo(created.invoice_no);
-        setInvoiceUrl(`${API_URL}/study-installments/${created.id}/invoice`);
-        setIsInvoiceOpen(true);
-        
+      onSuccess: () => {
         // Reset form
         setSelectedStudent(null);
         setSelectedPayment(null);
@@ -145,6 +142,17 @@ export default function StudyInstallmentsPage() {
           >
             <HiOutlinePrinter className="w-4 h-4" />
           </Button>
+          {!row.is_returned && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-primary hover:bg-primary-light"
+              onClick={() => setEditingInstallment(row)}
+              title="دەستکاریکردنی پسوولە"
+            >
+              <HiOutlinePencil className="w-4 h-4" />
+            </Button>
+          )}
           {!row.is_returned && user?.role === 'admin' && (
             <Button
               variant="ghost"
@@ -260,11 +268,10 @@ export default function StudyInstallmentsPage() {
             <Button
               type="submit"
               variant="primary"
-              className="w-full flex items-center gap-1.5"
+              className="w-full flex items-center justify-center gap-1.5"
               isLoading={createMutation.isPending}
             >
-              <HiOutlinePrinter className="w-4 h-4" />
-              <span>تۆمارکردن و چاپ</span>
+              <span>تۆمارکردن</span>
             </Button>
           </div>
         </form>
@@ -309,6 +316,80 @@ export default function StudyInstallmentsPage() {
         message="ئایا دڵنیای لە هەڵوەشاندنەوەی ئەم قستە؟ هەڵوەشاندنەوە بڕە پارە دراوەکە دەگەڕێنێتەوە و قەرزی قوتابییەکە زیاد دەکاتەوە."
         isLoading={returnMutation.isPending}
       />
+
+      {/* Edit Installment Modal */}
+      {editingInstallment && (
+        <EditInstallmentModal
+          installment={editingInstallment}
+          onClose={() => setEditingInstallment(null)}
+          onSuccess={() => refetch()}
+        />
+      )}
     </div>
+  );
+}
+
+interface EditModalProps {
+  installment: any;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function EditInstallmentModal({ installment, onClose, onSuccess }: EditModalProps) {
+  const updateMutation = useUpdateStudyInstallment(installment.id);
+  const { register, handleSubmit, formState: { errors } } = useForm<{
+    amount_paid: number;
+    payment_date: string;
+    notes: string;
+  }>({
+    defaultValues: {
+      amount_paid: Number(installment.amount_paid),
+      payment_date: installment.payment_date ? new Date(installment.payment_date).toISOString().split('T')[0] : '',
+      notes: installment.notes || '',
+    }
+  });
+
+  const onSubmit = (values: any) => {
+    updateMutation.mutate(values, {
+      onSuccess: () => {
+        onSuccess();
+        onClose();
+      }
+    });
+  };
+
+  return (
+    <Modal isOpen={true} onClose={onClose} title="دەستکاریکردنی قیستی خوێندن">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <Input
+          label="بڕی پارەی دراو (دینار) *"
+          id="edit_amount_paid"
+          type="number"
+          error={errors.amount_paid?.message}
+          {...register('amount_paid', { valueAsNumber: true, required: 'تکایە بڕی پارەکە بنووسە' })}
+        />
+        <Input
+          label="بەرواری پارەدان *"
+          id="edit_payment_date"
+          type="date"
+          error={errors.payment_date?.message}
+          {...register('payment_date', { required: 'تکایە بەروارەکە دیاری بکە' })}
+        />
+        <Input
+          label="تێبینی"
+          id="edit_notes"
+          error={errors.notes?.message}
+          {...register('notes')}
+        />
+        <div className="flex justify-end gap-3 pt-2 font-semibold">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            پاشگەزبوونەوە
+          </Button>
+          <Button type="submit" variant="primary" isLoading={updateMutation.isPending}>
+            پاشەکەوتکردن
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

@@ -128,6 +128,7 @@ class ClothesBookController extends Controller
             'price' => 'sometimes|numeric|min:0',
             'discount' => 'sometimes|numeric|min:0',
             'amount_paid' => 'sometimes|numeric|min:0',
+            'payment_date' => 'sometimes|date',
             'notes' => 'nullable|string',
             'uniform_size' => 'sometimes|nullable|string',
             'book_subject' => 'sometimes|nullable|string',
