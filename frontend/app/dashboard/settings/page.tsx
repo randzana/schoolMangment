@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Modal } from '@/components/ui/Modal';
 import { toast } from 'sonner';
 import {
   HiOutlineCog6Tooth,
@@ -18,9 +19,12 @@ export default function SettingsPage() {
   const queryClient = useQueryClient();
   const [academicYearInput, setAcademicYearInput] = useState('');
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [resetType, setResetType] = useState<'reset' | 'year'>('reset');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [confirmText, setConfirmText] = useState('');
 
   // Fetch current settings
-  const { isLoading } = useQuery({
+  const { data: settingsData, isLoading } = useQuery({
     queryKey: ['settings'],
     queryFn: async () => {
       const res = await api.get('/settings');
@@ -32,36 +36,38 @@ export default function SettingsPage() {
 
   // Update settings mutation
   const updateMutation = useMutation({
-    mutationFn: async (payload: { academic_year: string }) => {
+    mutationFn: async (payload: { academic_year: string; password?: string; confirm?: string }) => {
       const res = await api.post('/settings', payload);
       return res.data;
     },
     onSuccess: (res) => {
       queryClient.invalidateQueries();
       toast.success(res.message || 'ساڵی خوێندن بە سەرکەوتوویی گۆڕدرا');
+      setIsResetConfirmOpen(false);
+      setAdminPassword('');
+      setConfirmText('');
     },
-    onError: (err) => {
-      const apiErr = err as { response?: { data?: { message?: string } } };
-      toast.error(apiErr.response?.data?.message || 'کێشەیەک ڕوویدا لە کاتی نوێکردنەوە');
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'کێشەیەک ڕوویدا لە کاتی نوێکردنەوە');
     },
   });
 
   // Reset database mutation
   const resetMutation = useMutation({
-    mutationFn: async () => {
-      const res = await api.post('/settings/reset-database');
+    mutationFn: async (payload: { password?: string; confirm?: string }) => {
+      const res = await api.post('/settings/reset-database', payload);
       return res.data;
     },
     onSuccess: (res) => {
       toast.success(res.message || 'سەرجەم زانیارییەکان بە سەرکەوتوویی سڕانەوە');
       setIsResetConfirmOpen(false);
+      setAdminPassword('');
+      setConfirmText('');
       // Invalidate queries to refresh dashboard metrics
       queryClient.invalidateQueries();
     },
-    onError: (err) => {
-      const apiErr = err as { response?: { data?: { message?: string } } };
-      toast.error(apiErr.response?.data?.message || 'سڕینەوەی زانیارییەکان سەرکەوتوو نەبوو');
-      setIsResetConfirmOpen(false);
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'سڕینەوەی زانیارییەکان سەرکەوتوو نەبوو');
     },
   });
 
@@ -72,11 +78,36 @@ export default function SettingsPage() {
       toast.error('تکایە ساڵی خوێندن بە فۆرماتی دروست بنووسە (بۆ نموونە: 2026-2027)');
       return;
     }
-    updateMutation.mutate({ academic_year: academicYearInput });
+
+    const currentYear = settingsData?.academic_year || '';
+    if (academicYearInput.trim() !== currentYear.trim()) {
+      // Wiping database confirmation required
+      setResetType('year');
+      setIsResetConfirmOpen(true);
+    } else {
+      updateMutation.mutate({ academic_year: academicYearInput });
+    }
   };
 
-  const handleResetConfirm = () => {
-    resetMutation.mutate();
+  const handleConfirmAction = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (confirmText !== 'RESET') {
+      toast.error("تکایە بنووسە 'RESET' بە پیتە گەورەکان");
+      return;
+    }
+
+    if (resetType === 'year') {
+      updateMutation.mutate({
+        academic_year: academicYearInput,
+        password: adminPassword,
+        confirm: confirmText,
+      });
+    } else {
+      resetMutation.mutate({
+        password: adminPassword,
+        confirm: confirmText,
+      });
+    }
   };
 
   return (
@@ -151,7 +182,10 @@ export default function SettingsPage() {
           <Button
             type="button"
             variant="danger"
-            onClick={() => setIsResetConfirmOpen(true)}
+            onClick={() => {
+              setResetType('reset');
+              setIsResetConfirmOpen(true);
+            }}
             className="font-semibold"
           >
             سڕینەوەی گشتی سەرجەم زانیارییەکان
@@ -160,16 +194,70 @@ export default function SettingsPage() {
       </div>
 
       {/* Confirm Database Reset Dialog */}
-      <ConfirmDialog
+      <Modal
         isOpen={isResetConfirmOpen}
-        onClose={() => setIsResetConfirmOpen(false)}
-        onConfirm={handleResetConfirm}
-        title="دڵنیابوونەوە لە سڕینەوەی سەرجەم زانیارییەکان"
-        message="ئایا بە تەواوی دڵنیایت لە سڕینەوەی سەرجەم زانیارییەکانی قوتابخانە؟ ئەم کردارە مەترسیدارە و بە هیچ شێوازێک ناگەڕێتەوە دواوە."
-        confirmText="بەڵێ، دڵنیام لە سڕینەوەی هەمووی"
-        cancelText="پاشگەزبوونەوە"
-        isLoading={resetMutation.isPending}
-      />
+        onClose={() => {
+          setIsResetConfirmOpen(false);
+          setAdminPassword('');
+          setConfirmText('');
+        }}
+        title={resetType === 'year' ? "سەرلەنوێ ڕێکخستنەوە بۆ ساڵی خوێندنی نوێ" : "دڵنیابوونەوە لە سڕینەوەی سەرجەم زانیارییەکان"}
+        size="md"
+      >
+        <form onSubmit={handleConfirmAction} className="space-y-4">
+          <div className="space-y-2">
+            <p className="text-sm text-text-muted leading-relaxed">
+              {resetType === 'year'
+                ? "سەرنج بدە: گۆڕینی ساڵی خوێندنی چالاک دەبێتە هۆی سڕینەوەی گشتی سەرجەم قوتابییەکان و تۆمارەکانی پێشوو بە یەکجاری. بۆ ئەنجامدانی ئەم کردارە، پێویستە تێپەڕەوشە بنووسیت و کردارەکە پشتڕاست بکەیتەوە."
+                : "ئەم کردارە سەرجەم قوتابییەکان، پارەدانەکان، قستەکان، و خەرجییەکان لە سیستەمدا بە تەواوی دەسڕێتەوە و ناگەڕێتەوە دواوە. تکایە بۆ بەردەوامبوون ناسنامەت بسەلمێنە."}
+            </p>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <Input
+              label="تێپەڕەوشەی بەڕێوەبەر (Password) *"
+              type="password"
+              required
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              placeholder="تێپەڕەوشەکەت لێرە بنووسە"
+              className="w-full"
+            />
+
+            <Input
+              label="بۆ پشتڕاستکردنەوە بنووسە 'RESET' *"
+              type="text"
+              required
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="RESET"
+              className="w-full text-center font-bold tracking-widest uppercase font-mono"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-border font-semibold">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setIsResetConfirmOpen(false);
+                setAdminPassword('');
+                setConfirmText('');
+              }}
+              disabled={resetMutation.isPending || updateMutation.isPending}
+            >
+              پاشگەزبوونەوە
+            </Button>
+            <Button
+              type="submit"
+              variant="danger"
+              isLoading={resetMutation.isPending || updateMutation.isPending}
+            >
+              بەڵێ، بە تەواوی سڕینەوە ئەنجام بدە
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

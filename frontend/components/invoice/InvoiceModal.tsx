@@ -18,6 +18,11 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   invoiceNo,
   invoiceUrl,
 }) => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  const secureUrl = invoiceUrl && token
+    ? `${invoiceUrl}${invoiceUrl.includes('?') ? '&' : '?' }token=${token}`
+    : invoiceUrl;
+
   const handlePrint = () => {
     if (invoiceUrl) {
       const separator = invoiceUrl.includes('?') ? '&' : '?';
@@ -32,10 +37,10 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           پارەدانەکە بە سەرکەوتوویی تۆمارکرا. دەتوانیت لە خوارەوە پێشبینی پسوولەکە بکەیت یان کرتە لەسەر چاپ بکەیت بۆ کردنەوەی لە پەڕەیەکی نوێدا.
         </p>
 
-        {invoiceUrl && (
+        {secureUrl && (
           <div className="w-full h-96 border rounded-lg overflow-hidden bg-surface-muted relative">
             <iframe
-              src={`${invoiceUrl}${invoiceUrl.includes('?') ? '&' : '?'}t=${Date.now()}`}
+              src={`${secureUrl}${secureUrl.includes('?') ? '&' : '?'}t=${Date.now()}`}
               className="w-full h-full"
               title={`Invoice #${invoiceNo} Preview`}
             />

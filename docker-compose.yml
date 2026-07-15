@@ -4,15 +4,15 @@ services:
     container_name: school_db
     restart: always
     environment:
-      POSTGRES_DB: school_admin
-      POSTGRES_USER: randzana
-      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: ${DB_DATABASE:-school_admin}
+      POSTGRES_USER: ${DB_USERNAME:-randzana}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U randzana -d school_admin"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-randzana} -d ${DB_DATABASE:-school_admin}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -28,18 +28,18 @@ services:
     environment:
       APP_NAME: "School Admin System"
       APP_ENV: local
-      APP_KEY: base64:H+o6khqAcVot0WjT68yJOYetIVYmDy6AB6nmWKo2TW0=
+      APP_KEY: ${APP_KEY:-base64:H+o6khqAcVot0WjT68yJOYetIVYmDy6AB6nmWKo2TW0=}
       APP_DEBUG: "true"
       APP_URL: http://localhost:8000
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
-      DB_DATABASE: school_admin
-      DB_USERNAME: randzana
-      DB_PASSWORD: secret
+      DB_DATABASE: ${DB_DATABASE:-school_admin}
+      DB_USERNAME: ${DB_USERNAME:-randzana}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
       SESSION_DRIVER: database
       SESSION_LIFETIME: 120
-      SESSION_ENCRYPT: "false"
+      SESSION_ENCRYPT: ${SESSION_ENCRYPT:-true}
       SESSION_PATH: /
       SESSION_DOMAIN: localhost
       BROADCAST_CONNECTION: log
@@ -63,18 +63,18 @@ services:
     environment:
       APP_NAME: "School Admin System"
       APP_ENV: local
-      APP_KEY: base64:H+o6khqAcVot0WjT68yJOYetIVYmDy6AB6nmWKo2TW0=
+      APP_KEY: ${APP_KEY:-base64:H+o6khqAcVot0WjT68yJOYetIVYmDy6AB6nmWKo2TW0=}
       APP_DEBUG: "true"
       APP_URL: http://localhost:8000
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
-      DB_DATABASE: school_admin
-      DB_USERNAME: randzana
-      DB_PASSWORD: secret
+      DB_DATABASE: ${DB_DATABASE:-school_admin}
+      DB_USERNAME: ${DB_USERNAME:-randzana}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
       SESSION_DRIVER: database
       SESSION_LIFETIME: 120
-      SESSION_ENCRYPT: "false"
+      SESSION_ENCRYPT: ${SESSION_ENCRYPT:-true}
       SESSION_PATH: /
       SESSION_DOMAIN: localhost
       BROADCAST_CONNECTION: log

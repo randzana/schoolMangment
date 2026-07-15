@@ -11,28 +11,28 @@ use Illuminate\Support\Facades\Route;
 
 // Public routes
 Route::prefix('auth')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 });
-
-// Public invoice print routes (accessed via window.open in new tab)
-Route::get('study-installments/{id}/invoice', [\App\Http\Controllers\Api\StudyInstallmentController::class, 'invoice']);
-Route::get('food-installments/{id}/invoice', [\App\Http\Controllers\Api\FoodInstallmentController::class, 'invoice']);
-Route::get('clothes-books/{id}/invoice', [\App\Http\Controllers\Api\ClothesBookController::class, 'invoice']);
-Route::get('reports/study-installments/export', [\App\Http\Controllers\Api\ReportController::class, 'exportStudyInstallments']);
-Route::get('reports/study-installments/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfStudyInstallments']);
-Route::get('reports/food-installments/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfFoodInstallments']);
-Route::get('reports/clothes-payments/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfClothesPayments']);
-Route::get('reports/book-payments/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfBookPayments']);
-Route::get('reports/annual-income/export', [\App\Http\Controllers\Api\ReportController::class, 'exportAnnualIncome']);
-Route::get('reports/annual-income/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfAnnualIncome']);
-Route::get('reports/food-income/export', [\App\Http\Controllers\Api\ReportController::class, 'exportFoodIncome']);
-Route::get('reports/expenses/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfExpenses']);
-Route::get('reports/government-expenses/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfGovernmentExpenses']);
-Route::get('reports/study-debts/export', [\App\Http\Controllers\Api\ReportController::class, 'exportStudyDebts']);
-Route::get('reports/study-debts/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfStudyDebts']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
+    // Invoice print routes (accessed via authenticated window.open)
+    Route::get('study-installments/{id}/invoice', [\App\Http\Controllers\Api\StudyInstallmentController::class, 'invoice']);
+    Route::get('food-installments/{id}/invoice', [\App\Http\Controllers\Api\FoodInstallmentController::class, 'invoice']);
+    Route::get('clothes-books/{id}/invoice', [\App\Http\Controllers\Api\ClothesBookController::class, 'invoice']);
+    Route::get('reports/study-installments/export', [\App\Http\Controllers\Api\ReportController::class, 'exportStudyInstallments']);
+    Route::get('reports/study-installments/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfStudyInstallments']);
+    Route::get('reports/food-installments/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfFoodInstallments']);
+    Route::get('reports/clothes-payments/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfClothesPayments']);
+    Route::get('reports/book-payments/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfBookPayments']);
+    Route::get('reports/annual-income/export', [\App\Http\Controllers\Api\ReportController::class, 'exportAnnualIncome']);
+    Route::get('reports/annual-income/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfAnnualIncome']);
+    Route::get('reports/food-income/export', [\App\Http\Controllers\Api\ReportController::class, 'exportFoodIncome']);
+    Route::get('reports/expenses/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfExpenses']);
+    Route::get('reports/government-expenses/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfGovernmentExpenses']);
+    Route::get('reports/study-debts/export', [\App\Http\Controllers\Api\ReportController::class, 'exportStudyDebts']);
+    Route::get('reports/study-debts/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfStudyDebts']);
+
     // Auth
     Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);

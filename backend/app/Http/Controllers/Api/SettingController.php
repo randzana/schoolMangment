@@ -27,6 +27,8 @@ class SettingController extends Controller
 
     /**
      * Update settings
+    /**
+     * Update settings
      */
     public function update(Request $request): JsonResponse
     {
@@ -47,7 +49,25 @@ class SettingController extends Controller
         $oldYear = Setting::getValue('academic_year', config('school.academic_year'));
         $newYear = $validated['academic_year'];
 
-        if ($oldYear !== $newYear) {
+        $oldYearClean = trim($oldYear);
+        $newYearClean = trim($newYear);
+
+        if ($oldYearClean !== $newYearClean) {
+            $request->validate([
+                'password' => 'required|string',
+                'confirm' => 'required|string|in:RESET',
+            ], [
+                'confirm.in' => 'تکایە وشەی RESET بنووسە بۆ پشتڕاستکردنەوە',
+                'password.required' => 'تکایە تێپەڕەوشە بنووسە بۆ پشتڕاستکردنەوە',
+            ]);
+
+            if (!\Illuminate\Support\Facades\Hash::check($request->password, $request->user()->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'تێپەڕەوشەی نادروستە. کرداری گۆڕینی ساڵ و سڕینەوەی گشتی ڕەتکرایەوە.',
+                ], 422);
+            }
+
             DB::transaction(function () use ($newYear) {
                 Setting::setValue('academic_year', $newYear);
                 config(['school.academic_year' => $newYear]);
@@ -99,6 +119,21 @@ class SettingController extends Controller
                 'success' => false,
                 'message' => 'Rêگەی پێدراو نیت بۆ ئەنجامدانی ئەم کردارە',
             ], 403);
+        }
+
+        $request->validate([
+            'password' => 'required|string',
+            'confirm' => 'required|string|in:RESET',
+        ], [
+            'confirm.in' => 'تکایە وشەی RESET بنووسە بۆ پشتڕاستکردنەوە',
+            'password.required' => 'تکایە تێپەڕەوشە بنووسە بۆ پشتڕاستکردنەوە',
+        ]);
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->password, $request->user()->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'تێپەڕەوشەی نادروستە. کرداری سڕینەوەی گشتی ڕەتکرایەوە.',
+            ], 422);
         }
 
         DB::transaction(function () {
