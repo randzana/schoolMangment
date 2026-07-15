@@ -40,7 +40,7 @@ class FoodPaymentService
                 ]);
             }
 
-            $invoiceNo = $this->invoiceNumberService->getNextInvoiceNumber();
+            $invoiceNo = $this->invoiceNumberService->getNextInvoiceNumber('food');
 
             $remainBefore = 0;
             $remainAfter = 0;
@@ -157,5 +157,24 @@ class FoodPaymentService
             'total_remaining' => (float) ($result->total_remaining ?? 0),
             'academic_year' => $year,
         ];
+    }
+
+    /**
+     * Delete a food installment and restore balance.
+     */
+    public function deleteInstallment(int $installmentId): void
+    {
+        DB::transaction(function () use ($installmentId) {
+            $installment = FoodInstallment::lockForUpdate()->findOrFail($installmentId);
+            $foodPayment = FoodPayment::lockForUpdate()->findOrFail($installment->food_payment_id);
+
+            // Deduct from parent totals if it was not already returned
+            if (!$installment->is_returned) {
+                $foodPayment->decrement('total_paid', (float) $installment->amount_paid);
+                $foodPayment->decrement('monthly_price', (float) $installment->amount_paid);
+            }
+
+            $installment->delete();
+        });
     }
 }

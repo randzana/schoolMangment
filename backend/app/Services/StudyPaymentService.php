@@ -41,7 +41,7 @@ class StudyPaymentService
             }
 
             // Get next invoice number
-            $invoiceNo = $this->invoiceNumberService->getNextInvoiceNumber();
+            $invoiceNo = $this->invoiceNumberService->getNextInvoiceNumber('study');
 
             $remainBefore = $remainBalance;
             $remainAfter = $remainBefore - (float) $data['amount_paid'];
@@ -190,5 +190,42 @@ class StudyPaymentService
             'total_remaining' => (float) ($result->total_remaining ?? 0),
             'academic_year' => $year,
         ];
+    }
+
+    /**
+     * Delete a study installment and restore balance.
+     */
+    public function deleteInstallment(int $installmentId): void
+    {
+        DB::transaction(function () use ($installmentId) {
+            $installment = StudyInstallment::lockForUpdate()->findOrFail($installmentId);
+            $studyPayment = StudyPayment::lockForUpdate()->findOrFail($installment->study_payment_id);
+
+            // Deduct from parent total_paid (only if it wasn't returned already)
+            if (!$installment->is_returned) {
+                $studyPayment->decrement('total_paid', (float) $installment->amount_paid);
+            }
+
+            // Delete the installment
+            $installment->delete();
+
+            // Recalculate remaining balances chronologically for all active installments
+            $studyPayment->refresh();
+            $installments = StudyInstallment::where('study_payment_id', $studyPayment->id)
+                ->orderBy('payment_date')
+                ->orderBy('id')
+                ->get();
+
+            $runningBalance = (float) $studyPayment->price_after_discount;
+            foreach ($installments as $inst) {
+                if ($inst->is_returned) {
+                    continue;
+                }
+                $inst->remain_before = $runningBalance;
+                $runningBalance -= (float) $inst->amount_paid;
+                $inst->remain_after = $runningBalance;
+                $inst->save();
+            }
+        });
     }
 }

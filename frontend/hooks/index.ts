@@ -201,6 +201,23 @@ export function useUpdateStudyInstallment(id: number) {
   });
 }
 
+export function useDeleteStudyInstallment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await api.delete(`/study-installments/${id}`);
+      return res.data;
+    },
+    onSuccess: () => {
+      invalidateFinancialCaches(queryClient);
+      toast.success('قیستی خوێندن بە سەرکەوتوویی سڕایەوە');
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'هەڵە لە سڕینەوەی قیست');
+    },
+  });
+}
+
 export function useReturnStudyInstallment() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -315,6 +332,23 @@ export function useUpdateFoodInstallment(id: number) {
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.message || 'هەڵە لە نوێکردنەوەی قیست');
+    },
+  });
+}
+
+export function useDeleteFoodInstallment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await api.delete(`/food-installments/${id}`);
+      return res.data;
+    },
+    onSuccess: () => {
+      invalidateFinancialCaches(queryClient);
+      toast.success('قیستی نانخواردن بە سەرکەوتوویی سڕایەوە');
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'هەڵە لە سڕینەوەی قیست');
     },
   });
 }

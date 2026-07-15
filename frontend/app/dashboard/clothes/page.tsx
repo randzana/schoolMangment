@@ -96,9 +96,11 @@ export default function ClothesPage() {
     };
 
     createMutation.mutate(payload, {
-      onSuccess: () => {
+      onSuccess: (res) => {
         setIsFormOpen(false);
         refetch();
+        const created = res.data;
+        window.open(`${API_URL}/clothes-books/${created.id}/invoice`, '_blank');
       },
     });
   };
@@ -232,7 +234,7 @@ export default function ClothesPage() {
               پاشگەزبوونەوە
             </Button>
             <Button type="submit" variant="primary" isLoading={createMutation.isPending}>
-              تۆمارکردن
+              تۆمارکردن و چاپ
             </Button>
           </div>
         </form>

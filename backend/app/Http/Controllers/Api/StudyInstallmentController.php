@@ -76,11 +76,9 @@ class StudyInstallmentController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, int $id): JsonResponse
+    public function destroy(int $id): JsonResponse
     {
-        // Admin only — enforced by route middleware
-        $installment = StudyInstallment::findOrFail($id);
-        $installment->delete();
+        $this->studyService->deleteInstallment($id);
 
         return response()->json([
             'success' => true,

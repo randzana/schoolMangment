@@ -64,7 +64,7 @@ class ClothesBookController extends Controller
         ]);
 
         $validated['academic_year'] = $validated['academic_year'] ?? config('school.academic_year', '2025-2026');
-        $validated['invoice_no'] = $this->invoiceService->getNextInvoiceNumber();
+        $validated['invoice_no'] = $this->invoiceService->getNextInvoiceNumber('clothes_book');
         $validated['created_by'] = $request->user()->id;
         $validated['payment_date'] = $validated['payment_date'] ?? now()->toDateString();
 
@@ -296,7 +296,7 @@ class ClothesBookController extends Controller
                 $bookItem->decrement('quantity', 1);
             }
 
-            $invoiceNo = $this->invoiceService->getNextInvoiceNumber();
+            $invoiceNo = $this->invoiceService->getNextInvoiceNumber('clothes_book');
 
             // Create a single payment record for all books
             return ClothesBookPayment::create([

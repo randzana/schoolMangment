@@ -80,8 +80,7 @@ class FoodInstallmentController extends Controller
 
     public function destroy(int $id): JsonResponse
     {
-        $installment = FoodInstallment::findOrFail($id);
-        $installment->delete();
+        $this->foodService->deleteInstallment($id);
 
         return response()->json([
             'success' => true,

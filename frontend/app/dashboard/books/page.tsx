@@ -135,9 +135,14 @@ export default function BooksPage() {
           price: values.amount_paid,
         },
         {
-          onSuccess: () => {
+          onSuccess: (res) => {
             setIsFormOpen(false);
             refetch();
+            const payments = res.data;
+            if (payments && payments.length > 0) {
+              const lastPayment = payments[payments.length - 1];
+              window.open(`${API_URL}/clothes-books/${lastPayment.id}/invoice`, '_blank');
+            }
           },
         }
       );
@@ -154,9 +159,11 @@ export default function BooksPage() {
       };
 
       createMutation.mutate(payload, {
-        onSuccess: () => {
+        onSuccess: (res) => {
           setIsFormOpen(false);
           refetch();
+          const created = res.data;
+          window.open(`${API_URL}/clothes-books/${created.id}/invoice`, '_blank');
         },
       });
     }
@@ -312,7 +319,7 @@ export default function BooksPage() {
               پاشگەزبوونەوە
             </Button>
             <Button type="submit" variant="primary" isLoading={createMutation.isPending || bulkMutation.isPending}>
-              تۆمارکردن
+              تۆمارکردن و چاپ
             </Button>
           </div>
         </form>

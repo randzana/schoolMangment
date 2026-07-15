@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as zod from 'zod';
-import { useFoodInstallments, useCreateFoodInstallment, useReturnFoodInstallment, useUpdateFoodInstallment } from '@/hooks';
+import { useFoodInstallments, useCreateFoodInstallment, useUpdateFoodInstallment, useDeleteFoodInstallment } from '@/hooks';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
@@ -37,13 +37,13 @@ export default function FoodInstallmentsPage() {
   const [invoiceUrl, setInvoiceUrl] = useState<string | null>(null);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
  
-  // Return bill state
-  const [returnId, setReturnId] = useState<number | null>(null);
+  // Delete and edit state
+  const [deleteId, setDeleteId] = useState<number | null>(null);
   const [editingInstallment, setEditingInstallment] = useState<any | null>(null);
  
   const { data: installmentsData, isLoading, refetch } = useFoodInstallments({ page });
   const createMutation = useCreateFoodInstallment();
-  const returnMutation = useReturnFoodInstallment();
+  const deleteMutation = useDeleteFoodInstallment();
  
   const {
     register,
@@ -76,16 +76,23 @@ export default function FoodInstallmentsPage() {
  
   const onSubmit = (values: FoodInstallmentFormValues) => {
     createMutation.mutate(values, {
-      onSuccess: () => {
+      onSuccess: (res) => {
         setIsFormOpen(false);
+        const created = res.data;
+        setInvoiceNo(created.invoice_no);
+        setInvoiceUrl(`${API_URL}/food-installments/${created.id}/invoice`);
+        setIsInvoiceOpen(true);
       },
     });
   };
- 
-  const handleReturnConfirm = () => {
-    if (returnId) {
-      returnMutation.mutate(returnId, {
-        onSuccess: () => setReturnId(null),
+
+  const handleDeleteConfirm = () => {
+    if (deleteId) {
+      deleteMutation.mutate(deleteId, {
+        onSuccess: () => {
+          setDeleteId(null);
+          refetch();
+        },
       });
     }
   };
@@ -96,14 +103,6 @@ export default function FoodInstallmentsPage() {
     { header: 'ناوی قوتابی', accessor: (row) => row.student?.full_name },
     { header: 'پۆل', accessor: (row) => GRADE_MAP[row.student?.grade] || row.student?.grade },
     { header: 'بڕی دراو', accessor: (row) => formatCurrency(row.amount_paid), className: 'text-primary font-bold' },
-    {
-      header: 'گەڕاوەتەوە',
-      accessor: (row) => (
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${row.is_returned ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'}`}>
-          {row.is_returned ? 'بەڵێ' : 'نەخێر'}
-        </span>
-      ),
-    },
     {
       header: 'کردارەکان',
       accessor: (row) => (
@@ -127,15 +126,15 @@ export default function FoodInstallmentsPage() {
               <HiOutlinePencil className="w-4 h-4" />
             </Button>
           )}
-          {!row.is_returned && user?.role === 'admin' && (
+          {user?.role === 'admin' && (
             <Button
               variant="ghost"
               size="sm"
               className="text-danger hover:bg-danger-light"
-              onClick={() => setReturnId(row.id)}
-              title="گێڕانەوەی پسوولە"
+              onClick={() => setDeleteId(row.id)}
+              title="سڕینەوەی پسوولە"
             >
-              <HiOutlineArrowUturnLeft className="w-4 h-4" />
+              <HiOutlineTrash className="w-4 h-4" />
             </Button>
           )}
         </div>
@@ -223,7 +222,7 @@ export default function FoodInstallmentsPage() {
               پاشگەزبوونەوە
             </Button>
             <Button type="submit" variant="primary" isLoading={createMutation.isPending}>
-              تۆمارکردن
+              تۆمارکردن و چاپ
             </Button>
           </div>
         </form>
@@ -237,14 +236,14 @@ export default function FoodInstallmentsPage() {
         invoiceUrl={invoiceUrl}
       />
  
-      {/* Return Bill Confirm Dialog */}
+      {/* Delete Confirm Dialog */}
       <ConfirmDialog
-        isOpen={returnId !== null}
-        onClose={() => setReturnId(null)}
-        onConfirm={handleReturnConfirm}
-        title="هەڵوەشاندنەوە / گێڕانەوەی پسوولە"
-        message="ئایا دڵنیای لە هەڵوەشاندنەوەی ئەم پارەدانەی نانخواردنە؟ هەڵوەشاندنەوە بڕە پارە دراوەکە دەگەڕێنێتەوە و قەرزی قوتابییەکە زیاد دەکاتەوە."
-        isLoading={returnMutation.isPending}
+        isOpen={deleteId !== null}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDeleteConfirm}
+        title="سڕینەوەی پسوولە"
+        message="ئایا دڵنیای لە سڕینەوەی ئەم پسوولەیە؟ سڕینەوەی پسوولە بە تەواوی تۆمارەکە لە سیستەمەکە لادەبات و قەرزی قوتابییەکە زیاد دەکاتەوە."
+        isLoading={deleteMutation.isPending}
       />
 
       {/* Edit Installment Modal */}
