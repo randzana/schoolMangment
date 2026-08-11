@@ -13,6 +13,7 @@ import {
   HiOutlineExclamationTriangle,
   HiOutlineArrowPath,
   HiOutlineTrash,
+  HiOutlineArrowDownTray,
 } from 'react-icons/hi2';
 
 export default function SettingsPage() {
@@ -22,6 +23,7 @@ export default function SettingsPage() {
   const [resetType, setResetType] = useState<'reset' | 'year'>('reset');
   const [adminPassword, setAdminPassword] = useState('');
   const [confirmText, setConfirmText] = useState('');
+  const [isDownloadingBackup, setIsDownloadingBackup] = useState(false);
 
   // Fetch current settings
   const { data: settingsData, isLoading } = useQuery({
@@ -110,6 +112,32 @@ export default function SettingsPage() {
     }
   };
 
+  const handleDownloadBackup = async () => {
+    try {
+      setIsDownloadingBackup(true);
+      toast.info('دەستکرا بە دروستکردنی فایلی باکئەپ...');
+      const response = await api.get('/settings/backup', {
+        responseType: 'blob',
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const dateStr = new Date().toISOString().split('T')[0];
+      link.setAttribute('download', `school_backup_${dateStr}.sql`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('فایلی باکئەپ بە سەرکەوتوویی دابەزی');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'کێشەیەک ڕوویدا لە کاتی داگرتنی باکئەپ');
+    } finally {
+      setIsDownloadingBackup(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Title */}
@@ -118,10 +146,32 @@ export default function SettingsPage() {
           <HiOutlineCog6Tooth className="w-6 h-6" />
           <h1 className="text-xl md:text-2xl font-bold tracking-tight text-text">ڕێکخستنەکانی سیستەم</h1>
         </div>
-        <p className="text-xs text-text-muted">ڕێکخستنی ساڵی خوێندنی چالاک و بەڕێوەبردنی بنکەی زانیارییەکان</p>
+        <p className="text-xs text-text-muted">ڕێکخستنی ساڵی خوێندنی چالاک، بەڕێوەبردنی بنکەی زانیارییەکان و باکئەپ</p>
       </div>
 
       <div className="grid gap-6">
+        {/* Database Backup Card */}
+        <div className="bg-white border border-border rounded-2xl shadow-card p-6">
+          <h3 className="text-base font-bold text-text mb-2 flex items-center gap-2">
+            <HiOutlineArrowDownTray className="w-5 h-5 text-primary" />
+            <span>وەرگرتنی فایلی باکئەپی داتابەیز (Backup)</span>
+          </h3>
+          <p className="text-xs text-text-muted mb-4 leading-relaxed">
+            لێرەوە دەتوانیت لە هەر کاتێکدا فایلی باکئەپی سەرجەم زانیارییەکان (داتابەیز) داگریت لەسەر کۆمپیوتەرەکەت بۆ پاراستنی داتاکان لە لەدەستچوون.
+          </p>
+
+          <Button
+            type="button"
+            variant="primary"
+            onClick={handleDownloadBackup}
+            isLoading={isDownloadingBackup}
+            className="font-semibold flex items-center gap-2"
+          >
+            <HiOutlineArrowDownTray className="w-4 h-4" />
+            <span>داگرتنی فایلی باکئەپ (.sql)</span>
+          </Button>
+        </div>
+
         {/* Academic Year Setting Card */}
         <div className="bg-white border border-border rounded-2xl shadow-card p-6">
           <h3 className="text-base font-bold text-text mb-2 flex items-center gap-2">

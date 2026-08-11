@@ -163,4 +163,83 @@ class SettingController extends Controller
             'message' => 'سەرجەم زانیارییەکان بە سەرکەوتوویی سڕانەوە و کۆگا سەرلەنوێ ڕێکخرایەوە',
         ]);
     }
+
+    /**
+     * Generate and download database SQL backup file
+     */
+    public function backup(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse|JsonResponse
+    {
+        // Require admin role
+        if ($request->user()->role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'ڕێگەپێدراو نیت بۆ ئەنجامدانی ئەم کردارە',
+            ], 403);
+        }
+
+        $filename = 'school_backup_' . date('Y-m-d_H-i-s') . '.sql';
+
+        return response()->streamDownload(function () {
+            $tables = [
+                'users',
+                'students',
+                'study_payments',
+                'study_installments',
+                'food_payments',
+                'food_installments',
+                'clothes_books_payments',
+                'expenses',
+                'inventories',
+                'invoice_sequence',
+                'settings',
+            ];
+
+            echo "-- School Management System Database Dump\n";
+            echo "-- Generated at: " . date('Y-m-d H:i:s') . "\n";
+            echo "-- ------------------------------------------------------\n\n";
+            echo "SET statement_timeout = 0;\n";
+            echo "SET client_encoding = 'UTF8';\n";
+            echo "SET standard_conforming_strings = on;\n\n";
+
+            foreach ($tables as $table) {
+                if (!DB::getSchemaBuilder()->hasTable($table)) {
+                    continue;
+                }
+
+                echo "-- ------------------------------------------------------\n";
+                echo "-- Table structure and data for: {$table}\n";
+                echo "-- ------------------------------------------------------\n";
+
+                $rows = DB::table($table)->get();
+
+                if ($rows->count() > 0) {
+                    foreach ($rows as $row) {
+                        $arrayRow = (array) $row;
+                        $columns = array_keys($arrayRow);
+                        $escapedColumns = array_map(fn($col) => '"' . $col . '"', $columns);
+
+                        $values = array_map(function ($value) {
+                            if ($value === null) {
+                                return 'NULL';
+                            }
+                            if (is_bool($value)) {
+                                return $value ? 'true' : 'false';
+                            }
+                            if (is_int($value) || is_float($value)) {
+                                return $value;
+                            }
+                            $escaped = str_replace("'", "''", (string) $value);
+                            return "'" . $escaped . "'";
+                        }, array_values($arrayRow));
+
+                        echo 'INSERT INTO "' . $table . '" (' . implode(', ', $escapedColumns) . ') VALUES (' . implode(', ', $values) . ") ON CONFLICT DO NOTHING;\n";
+                    }
+                    echo "\n";
+                }
+            }
+        }, $filename, [
+            'Content-Type' => 'text/plain',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
 }

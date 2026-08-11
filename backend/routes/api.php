@@ -79,6 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Settings
     Route::get('settings', [\App\Http\Controllers\Api\SettingController::class, 'index']);
     Route::post('settings', [\App\Http\Controllers\Api\SettingController::class, 'update']);
+    Route::get('settings/backup', [\App\Http\Controllers\Api\SettingController::class, 'backup']);
     Route::post('settings/reset-database', [\App\Http\Controllers\Api\SettingController::class, 'resetDatabase']);
 
 
