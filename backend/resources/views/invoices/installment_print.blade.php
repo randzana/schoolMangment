@@ -303,6 +303,27 @@
             </div>
             @endif
 
+            @if(!empty($uniform_type ?? null))
+            <div class="detail-row">
+                <span class="detail-label">جۆری جلوبەرگ:</span>
+                <span class="detail-value">{{ $uniform_type }}</span>
+            </div>
+            @endif
+
+            @if(!empty($book_subject ?? null))
+            <div class="detail-row">
+                <span class="detail-label">کتێب:</span>
+                <span class="detail-value">{{ $book_subject }}</span>
+            </div>
+            @endif
+
+            @if(($quantity ?? 1) > 1)
+            <div class="detail-row">
+                <span class="detail-label">ژمارەی دانە:</span>
+                <span class="detail-value">{{ $quantity }} دانە</span>
+            </div>
+            @endif
+
             <!-- Amount Paid -->
             <div class="detail-row highlight-paid">
                 <span class="detail-label">بڕی پارەی دراو:</span>

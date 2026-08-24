@@ -207,7 +207,7 @@ export default function InventoryPage() {
             <HiOutlineBuildingStorefront className="w-6 h-6" />
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-text">بەڕێوەبردنی کۆگا</h1>
           </div>
-          <p className="text-xs text-text-muted">ڕێژەی مەوجودی جلوبەرگ و کتێبەکان بەپێی سایز و بابەت</p>
+          <p className="text-xs text-text-muted">ڕێژەی مەوجودی جلوبەرگ و کتێبەکان بەپێی جۆر و بابەت</p>
         </div>
         <Button
           variant="primary"
@@ -215,7 +215,7 @@ export default function InventoryPage() {
           className="flex items-center gap-1.5 self-start font-semibold"
         >
           <HiOutlinePlusCircle className="w-4 h-4" />
-          <span>{activeTab === 'clothes' ? 'تۆمارکردنی سایزی نوێ' : 'تۆمارکردنی کتێبی نوێ'}</span>
+          <span>{activeTab === 'clothes' ? 'تۆمارکردنی جۆری نوێ' : 'تۆمارکردنی کتێبی نوێ'}</span>
         </Button>
       </div>
 
@@ -379,14 +379,14 @@ export default function InventoryPage() {
       <Modal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        title={activeTab === 'clothes' ? 'تۆمارکردنی سایزی نوێ' : 'تۆمارکردنی کتێبی نوێ'}
+        title={activeTab === 'clothes' ? 'تۆمارکردنی جۆری نوێ' : 'تۆمارکردنی کتێبی نوێ'}
       >
         <form onSubmit={handleCreateSubmit} className="space-y-4 pt-2">
           <Input
-            label={activeTab === 'clothes' ? 'قەبارەی جلوبەرگ (بۆ نموونە: XL، 32) *' : 'بابەتی کتێب (بۆ نموونە: بیرکاری) *'}
+            label={activeTab === 'clothes' ? 'جۆری جلوبەرگ (بۆ نموونە: کراسی زستانە، پانتۆڵ) *' : 'بابەتی کتێب (بۆ نموونە: بیرکاری) *'}
             type="text"
             required
-            placeholder={activeTab === 'clothes' ? 'وەک: S, M, L, 34' : 'وەک: بیرکاری, کوردی'}
+            placeholder={activeTab === 'clothes' ? 'وەک: کراس، پانتۆڵ، سوێتەر' : 'وەک: بیرکاری, کوردی'}
             value={createNameInput}
             onChange={(e) => setCreateNameInput(e.target.value)}
             className="w-full"

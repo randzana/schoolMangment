@@ -22,7 +22,8 @@ import { HiOutlinePrinter, HiOutlineTrash, HiOutlinePlusCircle, HiOutlinePencil 
 const purchaseSchema = zod.object({
   student_id: zod.number().min(1, 'تکایە قوتابییەک هەڵبژێرە'),
   amount_paid: zod.number().min(1, 'دەبێت بڕی پارە لە ٠ زیاتر بێت'),
-  uniform_size: zod.string().min(1, 'تکایە سایزی جلوبەرگ دیاری بکە'),
+  uniform_size: zod.string().min(1, 'تکایە جۆری جلوبەرگ دیاری بکە'),
+  quantity: zod.number().int('ژمارەی دانە دەبێت ژمارەیەکی تەواو بێت').min(1, 'دەبێت لانیکەم ١ دانە بێت'),
   notes: zod.string().optional(),
 });
 
@@ -47,13 +48,13 @@ export default function ClothesPage() {
     },
   });
 
-  const sizeOptions = React.useMemo(() => {
+  const typeOptions = React.useMemo(() => {
     if (!inventory) return [];
     return inventory.map((item) => {
-      const sizeName = item.name.replace('Uniform Size ', '');
+      const typeName = item.name.replace('Uniform Size ', '');
       return {
-        value: sizeName,
-        label: `${sizeName} (مەوجود: ${item.quantity} دانە)`,
+        value: typeName,
+        label: `${typeName} (بەردەست: ${item.quantity} دانە)`,
       };
     });
   }, [inventory]);
@@ -69,6 +70,7 @@ export default function ClothesPage() {
     defaultValues: {
       amount_paid: 0,
       uniform_size: '',
+      quantity: 1,
       notes: '',
     },
   });
@@ -78,6 +80,7 @@ export default function ClothesPage() {
       student_id: 0,
       amount_paid: 0,
       uniform_size: '',
+      quantity: 1,
       notes: '',
     });
     setIsFormOpen(true);
@@ -92,6 +95,7 @@ export default function ClothesPage() {
       amount_paid: values.amount_paid,
       payment_date: new Date().toISOString().split('T')[0],
       uniform_size: values.uniform_size,
+      quantity: values.quantity,
       notes: values.notes || '',
     };
 
@@ -120,7 +124,8 @@ export default function ClothesPage() {
     { header: 'ژمارەی پسوولە', accessor: (row) => row.invoice_no ? `#${row.invoice_no}` : '-', sortable: true },
     { header: 'ناوی قوتابی', accessor: (row) => row.student?.full_name || '-' },
     { header: 'پۆل', accessor: (row) => row.student?.grade ? GRADE_MAP[row.student.grade] || row.student.grade : '-' },
-    { header: 'سایزی جل', accessor: (row) => row.uniform_size || '-' },
+    { header: 'جۆری جلوبەرگ', accessor: (row) => row.uniform_size || '-' },
+    { header: 'ژمارەی دانە', accessor: (row) => `${row.quantity ?? 1} دانە` },
     { header: 'بڕی دراو', accessor: (row) => formatCurrency(row.amount_paid), className: 'text-success font-semibold' },
     { header: 'بەروار', accessor: (row) => formatDate(row.payment_date), sortable: true },
     {
@@ -164,7 +169,7 @@ export default function ClothesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-text">جلوبەرگ</h1>
-          <p className="text-xs text-text-muted">تۆمارکردنی مامەڵەکانی فرۆشتنی جلی قوتابخانە</p>
+          <p className="text-xs text-text-muted">تۆمارکردنی مامەڵەکانی فرۆشتنی جلی قوتابخانە بەپێی جۆر و ژمارەی دانە</p>
         </div>
         <Button variant="primary" onClick={openAddModal} className="flex items-center gap-1.5 self-start font-semibold">
           <HiOutlinePlusCircle className="w-4 h-4" />
@@ -200,11 +205,22 @@ export default function ClothesPage() {
           />
 
           <Select
-            label="سایزی جلوبەرگ *"
-            placeholder="سایزی جلوبەرگ هەڵبژێرە"
-            options={sizeOptions}
+            label="جۆری جلوبەرگ *"
+            placeholder="جۆری جلوبەرگ هەڵبژێرە"
+            options={typeOptions}
             error={errors.uniform_size?.message}
             {...register('uniform_size')}
+          />
+
+          <Input
+            label="ژمارەی دانە *"
+            id="quantity"
+            type="number"
+            min={1}
+            step={1}
+            placeholder="ژمارەی ئەو دانانەی دەفرۆشرێن"
+            error={errors.quantity?.message}
+            {...register('quantity', { valueAsNumber: true })}
           />
 
           <Input
@@ -246,7 +262,7 @@ export default function ClothesPage() {
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="سڕینەوەی تۆمار"
-        message="ئایا دڵنیایت لە سڕینەوەی ئەم تۆمارە؟ ئەم کردارە بە هەمیشەیی تۆماری کڕینەکە دەسڕێتەوە و ڕێژەی جلوبەرگ لە کۆگادا زیاد دەکاتەوە."
+        message="ئایا دڵنیایت لە سڕینەوەی ئەم تۆمارە؟ ئەم کردارە بە هەمیشەیی تۆماری کڕینەکە دەسڕێتەوە و ژمارەی دانە فرۆشراوەکان دەگەڕێنێتەوە کۆگا."
         isLoading={deleteMutation.isPending}
       />
 
@@ -254,7 +270,7 @@ export default function ClothesPage() {
       {editingPurchase && (
         <EditClothesModal
           purchase={editingPurchase}
-          sizeOptions={sizeOptions}
+          typeOptions={typeOptions}
           onClose={() => setEditingPurchase(null)}
           onSuccess={() => refetch()}
         />
@@ -263,17 +279,19 @@ export default function ClothesPage() {
   );
 }
 
-function EditClothesModal({ purchase, sizeOptions, onClose, onSuccess }: { purchase: any; sizeOptions: any[]; onClose: () => void; onSuccess: () => void }) {
+function EditClothesModal({ purchase, typeOptions, onClose, onSuccess }: { purchase: any; typeOptions: any[]; onClose: () => void; onSuccess: () => void }) {
   const updateMutation = useUpdateClothesBook(purchase.id);
   const { register, handleSubmit, formState: { errors } } = useForm<{
     amount_paid: number;
     uniform_size: string;
+    quantity: number;
     payment_date: string;
     notes: string;
   }>({
     defaultValues: {
       amount_paid: Number(purchase.amount_paid),
       uniform_size: purchase.uniform_size || '',
+      quantity: Number(purchase.quantity) || 1,
       payment_date: purchase.payment_date ? new Date(purchase.payment_date).toISOString().split('T')[0] : '',
       notes: purchase.notes || '',
     }
@@ -284,6 +302,7 @@ function EditClothesModal({ purchase, sizeOptions, onClose, onSuccess }: { purch
       amount_paid: values.amount_paid,
       price: values.amount_paid, // Sync price and amount_paid
       uniform_size: values.uniform_size,
+      quantity: values.quantity,
       payment_date: values.payment_date,
       notes: values.notes || '',
     };
@@ -300,11 +319,20 @@ function EditClothesModal({ purchase, sizeOptions, onClose, onSuccess }: { purch
     <Modal isOpen={true} onClose={onClose} title="دەستکاریکردنی کڕینی جلوبەرگ">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <Select
-          label="سایزی جلوبەرگ *"
-          placeholder="سایزی جلوبەرگ هەڵبژێرە"
-          options={sizeOptions}
+          label="جۆری جلوبەرگ *"
+          placeholder="جۆری جلوبەرگ هەڵبژێرە"
+          options={typeOptions}
           error={errors.uniform_size?.message}
-          {...register('uniform_size', { required: 'تکایە سایزێک دیاری بکە' })}
+          {...register('uniform_size', { required: 'تکایە جۆرێک دیاری بکە' })}
+        />
+        <Input
+          label="ژمارەی دانە *"
+          id="edit_quantity"
+          type="number"
+          min={1}
+          step={1}
+          error={errors.quantity?.message}
+          {...register('quantity', { valueAsNumber: true, required: 'تکایە ژمارەی دانەکان بنووسە', min: { value: 1, message: 'دەبێت لانیکەم ١ دانە بێت' } })}
         />
         <Input
           label="بڕی پارەی دراو (دینار) *"

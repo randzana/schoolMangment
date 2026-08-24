@@ -4,7 +4,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { DashboardData } from '@/types';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCompactCurrency, formatCurrency, formatDate } from '@/lib/utils';
 import {
   HiOutlineUserGroup,
   HiOutlineCreditCard,
@@ -188,28 +188,32 @@ export default function DashboardPage() {
     },
     {
       label: 'کۆی کرێی ساڵانە',
-      value: formatCurrency(dashboard.total_study_tuition || 0),
+      value: formatCompactCurrency(dashboard.total_study_tuition || 0),
+      fullValue: formatCurrency(dashboard.total_study_tuition || 0),
       icon: <HiOutlineAcademicCap className="w-5 h-5 md:w-6 md:h-6 text-indigo-600" />,
       color: 'bg-indigo-50',
       accent: 'border-indigo-100',
     },
     {
       label: 'داهاتی خوێندن',
-      value: formatCurrency(dashboard.study_revenue),
+      value: formatCompactCurrency(dashboard.study_revenue),
+      fullValue: formatCurrency(dashboard.study_revenue),
       icon: <HiOutlineCreditCard className="w-5 h-5 md:w-6 md:h-6 text-success" />,
       color: 'bg-success/10',
       accent: 'border-success/20',
     },
     {
       label: 'داهاتی نانخواردن',
-      value: formatCurrency(dashboard.food_revenue),
+      value: formatCompactCurrency(dashboard.food_revenue),
+      fullValue: formatCurrency(dashboard.food_revenue),
       icon: <HiOutlineBuildingStorefront className="w-5 h-5 md:w-6 md:h-6 text-accent" />,
       color: 'bg-accent/10',
       accent: 'border-accent/20',
     },
     {
       label: 'داهاتی جل و کتێب',
-      value: formatCurrency(dashboard.clothes_revenue),
+      value: formatCompactCurrency(dashboard.clothes_revenue),
+      fullValue: formatCurrency(dashboard.clothes_revenue),
       icon: <HiOutlineCurrencyDollar className="w-5 h-5 md:w-6 md:h-6 text-warning" />,
       color: 'bg-warning/10',
       accent: 'border-warning/20',
@@ -233,7 +237,7 @@ export default function DashboardPage() {
             </div>
             <div className="space-y-0.5 md:space-y-1 min-w-0">
               <span className="text-[10px] md:text-xs text-text-muted font-medium leading-tight block">{card.label}</span>
-              <p className="text-sm md:text-lg font-bold text-text truncate">{card.value}</p>
+              <p className="text-sm md:text-lg font-bold text-text truncate" title={card.fullValue ?? String(card.value)}>{card.value}</p>
             </div>
             <div className={`p-3 rounded-lg ${card.color} hidden md:block`}>{card.icon}</div>
           </div>

@@ -27,6 +27,70 @@ export function formatNumber(amount: number | string): string {
 }
 
 /**
+ * Compact units used for large amounts. Ordered from biggest to smallest.
+ */
+const COMPACT_UNITS = [
+  { value: 1_000_000_000_000, suffix: 'T' },
+  { value: 1_000_000_000, suffix: 'B' },
+  { value: 1_000_000, suffix: 'M' },
+] as const;
+
+/**
+ * Trim redundant trailing zeros from a fixed-decimal string ("1.50" -> "1.5", "1.00" -> "1").
+ */
+function trimDecimals(value: string): string {
+  if (!value.includes('.')) return value;
+  return value.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+}
+
+/**
+ * Format a number compactly once it reaches a million, so large amounts stay
+ * readable instead of overflowing their card (e.g. 94,620,000 -> "94.6M").
+ * Anything below a million keeps its normal thousands separators.
+ */
+export function formatCompactNumber(amount: number | string): string {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (isNaN(num)) return '٠';
+
+  const abs = Math.abs(num);
+  let unitIndex = COMPACT_UNITS.findIndex((unit) => abs >= unit.value);
+  if (unitIndex === -1) return Math.round(num).toLocaleString('en-US');
+
+  let unit = COMPACT_UNITS[unitIndex];
+  let scaled = num / unit.value;
+  let decimals = pickDecimals(Math.abs(scaled));
+
+  // Rounding can push a value into the next unit (999,999,999 -> "1000M"),
+  // so promote it instead: "1B".
+  if (Math.abs(Number(scaled.toFixed(decimals))) >= 1000 && unitIndex > 0) {
+    unitIndex -= 1;
+    unit = COMPACT_UNITS[unitIndex];
+    scaled = num / unit.value;
+    decimals = pickDecimals(Math.abs(scaled));
+  }
+
+  return `${trimDecimals(scaled.toFixed(decimals))}${unit.suffix}`;
+}
+
+/**
+ * Keep roughly three significant digits: 1.93M, 94.6M, 942M.
+ */
+function pickDecimals(absScaled: number): number {
+  if (absScaled >= 100) return 0;
+  if (absScaled >= 10) return 1;
+  return 2;
+}
+
+/**
+ * Currency variant of {@link formatCompactNumber}.
+ */
+export function formatCompactCurrency(amount: number | string): string {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (isNaN(num)) return '٠ دینار';
+  return `${formatCompactNumber(num)} دینار`;
+}
+
+/**
  * Map grade key to display string.
  */
 export const GRADE_MAP: Record<string, string> = {

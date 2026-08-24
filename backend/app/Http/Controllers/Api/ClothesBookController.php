@@ -4,14 +4,21 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClothesBookPayment;
+use App\Models\Inventory;
+use App\Models\Student;
 use App\Services\InvoiceNumberService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class ClothesBookController extends Controller
 {
+    /** Marks a purchase that covers every book of the student's grade. */
+    private const ALL_BOOKS_LABEL = 'سەرجەم کتێبەکان';
+
     public function __construct(
         protected InvoiceNumberService $invoiceService
     ) {}
@@ -54,6 +61,7 @@ class ClothesBookController extends Controller
             'student_id' => 'required|exists:students,id',
             'academic_year' => 'sometimes|string|max:9',
             'item_type' => ['required', Rule::in(['clothes', 'book', 'both'])],
+            'quantity' => 'nullable|integer|min:1|max:1000',
             'price' => 'required|numeric|min:0',
             'discount' => 'sometimes|numeric|min:0',
             'amount_paid' => 'required|numeric|min:0',
@@ -67,35 +75,19 @@ class ClothesBookController extends Controller
         $validated['invoice_no'] = $this->invoiceService->getNextInvoiceNumber('clothes_book');
         $validated['created_by'] = $request->user()->id;
         $validated['payment_date'] = $validated['payment_date'] ?? now()->toDateString();
+        $validated['quantity'] = (int) ($validated['quantity'] ?? 1);
 
         $payment = DB::transaction(function () use ($validated) {
+            $qty = (int) $validated['quantity'];
+
             // Adjust stock levels
             if (in_array($validated['item_type'], ['clothes', 'both']) && !empty($validated['uniform_size'])) {
-                $sizeCode = 'uniform_' . strtolower($validated['uniform_size']);
-                $uniformItem = \App\Models\Inventory::where('code', $sizeCode)->first();
-                if (!$uniformItem || $uniformItem->quantity < 1) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
-                        'uniform_size' => ["ڕێژەی پێویست لەم سایزە نییە لە کۆگادا (مەوجود: " . ($uniformItem?->quantity ?? 0) . ")"],
-                    ]);
-                }
-                $uniformItem->decrement('quantity', 1);
+                $this->takeUniformStock($validated['uniform_size'], $qty);
             }
 
             if (in_array($validated['item_type'], ['book', 'both']) && !empty($validated['book_subject'])) {
                 $student = \App\Models\Student::findOrFail($validated['student_id']);
-                $bookSubjectClean = strtolower(str_replace(' ', '_', $validated['book_subject']));
-                $gradeCode = 'book_' . $bookSubjectClean . '_' . strtolower($student->grade);
-                $generalCode = 'book_' . $bookSubjectClean;
-
-                $bookItem = \App\Models\Inventory::where('code', $gradeCode)->first()
-                    ?? \App\Models\Inventory::where('code', $generalCode)->first();
-
-                if (!$bookItem || $bookItem->quantity < 1) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
-                        'book_subject' => ["ڕێژەی پێویست لەم کتێبە نییە لە کۆگادا (مەوجود: " . ($bookItem?->quantity ?? 0) . ")"],
-                    ]);
-                }
-                $bookItem->decrement('quantity', 1);
+                $this->takeBookStock($validated['book_subject'], $student, $qty);
             }
 
             return ClothesBookPayment::create($validated);
@@ -125,6 +117,7 @@ class ClothesBookController extends Controller
 
         $validated = $request->validate([
             'item_type' => ['sometimes', Rule::in(['clothes', 'book', 'both'])],
+            'quantity' => 'nullable|integer|min:1|max:1000',
             'price' => 'sometimes|numeric|min:0',
             'discount' => 'sometimes|numeric|min:0',
             'amount_paid' => 'sometimes|numeric|min:0',
@@ -138,60 +131,29 @@ class ClothesBookController extends Controller
             $oldType = $payment->item_type;
             $oldSize = $payment->uniform_size;
             $oldSubject = $payment->book_subject;
+            $oldQty = max(1, (int) ($payment->quantity ?? 1));
 
             $newType = $validated['item_type'] ?? $oldType;
             $newSize = array_key_exists('uniform_size', $validated) ? $validated['uniform_size'] : $oldSize;
             $newSubject = array_key_exists('book_subject', $validated) ? $validated['book_subject'] : $oldSubject;
+            $newQty = isset($validated['quantity']) ? (int) $validated['quantity'] : $oldQty;
+
+            $student = $payment->student;
 
             // 1. Revert OLD stock adjustments
             if (in_array($oldType, ['clothes', 'both']) && !empty($oldSize)) {
-                $sizeCode = 'uniform_' . strtolower($oldSize);
-                $uniformItem = \App\Models\Inventory::where('code', $sizeCode)->first();
-                if ($uniformItem) {
-                    $uniformItem->increment('quantity', 1);
-                }
+                $this->returnUniformStock($oldSize, $oldQty);
             }
             if (in_array($oldType, ['book', 'both']) && !empty($oldSubject)) {
-                $student = $payment->student;
-                $bookSubjectClean = strtolower(str_replace(' ', '_', $oldSubject));
-                $gradeCode = 'book_' . $bookSubjectClean . '_' . strtolower($student->grade);
-                $generalCode = 'book_' . $bookSubjectClean;
-
-                $bookItem = \App\Models\Inventory::where('code', $gradeCode)->first()
-                    ?? \App\Models\Inventory::where('code', $generalCode)->first();
-
-                if ($bookItem) {
-                    $bookItem->increment('quantity', 1);
-                }
+                $this->returnBookStock($oldSubject, $student, $oldQty);
             }
 
             // 2. Apply NEW stock adjustments (and check availability)
             if (in_array($newType, ['clothes', 'both']) && !empty($newSize)) {
-                $sizeCode = 'uniform_' . strtolower($newSize);
-                $uniformItem = \App\Models\Inventory::where('code', $sizeCode)->first();
-                if (!$uniformItem || $uniformItem->quantity < 1) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
-                        'uniform_size' => ["ڕێژەی پێویست لەم سایزە نییە لە کۆگادا (مەوجود: " . ($uniformItem?->quantity ?? 0) . ")"],
-                    ]);
-                }
-                $uniformItem->decrement('quantity', 1);
+                $this->takeUniformStock($newSize, $newQty);
             }
             if (in_array($newType, ['book', 'both']) && !empty($newSubject)) {
-                $studentId = $validated['student_id'] ?? $payment->student_id;
-                $student = \App\Models\Student::findOrFail($studentId);
-                $bookSubjectClean = strtolower(str_replace(' ', '_', $newSubject));
-                $gradeCode = 'book_' . $bookSubjectClean . '_' . strtolower($student->grade);
-                $generalCode = 'book_' . $bookSubjectClean;
-
-                $bookItem = \App\Models\Inventory::where('code', $gradeCode)->first()
-                    ?? \App\Models\Inventory::where('code', $generalCode)->first();
-
-                if (!$bookItem || $bookItem->quantity < 1) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
-                        'book_subject' => ["ڕێژەی پێویست لەم کتێبە نییە لە کۆگادا (مەوجود: " . ($bookItem?->quantity ?? 0) . ")"],
-                    ]);
-                }
-                $bookItem->decrement('quantity', 1);
+                $this->takeBookStock($newSubject, $student, $newQty);
             }
 
             $payment->update($validated);
@@ -209,38 +171,15 @@ class ClothesBookController extends Controller
     {
         DB::transaction(function () use ($id) {
             $payment = ClothesBookPayment::findOrFail($id);
+            $qty = max(1, (int) ($payment->quantity ?? 1));
 
             // Revert stock levels
             if (in_array($payment->item_type, ['clothes', 'both']) && !empty($payment->uniform_size)) {
-                $sizeCode = 'uniform_' . strtolower($payment->uniform_size);
-                $uniformItem = \App\Models\Inventory::where('code', $sizeCode)->first();
-                if ($uniformItem) {
-                    $uniformItem->increment('quantity', 1);
-                }
+                $this->returnUniformStock($payment->uniform_size, $qty);
             }
 
             if (in_array($payment->item_type, ['book', 'both']) && !empty($payment->book_subject)) {
-                $student = $payment->student;
-                if ($payment->book_subject === 'سەرجەم کتێبەکان') {
-                    $grade = strtolower($student->grade);
-                    $gradeBooks = \App\Models\Inventory::where('item_type', 'book')
-                        ->where('grade', $grade)
-                        ->get();
-                    foreach ($gradeBooks as $bookItem) {
-                        $bookItem->increment('quantity', 1);
-                    }
-                } else {
-                    $bookSubjectClean = strtolower(str_replace(' ', '_', $payment->book_subject));
-                    $gradeCode = 'book_' . $bookSubjectClean . '_' . strtolower($student->grade);
-                    $generalCode = 'book_' . $bookSubjectClean;
-
-                    $bookItem = \App\Models\Inventory::where('code', $gradeCode)->first()
-                        ?? \App\Models\Inventory::where('code', $generalCode)->first();
-
-                    if ($bookItem) {
-                        $bookItem->increment('quantity', 1);
-                    }
-                }
+                $this->returnBookStock($payment->book_subject, $payment->student, $qty);
             }
 
             $payment->delete();
@@ -254,6 +193,102 @@ class ClothesBookController extends Controller
     }
 
     /**
+     * Resolve the inventory row holding a uniform type (stored as `uniform_<name>`).
+     */
+    private function uniformInventory(string $uniformType): ?Inventory
+    {
+        return Inventory::where('code', 'uniform_' . strtolower($uniformType))->first();
+    }
+
+    /**
+     * Resolve the inventory rows a book purchase draws from. A bulk purchase
+     * covers every book of the student's grade, otherwise it is a single title.
+     *
+     * @return Collection<int, Inventory>
+     */
+    private function bookInventories(string $bookSubject, ?Student $student): Collection
+    {
+        if ($bookSubject === self::ALL_BOOKS_LABEL) {
+            if (!$student) {
+                return collect();
+            }
+
+            return Inventory::where('item_type', 'book')
+                ->where('grade', strtolower($student->grade))
+                ->get();
+        }
+
+        $bookSubjectClean = strtolower(str_replace(' ', '_', $bookSubject));
+
+        $item = $student
+            ? Inventory::where('code', 'book_' . $bookSubjectClean . '_' . strtolower($student->grade))->first()
+            : null;
+        $item ??= Inventory::where('code', 'book_' . $bookSubjectClean)->first();
+
+        return collect($item ? [$item] : []);
+    }
+
+    /**
+     * Take `$qty` uniforms out of stock, refusing when there are not enough.
+     */
+    private function takeUniformStock(string $uniformType, int $qty): void
+    {
+        $item = $this->uniformInventory($uniformType);
+
+        if (!$item || $item->quantity < $qty) {
+            throw ValidationException::withMessages([
+                'uniform_size' => ['ڕێژەی پێویست لەم جۆرە نییە لە کۆگادا (داواکراو: ' . $qty . '، بەردەست: ' . ($item?->quantity ?? 0) . ')'],
+            ]);
+        }
+
+        $item->decrement('quantity', $qty);
+    }
+
+    /**
+     * Put `$qty` uniforms back into stock (edit or delete of a purchase).
+     */
+    private function returnUniformStock(string $uniformType, int $qty): void
+    {
+        $this->uniformInventory($uniformType)?->increment('quantity', $qty);
+    }
+
+    /**
+     * Take `$qty` copies of each matching book out of stock.
+     */
+    private function takeBookStock(string $bookSubject, ?Student $student, int $qty): void
+    {
+        $items = $this->bookInventories($bookSubject, $student);
+
+        if ($items->isEmpty()) {
+            throw ValidationException::withMessages([
+                'book_subject' => ['ئەم کتێبە لە کۆگادا تۆمار نەکراوە'],
+            ]);
+        }
+
+        foreach ($items as $item) {
+            if ($item->quantity < $qty) {
+                throw ValidationException::withMessages([
+                    'book_subject' => ['ڕێژەی پێویست لە کتێبی "' . $item->name . '" نییە لە کۆگادا (داواکراو: ' . $qty . '، بەردەست: ' . $item->quantity . ')'],
+                ]);
+            }
+        }
+
+        foreach ($items as $item) {
+            $item->decrement('quantity', $qty);
+        }
+    }
+
+    /**
+     * Put `$qty` copies of each matching book back into stock.
+     */
+    private function returnBookStock(string $bookSubject, ?Student $student, int $qty): void
+    {
+        foreach ($this->bookInventories($bookSubject, $student) as $item) {
+            $item->increment('quantity', $qty);
+        }
+    }
+
+    /**
      * Bulk-purchase ALL books for a student's grade in one transaction.
      */
     public function storeBulkBooks(Request $request): JsonResponse
@@ -264,13 +299,10 @@ class ClothesBookController extends Controller
             'price'          => 'required|numeric|min:0',
         ]);
 
-        $student = \App\Models\Student::findOrFail($validated['student_id']);
-        $grade   = strtolower($student->grade);
+        $student = Student::findOrFail($validated['student_id']);
 
         // Find all book inventory items matching this grade
-        $gradeBooks = \App\Models\Inventory::where('item_type', 'book')
-            ->where('grade', $grade)
-            ->get();
+        $gradeBooks = $this->bookInventories(self::ALL_BOOKS_LABEL, $student);
 
         if ($gradeBooks->isEmpty()) {
             return response()->json([
@@ -283,18 +315,8 @@ class ClothesBookController extends Controller
         $notes        = $validated['notes'] ?? '';
         $totalPrice   = (float)$validated['price'];
 
-        $payment = DB::transaction(function () use ($gradeBooks, $student, $academicYear, $notes, $totalPrice, $request) {
-            foreach ($gradeBooks as $bookItem) {
-                // Check stock
-                if ($bookItem->quantity < 1) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
-                        'stock' => ["کتێبی \"{$bookItem->name}\" لە کۆگادا نییە (مەوجود: 0)"],
-                    ]);
-                }
-
-                // Decrement stock
-                $bookItem->decrement('quantity', 1);
-            }
+        $payment = DB::transaction(function () use ($student, $academicYear, $notes, $totalPrice, $request) {
+            $this->takeBookStock(self::ALL_BOOKS_LABEL, $student, 1);
 
             $invoiceNo = $this->invoiceService->getNextInvoiceNumber('clothes_book');
 
@@ -303,6 +325,7 @@ class ClothesBookController extends Controller
                 'student_id'    => $student->id,
                 'academic_year' => $academicYear,
                 'item_type'     => 'book',
+                'quantity'      => 1,
                 'price'         => $totalPrice,
                 'discount'      => 0,
                 'amount_paid'   => $totalPrice,
@@ -310,7 +333,7 @@ class ClothesBookController extends Controller
                 'notes'         => $notes,
                 'invoice_no'    => $invoiceNo,
                 'created_by'    => $request->user()->id,
-                'book_subject'  => 'سەرجەم کتێبەکان',
+                'book_subject'  => self::ALL_BOOKS_LABEL,
             ]);
         });
 
@@ -352,6 +375,9 @@ class ClothesBookController extends Controller
             'fee_label' => $fee_label,
             'is_returned' => false,
             'notes' => $payment->notes,
+            'uniform_type' => $payment->uniform_size,
+            'book_subject' => $payment->book_subject,
+            'quantity' => max(1, (int) ($payment->quantity ?? 1)),
         ];
 
         return view('invoices.installment_print', $data);

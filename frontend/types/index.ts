@@ -161,6 +161,7 @@ export interface ClothesBookPayment {
   student_id: number;
   academic_year: string;
   item_type: 'clothes' | 'book' | 'both';
+  quantity?: number;
   price: string;
   discount: string;
   amount_paid: string;
