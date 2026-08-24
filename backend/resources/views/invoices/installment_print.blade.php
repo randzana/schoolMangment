@@ -33,7 +33,7 @@
             font-size: 11px; 
             color: #1E293B; 
             background-color: #FFFFFF;
-            padding: 10mm 12mm;
+            padding: 6mm 8mm;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
@@ -43,8 +43,8 @@
             width: 100%;
             height: 100%;
             border: 1px solid #E2E8F0;
-            border-radius: 12px;
-            padding: 15px 18px;
+            border-radius: 10px;
+            padding: 12px 16px;
             background: #FFFFFF;
             overflow: hidden;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
@@ -56,19 +56,19 @@
             align-items: center;
             justify-content: space-between;
             border-bottom: 2px solid #1E3A5F;
-            padding-bottom: 8px;
-            margin-bottom: 10px;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
         }
         
         .school-info {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
         
         .logo {
-            height: 50px;
-            width: 50px;
+            height: 44px;
+            width: 44px;
             object-fit: contain;
         }
         
@@ -79,14 +79,14 @@
         }
         
         .school-name-ar {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             color: #1E3A5F;
             line-height: 1.2;
         }
         
         .school-name-en {
-            font-size: 10px;
+            font-size: 9.5px;
             font-weight: 500;
             color: #64748B;
             margin-top: 1px;
@@ -95,7 +95,7 @@
         .title-badge {
             background-color: #1E3A5F;
             color: #FFFFFF;
-            padding: 4px 12px;
+            padding: 3px 10px;
             border-radius: 4px;
             font-size: 11px;
             font-weight: 700;
@@ -104,13 +104,13 @@
         
         .invoice-meta {
             text-align: left;
-            font-size: 10px;
+            font-size: 9.5px;
             color: #475569;
-            line-height: 1.4;
+            line-height: 1.3;
         }
         
         .meta-no {
-            font-size: 12px;
+            font-size: 11.5px;
             font-weight: 700;
             color: #D97706;
             font-family: monospace;
@@ -120,28 +120,28 @@
         .content-grid {
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            margin-bottom: 10px;
+            gap: 4.5px;
+            margin-bottom: 8px;
         }
         
         .detail-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 7px 12px;
+            padding: 5px 10px;
             border: 1px solid #E2E8F0;
-            border-radius: 6px;
+            border-radius: 5px;
             background-color: #F8FAFC;
         }
         
         .detail-label {
-            font-size: 11px;
+            font-size: 10.5px;
             font-weight: 500;
             color: #64748B;
         }
         
         .detail-value {
-            font-size: 12px;
+            font-size: 11.5px;
             font-weight: 700;
             color: #0F172A;
             text-align: left;
@@ -157,7 +157,7 @@
         }
         .highlight-paid .detail-value {
             color: #92400E;
-            font-size: 13px;
+            font-size: 12.5px;
         }
         
         .highlight-remain {
@@ -169,18 +169,18 @@
         }
         .highlight-remain .detail-value {
             color: #991B1B;
-            font-size: 13px;
+            font-size: 12.5px;
         }
         
         /* Signatures and Footer */
         .footer-section {
-            margin-top: 8px;
+            margin-top: 6px;
         }
         
         .signature-grid {
             display: flex;
             justify-content: space-between;
-            margin-top: 8px;
+            margin-top: 6px;
             padding: 0 10px;
         }
         
@@ -192,14 +192,14 @@
         .sig-title {
             font-weight: 700;
             color: #475569;
-            font-size: 10px;
-            margin-bottom: 20px;
+            font-size: 9.5px;
+            margin-bottom: 14px;
         }
         
         .sig-line {
             border-top: 1px dashed #94A3B8;
             padding-top: 2px;
-            font-size: 9px;
+            font-size: 8.5px;
             color: #64748B;
         }
         
@@ -207,9 +207,9 @@
             text-align: center;
             font-size: 8px;
             color: #94A3B8;
-            margin-top: 8px;
+            margin-top: 6px;
             border-top: 1px solid #F1F5F9;
-            padding-top: 4px;
+            padding-top: 3px;
         }
         
         /* Returned stamp */
@@ -233,13 +233,13 @@
         @media print {
             body { 
                 background: #FFFFFF !important; 
-                padding: 10mm 12mm !important;
+                padding: 6mm 8mm !important; 
                 margin: 0 !important;
             }
             .invoice-wrapper {
                 border: 1px solid #CBD5E1 !important;
                 box-shadow: none !important;
-                border-radius: 12px !important;
+                border-radius: 10px !important;
             }
             .no-print {
                 display: none !important;
@@ -303,12 +303,15 @@
             </div>
             @endif
 
-            @if(!empty($items) && is_array($items) && count($items) > 1)
-            <div class="detail-row" style="align-items: flex-start;">
-                <span class="detail-label">جۆرەکانی جلوبەرگ:</span>
-                <div class="detail-value" style="display: flex; flex-direction: column; gap: 4px; text-align: left;">
+            @if(!empty($items) && is_array($items) && count($items) > 0)
+            <div class="detail-row" style="align-items: center;">
+                <span class="detail-label" style="white-space: nowrap;">جۆری جلوبەرگ:</span>
+                <div class="detail-value" style="display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-start; align-items: center;">
                     @foreach($items as $item)
-                        <span>{{ $item['uniform_size'] ?? '' }} ({{ $item['quantity'] ?? 1 }} دانە)</span>
+                        <span style="display: inline-flex; align-items: center; gap: 3px; background: #F1F5F9; border: 1px solid #CBD5E1; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; white-space: nowrap;">
+                            <span>{{ $item['uniform_size'] ?? '' }}</span>
+                            <span style="color: #1E3A5F; font-size: 10px; font-weight: 600;">({{ $item['quantity'] ?? 1 }} دانە)</span>
+                        </span>
                     @endforeach
                 </div>
             </div>
@@ -326,9 +329,9 @@
             </div>
             @endif
 
-            @if(($quantity ?? 1) > 1)
+            @if(($quantity ?? 1) > 1 && (empty($items) || count($items) <= 1))
             <div class="detail-row">
-                <span class="detail-label">{{ (!empty($items) && is_array($items) && count($items) > 1) ? 'کۆی گشتی دانەکان:' : 'ژمارەی دانە:' }}</span>
+                <span class="detail-label">ژمارەی دانە:</span>
                 <span class="detail-value">{{ $quantity }} دانە</span>
             </div>
             @endif

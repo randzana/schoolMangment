@@ -171,14 +171,13 @@ class ClothesQuantityTest extends TestCase
         $this->assertSame(8, Inventory::where('code', 'uniform_m')->value('quantity'));
         $this->assertSame(13, Inventory::where('code', 'uniform_l')->value('quantity'));
 
-        // Check invoice shows both types
+        // Check invoice shows both types side by side
         $this->get("/api/clothes-books/{$id}/invoice")
             ->assertOk()
-            ->assertSee('جۆرەکانی جلوبەرگ:', false)
-            ->assertSee('M (2 دانە)', false)
-            ->assertSee('L (2 دانە)', false)
-            ->assertSee('کۆی گشتی دانەکان:', false)
-            ->assertSee('4 دانە', false);
+            ->assertSee('جۆری جلوبەرگ:', false)
+            ->assertSee('M', false)
+            ->assertSee('L', false)
+            ->assertSee('2 دانە', false);
 
         // Deleting multi-item returns stock for both
         $this->deleteJson("/api/clothes-books/{$id}")->assertOk();
