@@ -17,6 +17,7 @@ class ClothesBookPayment extends Model
         'academic_year',
         'item_type',
         'quantity',
+        'items',
         'price',
         'discount',
         'amount_paid',
@@ -37,6 +38,7 @@ class ClothesBookPayment extends Model
             'payment_date' => 'date',
             'invoice_no' => 'integer',
             'quantity' => 'integer',
+            'items' => 'array',
         ];
     }
 

@@ -156,12 +156,19 @@ export interface FoodInstallment {
 }
 
 // Clothes & Books Payment
+export interface ClothesItemPayload {
+  uniform_size: string;
+  quantity: number;
+  price?: number;
+}
+
 export interface ClothesBookPayment {
   id: number;
   student_id: number;
   academic_year: string;
   item_type: 'clothes' | 'book' | 'both';
   quantity?: number;
+  items?: ClothesItemPayload[];
   price: string;
   discount: string;
   amount_paid: string;

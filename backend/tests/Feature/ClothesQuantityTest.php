@@ -144,4 +144,81 @@ class ClothesQuantityTest extends TestCase
             ->assertSee('جۆری جلوبەرگ:', false)
             ->assertSee('3 دانە', false);
     }
+
+    public function test_selling_multiple_clothes_types_in_one_payment(): void
+    {
+        Inventory::create([
+            'item_type' => 'clothes',
+            'name' => 'Uniform Size L',
+            'code' => 'uniform_l',
+            'quantity' => 15,
+            'price' => 30000,
+        ]);
+
+        $response = $this->postJson('/api/clothes-books', [
+            'student_id' => $this->student->id,
+            'item_type' => 'clothes',
+            'price' => 110000,
+            'amount_paid' => 110000,
+            'items' => [
+                ['uniform_size' => 'M', 'quantity' => 2],
+                ['uniform_size' => 'L', 'quantity' => 2],
+            ],
+        ])->assertCreated();
+
+        $id = $response->json('data.id');
+        $this->assertSame(4, $response->json('data.quantity'));
+        $this->assertSame(8, Inventory::where('code', 'uniform_m')->value('quantity'));
+        $this->assertSame(13, Inventory::where('code', 'uniform_l')->value('quantity'));
+
+        // Check invoice shows both types
+        $this->get("/api/clothes-books/{$id}/invoice")
+            ->assertOk()
+            ->assertSee('جۆرەکانی جلوبەرگ:', false)
+            ->assertSee('M (2 دانە)', false)
+            ->assertSee('L (2 دانە)', false)
+            ->assertSee('کۆی گشتی دانەکان:', false)
+            ->assertSee('4 دانە', false);
+
+        // Deleting multi-item returns stock for both
+        $this->deleteJson("/api/clothes-books/{$id}")->assertOk();
+        $this->assertSame(10, Inventory::where('code', 'uniform_m')->value('quantity'));
+        $this->assertSame(15, Inventory::where('code', 'uniform_l')->value('quantity'));
+    }
+
+    public function test_updating_multi_item_clothes_sale_rebalances_stock(): void
+    {
+        Inventory::create([
+            'item_type' => 'clothes',
+            'name' => 'Uniform Size L',
+            'code' => 'uniform_l',
+            'quantity' => 10,
+            'price' => 30000,
+        ]);
+
+        $id = $this->postJson('/api/clothes-books', [
+            'student_id' => $this->student->id,
+            'item_type' => 'clothes',
+            'price' => 100000,
+            'amount_paid' => 100000,
+            'items' => [
+                ['uniform_size' => 'M', 'quantity' => 2],
+                ['uniform_size' => 'L', 'quantity' => 3],
+            ],
+        ])->assertCreated()->json('data.id');
+
+        $this->assertSame(8, Inventory::where('code', 'uniform_m')->value('quantity'));
+        $this->assertSame(7, Inventory::where('code', 'uniform_l')->value('quantity'));
+
+        // Update items: 1 M and 1 L
+        $this->putJson("/api/clothes-books/{$id}", [
+            'items' => [
+                ['uniform_size' => 'M', 'quantity' => 1],
+                ['uniform_size' => 'L', 'quantity' => 1],
+            ],
+        ])->assertOk()->assertJsonPath('data.quantity', 2);
+
+        $this->assertSame(9, Inventory::where('code', 'uniform_m')->value('quantity'));
+        $this->assertSame(9, Inventory::where('code', 'uniform_l')->value('quantity'));
+    }
 }

@@ -61,33 +61,62 @@ class ClothesBookController extends Controller
             'student_id' => 'required|exists:students,id',
             'academic_year' => 'sometimes|string|max:9',
             'item_type' => ['required', Rule::in(['clothes', 'book', 'both'])],
+            'items' => 'nullable|array',
+            'items.*.uniform_size' => 'required_with:items|string',
+            'items.*.quantity' => 'required_with:items|integer|min:1|max:1000',
+            'items.*.price' => 'nullable|numeric|min:0',
             'quantity' => 'nullable|integer|min:1|max:1000',
             'price' => 'required|numeric|min:0',
             'discount' => 'sometimes|numeric|min:0',
             'amount_paid' => 'required|numeric|min:0',
             'payment_date' => 'sometimes|date',
             'notes' => 'nullable|string',
-            'uniform_size' => 'required_if:item_type,clothes,both|nullable|string',
+            'uniform_size' => 'nullable|string',
             'book_subject' => 'required_if:item_type,book,both|nullable|string',
         ]);
+
+        if (in_array($validated['item_type'], ['clothes', 'both']) && empty($validated['items']) && empty($validated['uniform_size'])) {
+            throw ValidationException::withMessages([
+                'uniform_size' => ['تکایە لانیکەم یەک جۆری جلوبەرگ دیاری بکە'],
+            ]);
+        }
 
         $validated['academic_year'] = $validated['academic_year'] ?? config('school.academic_year', '2025-2026');
         $validated['invoice_no'] = $this->invoiceService->getNextInvoiceNumber('clothes_book');
         $validated['created_by'] = $request->user()->id;
         $validated['payment_date'] = $validated['payment_date'] ?? now()->toDateString();
-        $validated['quantity'] = (int) ($validated['quantity'] ?? 1);
 
         $payment = DB::transaction(function () use ($validated) {
-            $qty = (int) $validated['quantity'];
-
-            // Adjust stock levels
-            if (in_array($validated['item_type'], ['clothes', 'both']) && !empty($validated['uniform_size'])) {
-                $this->takeUniformStock($validated['uniform_size'], $qty);
+            // Adjust clothes stock & format labels
+            if (in_array($validated['item_type'], ['clothes', 'both'])) {
+                if (!empty($validated['items']) && is_array($validated['items'])) {
+                    $totalQty = 0;
+                    $sizeLabels = [];
+                    foreach ($validated['items'] as $item) {
+                        $size = $item['uniform_size'];
+                        $qty = (int) ($item['quantity'] ?? 1);
+                        $totalQty += $qty;
+                        $this->takeUniformStock($size, $qty);
+                        $sizeLabels[] = $size . ($qty > 1 ? " ({$qty} دانە)" : '');
+                    }
+                    $validated['quantity'] = $totalQty;
+                    $validated['uniform_size'] = implode('، ', $sizeLabels);
+                } elseif (!empty($validated['uniform_size'])) {
+                    $qty = (int) ($validated['quantity'] ?? 1);
+                    $this->takeUniformStock($validated['uniform_size'], $qty);
+                    $validated['quantity'] = $qty;
+                    $validated['items'] = [
+                        ['uniform_size' => $validated['uniform_size'], 'quantity' => $qty]
+                    ];
+                }
+            } else {
+                $validated['quantity'] = (int) ($validated['quantity'] ?? 1);
             }
 
+            // Adjust book stock
             if (in_array($validated['item_type'], ['book', 'both']) && !empty($validated['book_subject'])) {
-                $student = \App\Models\Student::findOrFail($validated['student_id']);
-                $this->takeBookStock($validated['book_subject'], $student, $qty);
+                $student = Student::findOrFail($validated['student_id']);
+                $this->takeBookStock($validated['book_subject'], $student, (int) $validated['quantity']);
             }
 
             return ClothesBookPayment::create($validated);
@@ -117,6 +146,10 @@ class ClothesBookController extends Controller
 
         $validated = $request->validate([
             'item_type' => ['sometimes', Rule::in(['clothes', 'book', 'both'])],
+            'items' => 'nullable|array',
+            'items.*.uniform_size' => 'required_with:items|string',
+            'items.*.quantity' => 'required_with:items|integer|min:1|max:1000',
+            'items.*.price' => 'nullable|numeric|min:0',
             'quantity' => 'nullable|integer|min:1|max:1000',
             'price' => 'sometimes|numeric|min:0',
             'discount' => 'sometimes|numeric|min:0',
@@ -127,33 +160,70 @@ class ClothesBookController extends Controller
             'book_subject' => 'sometimes|nullable|string',
         ]);
 
-        $payment = DB::transaction(function () use ($payment, $validated) {
+        $payment = DB::transaction(function () use ($payment, $validated, $request) {
             $oldType = $payment->item_type;
+            $oldItems = $payment->items;
             $oldSize = $payment->uniform_size;
             $oldSubject = $payment->book_subject;
             $oldQty = max(1, (int) ($payment->quantity ?? 1));
 
             $newType = $validated['item_type'] ?? $oldType;
-            $newSize = array_key_exists('uniform_size', $validated) ? $validated['uniform_size'] : $oldSize;
-            $newSubject = array_key_exists('book_subject', $validated) ? $validated['book_subject'] : $oldSubject;
-            $newQty = isset($validated['quantity']) ? (int) $validated['quantity'] : $oldQty;
-
             $student = $payment->student;
 
             // 1. Revert OLD stock adjustments
-            if (in_array($oldType, ['clothes', 'both']) && !empty($oldSize)) {
-                $this->returnUniformStock($oldSize, $oldQty);
+            if (in_array($oldType, ['clothes', 'both'])) {
+                if (!empty($oldItems) && is_array($oldItems)) {
+                    foreach ($oldItems as $it) {
+                        $this->returnUniformStock($it['uniform_size'], max(1, (int) ($it['quantity'] ?? 1)));
+                    }
+                } elseif (!empty($oldSize)) {
+                    $this->returnUniformStock($oldSize, $oldQty);
+                }
             }
             if (in_array($oldType, ['book', 'both']) && !empty($oldSubject)) {
                 $this->returnBookStock($oldSubject, $student, $oldQty);
             }
 
-            // 2. Apply NEW stock adjustments (and check availability)
-            if (in_array($newType, ['clothes', 'both']) && !empty($newSize)) {
-                $this->takeUniformStock($newSize, $newQty);
+            // 2. Apply NEW stock adjustments
+            if (in_array($newType, ['clothes', 'both'])) {
+                if ($request->has('items') && !empty($validated['items']) && is_array($validated['items'])) {
+                    $totalQty = 0;
+                    $sizeLabels = [];
+                    foreach ($validated['items'] as $item) {
+                        $size = $item['uniform_size'];
+                        $qty = (int) ($item['quantity'] ?? 1);
+                        $totalQty += $qty;
+                        $this->takeUniformStock($size, $qty);
+                        $sizeLabels[] = $size . ($qty > 1 ? " ({$qty} دانە)" : '');
+                    }
+                    $validated['quantity'] = $totalQty;
+                    $validated['uniform_size'] = implode('، ', $sizeLabels);
+                } elseif (array_key_exists('uniform_size', $validated) || array_key_exists('quantity', $validated)) {
+                    $newSize = $validated['uniform_size'] ?? $oldSize;
+                    $newQty = isset($validated['quantity']) ? (int) $validated['quantity'] : $oldQty;
+                    if (!empty($newSize)) {
+                        $this->takeUniformStock($newSize, $newQty);
+                        $validated['items'] = [
+                            ['uniform_size' => $newSize, 'quantity' => $newQty]
+                        ];
+                        $validated['quantity'] = $newQty;
+                        $validated['uniform_size'] = $newSize;
+                    }
+                } elseif (!empty($oldItems) && is_array($oldItems)) {
+                    foreach ($oldItems as $it) {
+                        $this->takeUniformStock($it['uniform_size'], max(1, (int) ($it['quantity'] ?? 1)));
+                    }
+                } elseif (!empty($oldSize)) {
+                    $this->takeUniformStock($oldSize, $oldQty);
+                }
             }
-            if (in_array($newType, ['book', 'both']) && !empty($newSubject)) {
-                $this->takeBookStock($newSubject, $student, $newQty);
+
+            if (in_array($newType, ['book', 'both'])) {
+                $newSubject = array_key_exists('book_subject', $validated) ? $validated['book_subject'] : $oldSubject;
+                $newQty = isset($validated['quantity']) ? (int) $validated['quantity'] : $oldQty;
+                if (!empty($newSubject)) {
+                    $this->takeBookStock($newSubject, $student, $newQty);
+                }
             }
 
             $payment->update($validated);
@@ -174,8 +244,14 @@ class ClothesBookController extends Controller
             $qty = max(1, (int) ($payment->quantity ?? 1));
 
             // Revert stock levels
-            if (in_array($payment->item_type, ['clothes', 'both']) && !empty($payment->uniform_size)) {
-                $this->returnUniformStock($payment->uniform_size, $qty);
+            if (in_array($payment->item_type, ['clothes', 'both'])) {
+                if (!empty($payment->items) && is_array($payment->items)) {
+                    foreach ($payment->items as $it) {
+                        $this->returnUniformStock($it['uniform_size'], max(1, (int) ($it['quantity'] ?? 1)));
+                    }
+                } elseif (!empty($payment->uniform_size)) {
+                    $this->returnUniformStock($payment->uniform_size, $qty);
+                }
             }
 
             if (in_array($payment->item_type, ['book', 'both']) && !empty($payment->book_subject)) {
@@ -197,7 +273,11 @@ class ClothesBookController extends Controller
      */
     private function uniformInventory(string $uniformType): ?Inventory
     {
-        return Inventory::where('code', 'uniform_' . strtolower($uniformType))->first();
+        $clean = strtolower(trim($uniformType));
+        return Inventory::where('code', 'uniform_' . $clean)
+            ->orWhere('name', 'Uniform Size ' . trim($uniformType))
+            ->orWhere('name', trim($uniformType))
+            ->first();
     }
 
     /**
@@ -378,6 +458,7 @@ class ClothesBookController extends Controller
             'uniform_type' => $payment->uniform_size,
             'book_subject' => $payment->book_subject,
             'quantity' => max(1, (int) ($payment->quantity ?? 1)),
+            'items' => $payment->items,
         ];
 
         return view('invoices.installment_print', $data);

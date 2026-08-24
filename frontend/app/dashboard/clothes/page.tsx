@@ -1,12 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as zod from 'zod';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api, { API_URL } from '@/lib/api';
-import { InventoryItem, ClothesBookPayment } from '@/types';
+import { InventoryItem, ClothesBookPayment, StudentSearch } from '@/types';
 import { useClothesBooks, useCreateClothesBook, useDeleteClothesBook, useUpdateClothesBook } from '@/hooks';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -17,23 +14,26 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { DataTable, Column } from '@/components/tables/DataTable';
 import { TablePagination } from '@/components/tables/TablePagination';
 import { formatCurrency, formatDate, GRADE_MAP } from '@/lib/utils';
-import { HiOutlinePrinter, HiOutlineTrash, HiOutlinePlusCircle, HiOutlinePencil } from 'react-icons/hi2';
+import {
+  HiOutlinePrinter,
+  HiOutlineTrash,
+  HiOutlinePlusCircle,
+  HiOutlinePencil,
+  HiOutlinePlus,
+  HiOutlineShoppingBag,
+} from 'react-icons/hi2';
 
-const purchaseSchema = zod.object({
-  student_id: zod.number().min(1, 'تکایە قوتابییەک هەڵبژێرە'),
-  amount_paid: zod.number().min(1, 'دەبێت بڕی پارە لە ٠ زیاتر بێت'),
-  uniform_size: zod.string().min(1, 'تکایە جۆری جلوبەرگ دیاری بکە'),
-  quantity: zod.number().int('ژمارەی دانە دەبێت ژمارەیەکی تەواو بێت').min(1, 'دەبێت لانیکەم ١ دانە بێت'),
-  notes: zod.string().optional(),
-});
-
-type PurchaseFormValues = zod.infer<typeof purchaseSchema>;
+interface ClothesItemRow {
+  uniform_size: string;
+  quantity: number;
+  price?: number;
+}
 
 export default function ClothesPage() {
   const [page, setPage] = useState(1);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [editingPurchase, setEditingPurchase] = useState<any | null>(null);
+  const [editingPurchase, setEditingPurchase] = useState<ClothesBookPayment | null>(null);
 
   const { data: purchasesData, isLoading, refetch } = useClothesBooks({ page, item_type: 'clothes' });
   const createMutation = useCreateClothesBook();
@@ -48,55 +48,130 @@ export default function ClothesPage() {
     },
   });
 
-  const typeOptions = React.useMemo(() => {
+  const typeOptions = useMemo(() => {
     if (!inventory) return [];
     return inventory.map((item) => {
-      const typeName = item.name.replace('Uniform Size ', '');
+      const typeName = item.name.replace(/^Uniform Size\s*/i, '');
+      const priceNum = Number(item.price) || 0;
       return {
         value: typeName,
-        label: `${typeName} (بەردەست: ${item.quantity} دانە)`,
+        label: `${typeName} (بەردەست: ${item.quantity} دانە${priceNum > 0 ? ` - ${formatCurrency(priceNum)}` : ''})`,
+        rawPrice: priceNum,
+        stock: item.quantity,
       };
     });
   }, [inventory]);
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    reset,
-    formState: { errors },
-  } = useForm<PurchaseFormValues>({
-    resolver: zodResolver(purchaseSchema),
-    defaultValues: {
-      amount_paid: 0,
-      uniform_size: '',
-      quantity: 1,
-      notes: '',
-    },
-  });
+  // Price lookup map for types
+  const priceMap = useMemo(() => {
+    const map = new Map<string, number>();
+    typeOptions.forEach((opt) => {
+      map.set(opt.value, opt.rawPrice);
+    });
+    return map;
+  }, [typeOptions]);
+
+  // State for Add Modal
+  const [selectedStudent, setSelectedStudent] = useState<StudentSearch | null>(null);
+  const [items, setItems] = useState<ClothesItemRow[]>([
+    { uniform_size: '', quantity: 1, price: 0 },
+  ]);
+  const [amountPaid, setAmountPaid] = useState<number>(0);
+  const [isAmountManuallyEdited, setIsAmountManuallyEdited] = useState(false);
+  const [notes, setNotes] = useState('');
+  const [formErrors, setFormErrors] = useState<{ student?: string; items?: string; amount?: string }>({});
+
+  const totalPieces = useMemo(() => {
+    return items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+  }, [items]);
+
+  const estimatedTotal = useMemo(() => {
+    return items.reduce((sum, item) => {
+      const unitPrice = priceMap.get(item.uniform_size) || 0;
+      return sum + (Number(item.quantity) || 0) * unitPrice;
+    }, 0);
+  }, [items, priceMap]);
+
+  // Recalculate amount paid if not manually overwritten
+  useEffect(() => {
+    if (!isAmountManuallyEdited && estimatedTotal > 0) {
+      setAmountPaid(estimatedTotal);
+    }
+  }, [estimatedTotal, isAmountManuallyEdited]);
 
   const openAddModal = () => {
-    reset({
-      student_id: 0,
-      amount_paid: 0,
-      uniform_size: '',
-      quantity: 1,
-      notes: '',
-    });
+    setSelectedStudent(null);
+    setItems([{ uniform_size: '', quantity: 1, price: 0 }]);
+    setAmountPaid(0);
+    setIsAmountManuallyEdited(false);
+    setNotes('');
+    setFormErrors({});
     setIsFormOpen(true);
   };
 
-  const onSubmit = (values: PurchaseFormValues) => {
+  const handleAddItem = () => {
+    setItems((prev) => [...prev, { uniform_size: '', quantity: 1, price: 0 }]);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    if (items.length <= 1) return;
+    setItems((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleItemChange = (index: number, field: keyof ClothesItemRow, value: any) => {
+    setItems((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      if (field === 'uniform_size') {
+        const p = priceMap.get(value) || 0;
+        updated[index].price = p;
+      }
+      return updated;
+    });
+    setFormErrors((prev) => ({ ...prev, items: undefined }));
+  };
+
+  const handleAddSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const errors: { student?: string; items?: string; amount?: string } = {};
+
+    if (!selectedStudent || !selectedStudent.id) {
+      errors.student = 'تکایە قوتابییەک هەڵبژێرە';
+    }
+
+    const hasEmptyItem = items.some((it) => !it.uniform_size.trim());
+    if (hasEmptyItem) {
+      errors.items = 'تکایە جۆری جلوبەرگ بۆ هەموو بڕگەکان دیاری بکە';
+    }
+
+    const hasInvalidQty = items.some((it) => !it.quantity || it.quantity < 1);
+    if (hasInvalidQty) {
+      errors.items = 'ژمارەی دانەکان دەبێت لانیکەم ١ دانە بێت';
+    }
+
+    if (amountPaid < 0 || isNaN(amountPaid)) {
+      errors.amount = 'بڕی پارە دەبێت ژمارەیەکی دروست بێت';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
     const payload = {
-      student_id: values.student_id,
+      student_id: selectedStudent!.id,
       item_type: 'clothes' as const,
-      price: values.amount_paid,
+      price: amountPaid,
       discount: 0,
-      amount_paid: values.amount_paid,
+      amount_paid: amountPaid,
       payment_date: new Date().toISOString().split('T')[0],
-      uniform_size: values.uniform_size,
-      quantity: values.quantity,
-      notes: values.notes || '',
+      items: items.map((it) => ({
+        uniform_size: it.uniform_size,
+        quantity: Number(it.quantity) || 1,
+        price: it.price || 0,
+      })),
+      quantity: totalPieces,
+      notes: notes || '',
     };
 
     createMutation.mutate(payload, {
@@ -124,7 +199,27 @@ export default function ClothesPage() {
     { header: 'ژمارەی پسوولە', accessor: (row) => row.invoice_no ? `#${row.invoice_no}` : '-', sortable: true },
     { header: 'ناوی قوتابی', accessor: (row) => row.student?.full_name || '-' },
     { header: 'پۆل', accessor: (row) => row.student?.grade ? GRADE_MAP[row.student.grade] || row.student.grade : '-' },
-    { header: 'جۆری جلوبەرگ', accessor: (row) => row.uniform_size || '-' },
+    {
+      header: 'جۆری جلوبەرگ',
+      accessor: (row) => {
+        if (row.items && Array.isArray(row.items) && row.items.length > 0) {
+          return (
+            <div className="flex flex-wrap gap-1">
+              {row.items.map((item, idx) => (
+                <span
+                  key={idx}
+                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20"
+                >
+                  {item.uniform_size}
+                  {item.quantity > 1 ? ` (${item.quantity} دانە)` : ''}
+                </span>
+              ))}
+            </div>
+          );
+        }
+        return row.uniform_size || '-';
+      },
+    },
     { header: 'ژمارەی دانە', accessor: (row) => `${row.quantity ?? 1} دانە` },
     { header: 'بڕی دراو', accessor: (row) => formatCurrency(row.amount_paid), className: 'text-success font-semibold' },
     { header: 'بەروار', accessor: (row) => formatDate(row.payment_date), sortable: true },
@@ -169,9 +264,9 @@ export default function ClothesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-text">جلوبەرگ</h1>
-          <p className="text-xs text-text-muted">تۆمارکردنی مامەڵەکانی فرۆشتنی جلی قوتابخانە بەپێی جۆر و ژمارەی دانە</p>
+          <p className="text-xs text-text-muted">تۆمارکردنی فرۆشتنی جۆرە جیاوازەکانی جلوبەرگ بەپێی دانە و پسوولە</p>
         </div>
-        <Button variant="primary" onClick={openAddModal} className="flex items-center gap-1.5 self-start font-semibold">
+        <Button variant="primary" onClick={openAddModal} className="flex items-center gap-1.5 self-start font-semibold shadow-sm">
           <HiOutlinePlusCircle className="w-4 h-4" />
           <span>تۆمارکردنی فرۆشتن</span>
         </Button>
@@ -197,40 +292,105 @@ export default function ClothesPage() {
 
       {/* Record Purchase Modal */}
       <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title="تۆمارکردنی فرۆشتنی جلوبەرگ">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleAddSubmit} className="space-y-4">
           <AutocompleteInput
             label="قوتابی هەڵبژێرە *"
-            onSelect={(student) => setValue('student_id', student.id)}
-            error={errors.student_id?.message}
+            onSelect={(student) => {
+              setSelectedStudent(student);
+              setFormErrors((prev) => ({ ...prev, student: undefined }));
+            }}
+            error={formErrors.student}
           />
 
-          <Select
-            label="جۆری جلوبەرگ *"
-            placeholder="جۆری جلوبەرگ هەڵبژێرە"
-            options={typeOptions}
-            error={errors.uniform_size?.message}
-            {...register('uniform_size')}
-          />
+          {/* Clothes Items Section */}
+          <div className="bg-surface-muted/60 border border-border rounded-xl p-3.5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-text">
+                <HiOutlineShoppingBag className="w-4 h-4 text-primary" />
+                <span>جۆرەکانی جلوبەرگ و ڕێژە</span>
+              </div>
+              <span className="text-[11px] font-semibold text-text-muted bg-white px-2 py-0.5 rounded border border-border">
+                کۆی گشتی: <strong className="text-primary">{totalPieces}</strong> دانە
+              </span>
+            </div>
 
-          <Input
-            label="ژمارەی دانە *"
-            id="quantity"
-            type="number"
-            min={1}
-            step={1}
-            placeholder="ژمارەی ئەو دانانەی دەفرۆشرێن"
-            error={errors.quantity?.message}
-            {...register('quantity', { valueAsNumber: true })}
-          />
+            <div className="space-y-2.5 max-h-60 overflow-y-auto pr-0.5">
+              {items.map((item, index) => (
+                <div key={index} className="flex items-center gap-2 bg-white p-2 rounded-lg border border-border/80 shadow-xs">
+                  <div className="flex-1">
+                    <Select
+                      label=""
+                      placeholder="جۆری جلوبەرگ هەڵبژێرە"
+                      options={typeOptions}
+                      value={item.uniform_size}
+                      onChange={(e) => handleItemChange(index, 'uniform_size', e.target.value)}
+                    />
+                  </div>
 
-          <Input
-            label="بڕی پارەی دراو (دینار) *"
-            id="amount_paid"
-            type="number"
-            placeholder="بڕی پارەی دراو لە ئێستادا"
-            error={errors.amount_paid?.message}
-            {...register('amount_paid', { valueAsNumber: true })}
-          />
+                  <div className="w-24">
+                    <Input
+                      label=""
+                      type="number"
+                      min={1}
+                      step={1}
+                      placeholder="دانە"
+                      value={item.quantity}
+                      onChange={(e) => handleItemChange(index, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
+                    />
+                  </div>
+
+                  {items.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveItem(index)}
+                      className="p-2 text-danger hover:bg-danger-light rounded-lg transition-colors cursor-pointer"
+                      title="سڕینەوەی ئەم جۆرە"
+                    >
+                      <HiOutlineTrash className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {formErrors.items && (
+              <p className="text-xs text-danger font-medium mt-1">{formErrors.items}</p>
+            )}
+
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={handleAddItem}
+              className="w-full flex items-center justify-center gap-1.5 border-dashed border-primary/40 text-primary hover:bg-primary-light"
+            >
+              <HiOutlinePlus className="w-3.5 h-3.5" />
+              <span>زیادکردنی جۆرێکی تر</span>
+            </Button>
+          </div>
+
+          {/* Amount and notes */}
+          <div>
+            <Input
+              label="بڕی پارەی دراو (دینار) *"
+              id="amount_paid"
+              type="number"
+              min={0}
+              placeholder="بڕی پارەی دراو لە ئێستادا"
+              value={amountPaid === 0 && !isAmountManuallyEdited ? '' : amountPaid}
+              error={formErrors.amount}
+              onChange={(e) => {
+                setIsAmountManuallyEdited(true);
+                setAmountPaid(parseFloat(e.target.value) || 0);
+                setFormErrors((prev) => ({ ...prev, amount: undefined }));
+              }}
+            />
+            {estimatedTotal > 0 && isAmountManuallyEdited && (
+              <p className="text-[11px] text-text-muted mt-1">
+                کۆی خەمڵێنراوی کۆگا: {formatCurrency(estimatedTotal)}
+              </p>
+            )}
+          </div>
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="notes" className="text-xs font-semibold text-text">
@@ -238,10 +398,11 @@ export default function ClothesPage() {
             </label>
             <textarea
               id="notes"
-              rows={3}
-              placeholder="بۆ نموونە: تێبینییەکان لەم بەشە بنووسە"
+              rows={2}
+              placeholder="تێبینی بنووسە ئەگەر پێویست بکات..."
               className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-text border-border focus:border-primary-light focus:outline-none focus:ring-2 focus:ring-primary-light/20 transition-all placeholder:text-text-light"
-              {...register('notes')}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
             />
           </div>
 
@@ -262,7 +423,7 @@ export default function ClothesPage() {
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="سڕینەوەی تۆمار"
-        message="ئایا دڵنیایت لە سڕینەوەی ئەم تۆمارە؟ ئەم کردارە بە هەمیشەیی تۆماری کڕینەکە دەسڕێتەوە و ژمارەی دانە فرۆشراوەکان دەگەڕێنێتەوە کۆگا."
+        message="ئایا دڵنیایت لە سڕینەوەی ئەم تۆمارە؟ ئەم کردارە بە هەمیشەیی تۆماری کڕینەکە دەسڕێتەوە و ژمارەی هەموو دانە فرۆشراوەکان دەگەڕێنێتەوە کۆگا."
         isLoading={deleteMutation.isPending}
       />
 
@@ -271,6 +432,7 @@ export default function ClothesPage() {
         <EditClothesModal
           purchase={editingPurchase}
           typeOptions={typeOptions}
+          priceMap={priceMap}
           onClose={() => setEditingPurchase(null)}
           onSuccess={() => refetch()}
         />
@@ -279,86 +441,211 @@ export default function ClothesPage() {
   );
 }
 
-function EditClothesModal({ purchase, typeOptions, onClose, onSuccess }: { purchase: any; typeOptions: any[]; onClose: () => void; onSuccess: () => void }) {
+function EditClothesModal({
+  purchase,
+  typeOptions,
+  priceMap,
+  onClose,
+  onSuccess,
+}: {
+  purchase: ClothesBookPayment;
+  typeOptions: { value: string; label: string; rawPrice: number; stock: number }[];
+  priceMap: Map<string, number>;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
   const updateMutation = useUpdateClothesBook(purchase.id);
-  const { register, handleSubmit, formState: { errors } } = useForm<{
-    amount_paid: number;
-    uniform_size: string;
-    quantity: number;
-    payment_date: string;
-    notes: string;
-  }>({
-    defaultValues: {
-      amount_paid: Number(purchase.amount_paid),
-      uniform_size: purchase.uniform_size || '',
-      quantity: Number(purchase.quantity) || 1,
-      payment_date: purchase.payment_date ? new Date(purchase.payment_date).toISOString().split('T')[0] : '',
-      notes: purchase.notes || '',
-    }
-  });
 
-  const onSubmit = (values: any) => {
+  // Initialize items from existing purchase (multi-item or single item fallback)
+  const initialItems: ClothesItemRow[] = useMemo(() => {
+    if (purchase.items && Array.isArray(purchase.items) && purchase.items.length > 0) {
+      return purchase.items.map((it) => ({
+        uniform_size: it.uniform_size,
+        quantity: Number(it.quantity) || 1,
+        price: it.price || priceMap.get(it.uniform_size) || 0,
+      }));
+    }
+    return [
+      {
+        uniform_size: purchase.uniform_size || '',
+        quantity: Number(purchase.quantity) || 1,
+        price: priceMap.get(purchase.uniform_size || '') || 0,
+      },
+    ];
+  }, [purchase, priceMap]);
+
+  const [items, setItems] = useState<ClothesItemRow[]>(initialItems);
+  const [amountPaid, setAmountPaid] = useState<number>(Number(purchase.amount_paid) || 0);
+  const [paymentDate, setPaymentDate] = useState<string>(
+    purchase.payment_date ? new Date(purchase.payment_date).toISOString().split('T')[0] : ''
+  );
+  const [notes, setNotes] = useState<string>(purchase.notes || '');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const totalPieces = useMemo(() => {
+    return items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+  }, [items]);
+
+  const handleAddItem = () => {
+    setItems((prev) => [...prev, { uniform_size: '', quantity: 1, price: 0 }]);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    if (items.length <= 1) return;
+    setItems((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleItemChange = (index: number, field: keyof ClothesItemRow, value: any) => {
+    setItems((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      if (field === 'uniform_size') {
+        const p = priceMap.get(value) || 0;
+        updated[index].price = p;
+      }
+      return updated;
+    });
+    setErrorMsg(null);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const hasEmptyItem = items.some((it) => !it.uniform_size.trim());
+    if (hasEmptyItem) {
+      setErrorMsg('تکایە جۆری جلوبەرگ بۆ هەموو بڕگەکان دیاری بکە');
+      return;
+    }
+
+    const hasInvalidQty = items.some((it) => !it.quantity || it.quantity < 1);
+    if (hasInvalidQty) {
+      setErrorMsg('ژمارەی دانەکان دەبێت لانیکەم ١ دانە بێت');
+      return;
+    }
+
     const payload = {
-      amount_paid: values.amount_paid,
-      price: values.amount_paid, // Sync price and amount_paid
-      uniform_size: values.uniform_size,
-      quantity: values.quantity,
-      payment_date: values.payment_date,
-      notes: values.notes || '',
+      amount_paid: amountPaid,
+      price: amountPaid,
+      items: items.map((it) => ({
+        uniform_size: it.uniform_size,
+        quantity: Number(it.quantity) || 1,
+        price: it.price || 0,
+      })),
+      quantity: totalPieces,
+      payment_date: paymentDate,
+      notes: notes,
     };
 
     updateMutation.mutate(payload, {
       onSuccess: () => {
         onSuccess();
         onClose();
-      }
+      },
     });
   };
 
   return (
     <Modal isOpen={true} onClose={onClose} title="دەستکاریکردنی کڕینی جلوبەرگ">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <Select
-          label="جۆری جلوبەرگ *"
-          placeholder="جۆری جلوبەرگ هەڵبژێرە"
-          options={typeOptions}
-          error={errors.uniform_size?.message}
-          {...register('uniform_size', { required: 'تکایە جۆرێک دیاری بکە' })}
-        />
-        <Input
-          label="ژمارەی دانە *"
-          id="edit_quantity"
-          type="number"
-          min={1}
-          step={1}
-          error={errors.quantity?.message}
-          {...register('quantity', { valueAsNumber: true, required: 'تکایە ژمارەی دانەکان بنووسە', min: { value: 1, message: 'دەبێت لانیکەم ١ دانە بێت' } })}
-        />
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Clothes Items Section */}
+        <div className="bg-surface-muted/60 border border-border rounded-xl p-3.5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-text">
+              <HiOutlineShoppingBag className="w-4 h-4 text-primary" />
+              <span>جۆرەکانی جلوبەرگ و ڕێژە</span>
+            </div>
+            <span className="text-[11px] font-semibold text-text-muted bg-white px-2 py-0.5 rounded border border-border">
+              کۆی گشتی: <strong className="text-primary">{totalPieces}</strong> دانە
+            </span>
+          </div>
+
+          <div className="space-y-2.5 max-h-56 overflow-y-auto pr-0.5">
+            {items.map((item, index) => (
+              <div key={index} className="flex items-center gap-2 bg-white p-2 rounded-lg border border-border/80 shadow-xs">
+                <div className="flex-1">
+                  <Select
+                    label=""
+                    placeholder="جۆری جلوبەرگ هەڵبژێرە"
+                    options={typeOptions}
+                    value={item.uniform_size}
+                    onChange={(e) => handleItemChange(index, 'uniform_size', e.target.value)}
+                  />
+                </div>
+
+                <div className="w-24">
+                  <Input
+                    label=""
+                    type="number"
+                    min={1}
+                    step={1}
+                    placeholder="دانە"
+                    value={item.quantity}
+                    onChange={(e) => handleItemChange(index, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
+                  />
+                </div>
+
+                {items.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveItem(index)}
+                    className="p-2 text-danger hover:bg-danger-light rounded-lg transition-colors cursor-pointer"
+                    title="سڕینەوەی ئەم جۆرە"
+                  >
+                    <HiOutlineTrash className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {errorMsg && (
+            <p className="text-xs text-danger font-medium mt-1">{errorMsg}</p>
+          )}
+
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={handleAddItem}
+            className="w-full flex items-center justify-center gap-1.5 border-dashed border-primary/40 text-primary hover:bg-primary-light"
+          >
+            <HiOutlinePlus className="w-3.5 h-3.5" />
+            <span>زیادکردنی جۆرێکی تر</span>
+          </Button>
+        </div>
+
         <Input
           label="بڕی پارەی دراو (دینار) *"
           id="edit_amount_paid"
           type="number"
-          error={errors.amount_paid?.message}
-          {...register('amount_paid', { valueAsNumber: true, required: 'تکایە بڕی پارەکە بنووسە' })}
+          min={0}
+          value={amountPaid}
+          onChange={(e) => setAmountPaid(parseFloat(e.target.value) || 0)}
+          required
         />
+
         <Input
           label="بەرواری پارەدان *"
           id="edit_payment_date"
           type="date"
-          error={errors.payment_date?.message}
-          {...register('payment_date', { required: 'تکایە بەروارەکە دیاری بکە' })}
+          value={paymentDate}
+          onChange={(e) => setPaymentDate(e.target.value)}
+          required
         />
+
         <div className="flex flex-col gap-1.5">
           <label htmlFor="edit_notes" className="text-xs font-semibold text-text">
             تێبینی
           </label>
           <textarea
             id="edit_notes"
-            rows={3}
+            rows={2}
             className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-text border-border focus:border-primary-light focus:outline-none focus:ring-2 focus:ring-primary-light/20 transition-all placeholder:text-text-light"
-            {...register('notes')}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
           />
         </div>
+
         <div className="flex justify-end gap-3 pt-2 font-semibold">
           <Button type="button" variant="secondary" onClick={onClose}>
             پاشگەزبوونەوە

@@ -303,7 +303,16 @@
             </div>
             @endif
 
-            @if(!empty($uniform_type ?? null))
+            @if(!empty($items) && is_array($items) && count($items) > 1)
+            <div class="detail-row" style="align-items: flex-start;">
+                <span class="detail-label">جۆرەکانی جلوبەرگ:</span>
+                <div class="detail-value" style="display: flex; flex-direction: column; gap: 4px; text-align: left;">
+                    @foreach($items as $item)
+                        <span>{{ $item['uniform_size'] ?? '' }} ({{ $item['quantity'] ?? 1 }} دانە)</span>
+                    @endforeach
+                </div>
+            </div>
+            @elseif(!empty($uniform_type ?? null))
             <div class="detail-row">
                 <span class="detail-label">جۆری جلوبەرگ:</span>
                 <span class="detail-value">{{ $uniform_type }}</span>
@@ -319,7 +328,7 @@
 
             @if(($quantity ?? 1) > 1)
             <div class="detail-row">
-                <span class="detail-label">ژمارەی دانە:</span>
+                <span class="detail-label">{{ (!empty($items) && is_array($items) && count($items) > 1) ? 'کۆی گشتی دانەکان:' : 'ژمارەی دانە:' }}</span>
                 <span class="detail-value">{{ $quantity }} دانە</span>
             </div>
             @endif
