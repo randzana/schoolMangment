@@ -220,4 +220,58 @@ class ClothesQuantityTest extends TestCase
         $this->assertSame(9, Inventory::where('code', 'uniform_m')->value('quantity'));
         $this->assertSame(9, Inventory::where('code', 'uniform_l')->value('quantity'));
     }
+
+    public function test_selling_three_clothes_types_with_large_quantities_and_long_names(): void
+    {
+        Inventory::create([
+            'item_type' => 'clothes',
+            'name' => 'Uniform Size سێت (چاکەت و پانتۆڵ)',
+            'code' => 'uniform_سێت (چاکەت و پانتۆڵ)',
+            'quantity' => 50,
+            'price' => 35000,
+        ]);
+        Inventory::create([
+            'item_type' => 'clothes',
+            'name' => 'Uniform Size بلوز',
+            'code' => 'uniform_بلوز',
+            'quantity' => 50,
+            'price' => 15000,
+        ]);
+        Inventory::create([
+            'item_type' => 'clothes',
+            'name' => 'Uniform Size قەمسەلە',
+            'code' => 'uniform_قەمسەلە',
+            'quantity' => 50,
+            'price' => 25000,
+        ]);
+
+        $response = $this->postJson('/api/clothes-books', [
+            'student_id' => $this->student->id,
+            'item_type' => 'clothes',
+            'price' => 600000,
+            'amount_paid' => 600000,
+            'items' => [
+                ['uniform_size' => 'سێت (چاکەت و پانتۆڵ)', 'quantity' => 8],
+                ['uniform_size' => 'بلوز', 'quantity' => 8],
+                ['uniform_size' => 'قەمسەلە', 'quantity' => 8],
+            ],
+        ])->assertCreated();
+
+        $id = $response->json('data.id');
+        $this->assertSame(24, $response->json('data.quantity'));
+
+        $payment = ClothesBookPayment::findOrFail($id);
+        $this->assertGreaterThan(50, mb_strlen($payment->uniform_size));
+        $this->assertSame(42, Inventory::where('code', 'uniform_سێت (چاکەت و پانتۆڵ)')->value('quantity'));
+        $this->assertSame(42, Inventory::where('code', 'uniform_بلوز')->value('quantity'));
+        $this->assertSame(42, Inventory::where('code', 'uniform_قەمسەلە')->value('quantity'));
+
+        // Check invoice
+        $this->get("/api/clothes-books/{$id}/invoice")
+            ->assertOk()
+            ->assertSee('سێت (چاکەت و پانتۆڵ)', false)
+            ->assertSee('بلوز', false)
+            ->assertSee('قەمسەلە', false)
+            ->assertSee('8 دانە', false);
+    }
 }
