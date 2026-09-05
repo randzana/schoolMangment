@@ -62,7 +62,7 @@ class ClothesBookController extends Controller
             'academic_year' => 'sometimes|string|max:9',
             'item_type' => ['required', Rule::in(['clothes', 'book', 'both'])],
             'items' => 'nullable|array',
-            'items.*.uniform_size' => 'required_with:items|string',
+            'items.*.uniform_size' => 'required_with:items|string|max:100',
             'items.*.quantity' => 'required_with:items|integer|min:1|max:1000',
             'items.*.price' => 'nullable|numeric|min:0',
             'quantity' => 'nullable|integer|min:1|max:1000',
@@ -71,8 +71,8 @@ class ClothesBookController extends Controller
             'amount_paid' => 'required|numeric|min:0',
             'payment_date' => 'sometimes|date',
             'notes' => 'nullable|string',
-            'uniform_size' => 'nullable|string',
-            'book_subject' => 'required_if:item_type,book,both|nullable|string',
+            'uniform_size' => 'nullable|string|max:100',
+            'book_subject' => 'required_if:item_type,book,both|nullable|string|max:100',
         ]);
 
         if (in_array($validated['item_type'], ['clothes', 'both']) && empty($validated['items']) && empty($validated['uniform_size'])) {
@@ -147,7 +147,7 @@ class ClothesBookController extends Controller
         $validated = $request->validate([
             'item_type' => ['sometimes', Rule::in(['clothes', 'book', 'both'])],
             'items' => 'nullable|array',
-            'items.*.uniform_size' => 'required_with:items|string',
+            'items.*.uniform_size' => 'required_with:items|string|max:100',
             'items.*.quantity' => 'required_with:items|integer|min:1|max:1000',
             'items.*.price' => 'nullable|numeric|min:0',
             'quantity' => 'nullable|integer|min:1|max:1000',
@@ -156,8 +156,8 @@ class ClothesBookController extends Controller
             'amount_paid' => 'sometimes|numeric|min:0',
             'payment_date' => 'sometimes|date',
             'notes' => 'nullable|string',
-            'uniform_size' => 'sometimes|nullable|string',
-            'book_subject' => 'sometimes|nullable|string',
+            'uniform_size' => 'sometimes|nullable|string|max:100',
+            'book_subject' => 'sometimes|nullable|string|max:100',
         ]);
 
         $payment = DB::transaction(function () use ($payment, $validated, $request) {

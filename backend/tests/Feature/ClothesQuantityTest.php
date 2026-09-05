@@ -7,6 +7,7 @@ use App\Models\Inventory;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -183,6 +184,56 @@ class ClothesQuantityTest extends TestCase
         $this->deleteJson("/api/clothes-books/{$id}")->assertOk();
         $this->assertSame(10, Inventory::where('code', 'uniform_m')->value('quantity'));
         $this->assertSame(15, Inventory::where('code', 'uniform_l')->value('quantity'));
+    }
+
+    public function test_selling_many_clothes_types_at_once_is_not_truncated(): void
+    {
+        $sizes = ['S', 'L', 'XL', 'XXL', '28', '30', '32', '34', '36', '38'];
+        $items = [];
+
+        foreach ($sizes as $size) {
+            Inventory::create([
+                'item_type' => 'clothes',
+                'name' => 'Uniform Size ' . $size,
+                'code' => 'uniform_' . strtolower($size),
+                'quantity' => 20,
+                'price' => 25000,
+            ]);
+            $items[] = ['uniform_size' => $size, 'quantity' => 2];
+        }
+
+        $id = $this->postJson('/api/clothes-books', [
+            'student_id' => $this->student->id,
+            'item_type' => 'clothes',
+            'price' => 500000,
+            'amount_paid' => 500000,
+            'items' => $items,
+        ])->assertCreated()->assertJsonPath('data.quantity', 20)->json('data.id');
+
+        // Every size is spelled out in the summary label, which runs well past
+        // the 50 characters the column used to allow.
+        $label = ClothesBookPayment::find($id)->uniform_size;
+        $this->assertGreaterThan(50, mb_strlen($label));
+
+        foreach ($sizes as $size) {
+            $this->assertStringContainsString($size . ' (2 دانە)', $label);
+            $this->assertSame(18, Inventory::where('code', 'uniform_' . strtolower($size))->value('quantity'));
+        }
+
+        $this->get("/api/clothes-books/{$id}/invoice")->assertOk()->assertSee('XXL', false);
+    }
+
+    public function test_item_label_columns_are_not_length_capped(): void
+    {
+        $columns = collect(Schema::getColumns('clothes_books_payments'))->keyBy('name');
+
+        foreach (['uniform_size', 'book_subject'] as $column) {
+            $this->assertSame(
+                'text',
+                $columns[$column]['type_name'],
+                "{$column} holds a summary of every purchased row, so it must not be length-capped"
+            );
+        }
     }
 
     public function test_updating_multi_item_clothes_sale_rebalances_stock(): void
