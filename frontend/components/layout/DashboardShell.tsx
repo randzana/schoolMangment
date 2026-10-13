@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter, usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
@@ -18,15 +18,20 @@ export default function DashboardShell({ children }: DashboardShellProps) {
   const router = useRouter();
   const pathname = usePathname();
 
+  // While React hydrates a freshly loaded page the store still reports its
+  // initial, logged-out state, so only redirect once the token has really
+  // been checked; otherwise a refresh bounces to /login and back to /dashboard.
+  const [authChecked, setAuthChecked] = useState(false);
+
   useEffect(() => {
-    checkAuth();
+    checkAuth().finally(() => setAuthChecked(true));
   }, [checkAuth]);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
+    if (authChecked && !isLoading && !isAuthenticated) {
+      router.replace('/login');
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [authChecked, isAuthenticated, isLoading, router]);
 
   // Handle route guards for admin-only paths
   useEffect(() => {
