@@ -18,6 +18,7 @@ class InventorySeeder extends Seeder
                     'item_type' => 'clothes',
                     'name' => 'Uniform Size ' . $size,
                     'quantity' => 100, // default stock count
+                    'total_quantity' => 100,
                 ]
             );
         }
@@ -31,6 +32,7 @@ class InventorySeeder extends Seeder
                     'item_type' => 'book',
                     'name' => 'Book: ' . $subj,
                     'quantity' => 150, // default stock count
+                    'total_quantity' => 150,
                 ]
             );
         }

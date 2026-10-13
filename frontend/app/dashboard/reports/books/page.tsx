@@ -42,7 +42,7 @@ export default function BooksReportPage() {
   const summary = reportResponse?.summary || { count: 0, total_amount: 0 };
  
   const handleExportCsv = () => {
-    const headers = 'ژمارەی پسوولە,بەروار,ناوی قوتابی,پۆل,بڕی دراو,تێبینی\n';
+    const headers = 'ژمارەی پسوولە,بەروار,ناوی قوتابی,پۆل,بابەتی کتێب,بڕی دراو,تێبینی\n';
     const rows = records
       .map((r: any) =>
         [
@@ -50,6 +50,7 @@ export default function BooksReportPage() {
           r.payment_date,
           `"${r.student?.full_name}"`,
           GRADE_MAP[r.student?.grade] || r.student?.grade,
+          `"${r.book_subject || ''}"`,
           r.amount_paid,
           `"${r.notes || ''}"`,
         ].join(',')
@@ -76,6 +77,18 @@ export default function BooksReportPage() {
     { header: 'بەروار', accessor: (row) => formatDate(row.payment_date) },
     { header: 'ناوی قوتابی', accessor: (row) => row.student?.full_name },
     { header: 'پۆل', accessor: (row) => GRADE_MAP[row.student?.grade] || row.student?.grade },
+    {
+      header: 'بابەتی کتێب',
+      accessor: (row) => row.book_subject ? (
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${
+          row.book_subject === 'سەرجەم کتێبەکان'
+            ? 'bg-success/10 text-success border-success/20'
+            : 'bg-primary/10 text-primary border-primary/20'
+        }`}>
+          {row.book_subject}
+        </span>
+      ) : '-',
+    },
     { header: 'بڕی دراو', accessor: (row) => formatCurrency(row.amount_paid), className: 'text-primary font-bold' },
     { header: 'تێبینی', accessor: (row) => row.notes || '-' },
   ];

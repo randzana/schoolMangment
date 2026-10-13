@@ -29,9 +29,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('reports/annual-income/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfAnnualIncome']);
     Route::get('reports/food-income/export', [\App\Http\Controllers\Api\ReportController::class, 'exportFoodIncome']);
     Route::get('reports/expenses/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfExpenses']);
+    Route::get('reports/food-expenses/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfFoodExpenses']);
     Route::get('reports/government-expenses/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfGovernmentExpenses']);
     Route::get('reports/study-debts/export', [\App\Http\Controllers\Api\ReportController::class, 'exportStudyDebts']);
     Route::get('reports/study-debts/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfStudyDebts']);
+    Route::get('inventory/print', [\App\Http\Controllers\Api\InventoryController::class, 'print']);
+    Route::get('reports/student-list/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfStudentList']);
+    Route::get('reports/unpaid-students/pdf', [\App\Http\Controllers\Api\ReportController::class, 'pdfUnpaidStudents']);
 
     // Auth
     Route::prefix('auth')->group(function () {
@@ -92,12 +96,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/book-payments', [\App\Http\Controllers\Api\ReportController::class, 'bookPayments']);
         Route::get('/study-income', [\App\Http\Controllers\Api\ReportController::class, 'studyIncome']);
         Route::get('/expenses', [\App\Http\Controllers\Api\ReportController::class, 'expenses']);
+        Route::get('/food-expenses', [\App\Http\Controllers\Api\ReportController::class, 'foodExpenses']);
         Route::get('/government-expenses', [\App\Http\Controllers\Api\ReportController::class, 'governmentExpenses']);
         Route::get('/annual-income', [\App\Http\Controllers\Api\ReportController::class, 'annualIncome']);
         Route::get('/food-income', [\App\Http\Controllers\Api\ReportController::class, 'foodIncome']);
         Route::get('/study-debts', [\App\Http\Controllers\Api\ReportController::class, 'studyDebts']);
 
         Route::get('/student-list', [\App\Http\Controllers\Api\ReportController::class, 'studentList']);
+        Route::get('/unpaid-students', [\App\Http\Controllers\Api\ReportController::class, 'unpaidStudents']);
         Route::get('/dashboard', [\App\Http\Controllers\Api\ReportController::class, 'dashboard']);
     });
 

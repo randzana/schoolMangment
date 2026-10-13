@@ -42,7 +42,7 @@ export default function ClothesReportPage() {
   const summary = reportResponse?.summary || { count: 0, total_amount: 0 };
  
   const handleExportCsv = () => {
-    const headers = 'ژمارەی پسوولە,بەروار,ناوی قوتابی,پۆل,بڕی دراو,تێبینی\n';
+    const headers = 'ژمارەی پسوولە,بەروار,ناوی قوتابی,پۆل,جۆری جلوبەرگ,دانە,بڕی دراو,تێبینی\n';
     const rows = records
       .map((r: any) =>
         [
@@ -50,6 +50,8 @@ export default function ClothesReportPage() {
           r.payment_date,
           `"${r.student?.full_name}"`,
           GRADE_MAP[r.student?.grade] || r.student?.grade,
+          `"${r.uniform_size || ''}"`,
+          r.quantity ?? 1,
           r.amount_paid,
           `"${r.notes || ''}"`,
         ].join(',')
@@ -76,6 +78,26 @@ export default function ClothesReportPage() {
     { header: 'بەروار', accessor: (row) => formatDate(row.payment_date) },
     { header: 'ناوی قوتابی', accessor: (row) => row.student?.full_name },
     { header: 'پۆل', accessor: (row) => GRADE_MAP[row.student?.grade] || row.student?.grade },
+    {
+      header: 'جۆری جلوبەرگ',
+      accessor: (row) => {
+        const items = Array.isArray(row.items) && row.items.length > 0
+          ? row.items
+          : row.uniform_size ? [{ uniform_size: row.uniform_size, quantity: 1 }] : [];
+        if (items.length === 0) return '-';
+        return (
+          <div className="flex flex-wrap gap-1">
+            {items.map((item: { uniform_size: string; quantity: number }, idx: number) => (
+              <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                {item.uniform_size}
+                {item.quantity > 1 ? ` × ${item.quantity}` : ''}
+              </span>
+            ))}
+          </div>
+        );
+      },
+    },
+    { header: 'دانە', accessor: (row) => `${row.quantity ?? 1}` },
     { header: 'بڕی دراو', accessor: (row) => formatCurrency(row.amount_paid), className: 'text-primary font-bold' },
     { header: 'تێبینی', accessor: (row) => row.notes || '-' },
   ];

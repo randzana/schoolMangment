@@ -7,7 +7,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap');
         
         @page { size: A4 portrait; margin: 0; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         body { 
             font-family: 'Noto Sans Arabic', 'Tahoma', 'Arial', sans-serif; 
             font-size: 10px; 
@@ -130,6 +130,11 @@
             background: #F8FAFC;
         }
         .amount { font-family: monospace; font-weight: 600; }
+        .profit { margin: 16px 20px; border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; }
+        .profit-title { background: #1E3A5F; color: #FFFFFF; padding: 8px 12px; font-size: 11px; font-weight: 700; }
+        .profit td { padding: 8px 12px; border-bottom: 1px solid #F1F5F9; }
+        .profit-row td { background: #D1FAE5; color: #065F46; font-weight: 700; font-size: 12px; border-top: 2px solid #059669; }
+        .profit-row.loss td { background: #FEE2E2; color: #991B1B; border-top-color: #DC2626; }
  
         @media print {
             body { background: white; padding: 8mm 10mm; }
@@ -210,6 +215,28 @@
             </tr>
         </tfoot>
     </table>
+
+    @if(isset($profit))
+    <div class="profit">
+        <div class="profit-title">قازانجی ساڵانە بەپێی داهات و خەرجی (هەموو قوتابخانە)</div>
+        <table>
+            <tbody>
+                <tr>
+                    <td>کۆی گشتی داهات</td>
+                    <td class="amount" style="color: #059669;">{{ number_format($profit['school_income'], 0) }} د.ع</td>
+                </tr>
+                <tr>
+                    <td>کۆی گشتی خەرجی</td>
+                    <td class="amount" style="color: #DC2626;">{{ number_format($profit['total_expenses'], 0) }} د.ع</td>
+                </tr>
+                <tr class="profit-row {{ $profit['net_profit'] < 0 ? 'loss' : '' }}">
+                    <td>{{ $profit['net_profit'] < 0 ? 'زیان' : 'قازانجی پاک' }} (داهات − خەرجی)</td>
+                    <td class="amount">{{ number_format($profit['net_profit'], 0) }} د.ع</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    @endif
  
     <div class="footer">
         سیستەمی بەڕێوەبردنی دارایی — {{ $school_name }} — <span id="print-datetime"></span>

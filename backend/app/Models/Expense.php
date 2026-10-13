@@ -11,6 +11,9 @@ class Expense extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /** Food bills have their own report, so the general expense report leaves them out. */
+    public const FOOD_CATEGORY = 'ڕاپۆرتی خەرجی نانخواردن';
+
     protected $fillable = [
         'title',
         'amount',
@@ -53,5 +56,23 @@ class Expense extends Model
             $query->where('category', $category);
         }
         return $query;
+    }
+
+    public function scopeByMonth($query, $month)
+    {
+        if ($month) {
+            $query->whereMonth('expense_date', (int) $month);
+        }
+        return $query;
+    }
+
+    public function scopeFood($query)
+    {
+        return $query->where('category', self::FOOD_CATEGORY);
+    }
+
+    public function scopeExceptFood($query)
+    {
+        return $query->where(fn ($q) => $q->whereNull('category')->orWhere('category', '!=', self::FOOD_CATEGORY));
     }
 }

@@ -23,6 +23,15 @@ function invalidateFinancialCaches(queryClient: ReturnType<typeof useQueryClient
   queryClient.invalidateQueries({ queryKey: ['expenses'] });
 }
 
+/**
+ * Helper: invalidate cached stock counts after a clothes/book sale changes them.
+ */
+function invalidateInventoryCaches(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: ['inventory-list'] });
+  queryClient.invalidateQueries({ queryKey: ['inventory-list-clothes'] });
+  queryClient.invalidateQueries({ queryKey: ['inventory-list-books'] });
+}
+
 // ==========================================
 // Students
 // ==========================================
@@ -392,6 +401,7 @@ export function useCreateClothesBook() {
     },
     onSuccess: () => {
       invalidateFinancialCaches(queryClient);
+      invalidateInventoryCaches(queryClient);
       toast.success('کڕینی جلوبەرگ/کتێب تۆمار کرا');
     },
     onError: (err: any) => {
@@ -409,6 +419,7 @@ export function useUpdateClothesBook(id: number) {
     },
     onSuccess: () => {
       invalidateFinancialCaches(queryClient);
+      invalidateInventoryCaches(queryClient);
       toast.success('تۆمار بە سەرکەوتوویی نوێ کرایەوە');
     },
     onError: (err: any) => {
@@ -426,6 +437,7 @@ export function useDeleteClothesBook() {
     },
     onSuccess: () => {
       invalidateFinancialCaches(queryClient);
+      invalidateInventoryCaches(queryClient);
       toast.success('تۆمار سڕایەوە');
     },
     onError: (err: any) => {
@@ -443,7 +455,7 @@ export function useCreateBulkBooks() {
     },
     onSuccess: (res) => {
       invalidateFinancialCaches(queryClient);
-      queryClient.invalidateQueries({ queryKey: ['inventory-list-books'] });
+      invalidateInventoryCaches(queryClient);
       toast.success(res.message || 'هەموو کتێبەکان بە سەرکەوتوویی تۆمار کران');
     },
     onError: (err: any) => {

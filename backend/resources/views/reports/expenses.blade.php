@@ -1,232 +1,101 @@
-<!DOCTYPE html>
-<html lang="ku" dir="rtl">
-<head>
-    <meta charset="utf-8">
-    <title>ڕاپۆرتی خەرجییەکان</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap');
-        
-        @page { size: A4 portrait; margin: 0; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Noto Sans Arabic', 'Tahoma', 'Arial', sans-serif; 
-            font-size: 11px; 
-            color: #1A202C; 
-            padding: 15mm;
-            background-color: #F8FAFC;
-        }
-        .report-wrapper {
-            max-width: 900px;
-            margin: 0 auto;
-            background: #FFFFFF;
-            border: 1px solid #E2E8F0;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        .header-container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 2px solid #1E3A5F;
-            padding: 15px 20px 10px 20px;
-            margin-bottom: 10px;
-        }
-        
-        .school-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .logo {
-            height: 50px;
-            width: 50px;
-            object-fit: contain;
-        }
-        
-        .school-names {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        
-        .school-name-ar {
-            font-size: 14px;
-            font-weight: 700;
-            color: #1E3A5F;
-            line-height: 1.2;
-        }
-        
-        .school-name-en {
-            font-size: 10px;
-            font-weight: 500;
-            color: #64748B;
-            margin-top: 1px;
-        }
-        
-        .title-badge {
-            background-color: #1E3A5F;
-            color: #FFFFFF;
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 700;
-            text-align: center;
-        }
-        
-        .invoice-meta {
-            text-align: left;
-            font-size: 10px;
-            color: #475569;
-            line-height: 1.4;
-        }
-        .meta {
-            padding: 12px 20px;
-            background: #F1F5F9;
-            border-bottom: 1px solid #E2E8F0;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .meta-item { font-size: 11px; }
-        .meta-item strong { color: #1E3A5F; }
-        table { width: 100%; border-collapse: collapse; }
-        th { 
-            background: #1E3A5F; 
-            color: white; 
-            padding: 8px 12px; 
-            text-align: right;
-            font-size: 10px; 
-            font-weight: 700;
-        }
-        td { 
-            padding: 7px 12px; 
-            border-bottom: 1px solid #F1F5F9; 
-            font-size: 11px;
-        }
-        tr:nth-child(even) { background: #F8FAFC; }
-        tr:hover { background: #EDF2F7; }
-        .total-row { 
-            background: #FEF3C7 !important; 
-            font-weight: 700;
-        }
-        .total-row td { border-top: 2px solid #D97706; }
-        .footer {
-            padding: 15px 20px;
-            border-top: 2px solid #1E3A5F;
-            text-align: center;
-            font-size: 10px;
-            color: #64748B;
-            background: #F8FAFC;
-        }
-        .amount { font-family: monospace; font-weight: 600; }
- 
-        @media print {
-            body { background: white; padding: 8mm 10mm; }
-            .report-wrapper { border: 1px solid #CBD5E1; box-shadow: none; max-width: 100%; border-radius: 8px; }
-            .no-print { display: none; }
-            tr:hover { background: inherit; }
-        }
-    </style>
-</head>
-<body>
- 
-<div class="report-wrapper">
-    <div class="header-container">
-        <div class="school-info">
-            <img src="/logo.jpg" alt="Logo" class="logo" onerror="this.src='/logo.jpg';">
-            <div class="school-names">
-                <span class="school-name-ar">قوتابخانەی نەوەی دواڕۆژی بنەڕەتی ناحکومی</span>
-                <span class="school-name-en">{{ $school_name }}</span>
-            </div>
-        </div>
-        
-        <div>
-            <div class="title-badge">
-                {{ $title }}
-            </div>
-        </div>
-        
-        <div class="invoice-meta">
-            <div>بۆ ماوەی: <strong>{{ $date_range }}</strong></div>
-            <div>ڕێکەوت: <strong><span id="print-date"></span></strong></div>
-        </div>
-    </div>
- 
-    <div class="meta">
-        <div class="meta-item"><strong>جۆری فلتەر:</strong> {{ $category }}</div>
-        <div class="meta-item"><strong>ژمارەی وەسڵەکان:</strong> {{ $expenses->count() }}</div>
-        <div class="meta-item"><strong>کۆی خەرجکراو:</strong> <span class="amount">{{ number_format($total, 0) }} د.ع</span></div>
-    </div>
- 
-    <table>
-        <thead>
-            <tr>
-                <th>بابەت</th>
-                <th>بڕ</th>
-                <th>جۆر / پۆلێن</th>
-                <th>بەروار</th>
-                <th>تێبینی / وەسف</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($expenses as $exp)
-            <tr>
-                <td style="font-weight: 500;">
-                    <div>{{ $exp->title }}</div>
-                    @if($exp->items && is_array($exp->items) && count($exp->items) > 0)
-                        <div style="font-size: 9px; color: #475569; margin-top: 4px; padding-right: 10px; border-right: 2px solid #E2E8F0; text-align: right;">
-                            @foreach($exp->items as $item)
-                                <div style="margin-bottom: 2px;">
-                                    • {{ $item['name'] ?? '' }} 
-                                    @if(!empty($item['month'])) [{{ $item['month'] }}] @endif
-                                    : <strong style="color: #DC2626; font-family: monospace;">{{ number_format($item['amount'] ?? 0, 0) }} د.ع</strong>
-                                </div>
-                            @endforeach
-                        </div>
+@extends('reports.layout')
+
+@section('title', $title)
+
+@push('styles')
+    table.grouped tbody tr { background: transparent; }
+    table.grouped tbody tr.alt { background: #F8FAFC; }
+    table.grouped tr.group-start td { border-top: 1px solid #E2E8F0; }
+    table.grouped td.group-cell { vertical-align: top; }
+    .description { display: block; margin-top: 3px; font-size: 9px; color: #64748B; font-weight: 400; }
+@endpush
+
+@section('header_meta')
+    <div>بۆ ماوەی: <strong>{{ $date_range }}</strong></div>
+@endsection
+
+@section('meta')
+    <div class="meta-item"><strong>جۆری فلتەر:</strong> {{ $category }}</div>
+    <div class="meta-item"><strong>ژمارەی پسوولەکان:</strong> {{ $expenses->count() }}</div>
+    <div class="meta-item"><strong>کۆی خەرجکراو:</strong> <span class="amount text-danger">{{ number_format($total, 0) }} د.ع</span></div>
+@endsection
+
+@section('content')
+    @if($expenses->isEmpty())
+        <div class="empty">هیچ خەرجییەک بۆ ئەم فلتەرە نییە</div>
+    @else
+        <table class="grouped">
+            <thead>
+                <tr>
+                    <th style="width: 30px;">#</th>
+                    <th style="width: 80px;">بەروار</th>
+                    <th>جۆر / پۆلێن</th>
+                    <th>ناوی پسوولە</th>
+                    <th style="width: 90px;">مانگ</th>
+                    <th style="width: 110px;">بڕ</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($expenses as $index => $exp)
+                    @php
+                        $lines = (!empty($exp->items) && is_array($exp->items) && count($exp->items) > 0)
+                            ? $exp->items
+                            : [['name' => $exp->title, 'amount' => $exp->amount]];
+                        $span = count($lines);
+                    @endphp
+                    @foreach($lines as $lineIndex => $line)
+                        <tr class="{{ $index % 2 === 1 ? 'alt' : '' }} {{ $lineIndex === 0 ? 'group-start' : '' }}">
+                            @if($lineIndex === 0)
+                                <td class="num group-cell" rowspan="{{ $span }}">{{ $index + 1 }}</td>
+                                <td class="group-cell" rowspan="{{ $span }}">{{ $exp->expense_date?->format('d/m/Y') ?? '-' }}</td>
+                                <td class="group-cell" rowspan="{{ $span }}">
+                                    <span class="badge">{{ $exp->category ?: '-' }}</span>
+                                    @if($exp->description)
+                                        <span class="description">{{ $exp->description }}</span>
+                                    @endif
+                                </td>
+                            @endif
+                            <td style="font-weight: 500;">{{ $line['name'] ?? '-' }}</td>
+                            <td>{{ !empty($line['month']) ? $line['month'] : '-' }}</td>
+                            <td class="amount text-danger">{{ number_format((float) ($line['amount'] ?? 0), 0) }} د.ع</td>
+                        </tr>
+                    @endforeach
+                    @if($span > 1)
+                        <tr class="{{ $index % 2 === 1 ? 'alt' : '' }}">
+                            <td colspan="5" style="text-align: left; font-size: 10px; color: #64748B;">کۆی پسوولە</td>
+                            <td class="amount text-danger" style="font-weight: 700;">{{ number_format($exp->amount, 0) }} د.ع</td>
+                        </tr>
                     @endif
-                </td>
-                <td class="amount" style="color: #DC2626;">{{ number_format($exp->amount, 0) }} د.ع</td>
-                <td>{{ $exp->category ?: '-' }}</td>
-                <td>{{ $exp->expense_date?->format('d/m/Y') ?? 'N/A' }}</td>
-                <td>{{ $exp->description ?: '-' }}</td>
-            </tr>
-            @endforeach
-        </tbody>
-        <tfoot>
-            <tr class="total-row">
-                <td colspan="1">کۆی گشتی</td>
-                <td class="amount" style="color: #DC2626;">{{ number_format($total, 0) }} د.ع</td>
-                <td colspan="3"></td>
-            </tr>
-        </tfoot>
-    </table>
- 
-    <div class="footer">
-        سیستەمی بەڕێوەبردنی دارایی — {{ $school_name }} — <span id="print-datetime"></span>
-    </div>
-</div>
- 
-<script>
-    (function() {
-        const now = new Date();
-        const dd = String(now.getDate()).padStart(2, '0');
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const yyyy = now.getFullYear();
-        const hh = String(now.getHours()).padStart(2, '0');
-        const min = String(now.getMinutes()).padStart(2, '0');
-        
-        const dateStr = dd + '/' + mm + '/' + yyyy;
-        const dateTimeStr = dateStr + ' ' + hh + ':' + min;
-        
-        document.getElementById('print-date').textContent = dateStr;
-        document.getElementById('print-datetime').textContent = dateTimeStr;
-        
-        window.onload = function() { window.print(); };
-    })();
-</script>
- 
-</body>
-</html>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="5">کۆی گشتی خەرجییەکان</td>
+                    <td class="amount text-danger">{{ number_format($total, 0) }} د.ع</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        @if(isset($by_category) && count($by_category) > 1)
+            <div class="section-title">کورتەی خەرجییەکان بەپێی جۆر</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>جۆر / پۆلێن</th>
+                        <th>ژمارەی پسوولە</th>
+                        <th>کۆی خەرجکراو</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($by_category as $row)
+                        <tr>
+                            <td><span class="badge">{{ $row['category'] }}</span></td>
+                            <td class="amount">{{ $row['count'] }}</td>
+                            <td class="amount text-danger">{{ number_format($row['total'], 0) }} د.ع</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+    @endif
+@endsection

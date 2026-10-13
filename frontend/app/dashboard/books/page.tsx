@@ -33,7 +33,7 @@ export default function BooksPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [selectedStudentGrade, setSelectedStudentGrade] = useState<string | null>(null);
-  const [editingPurchase, setEditingPurchase] = useState<any | null>(null);
+  const [editingPurchase, setEditingPurchase] = useState<ClothesBookPayment | null>(null);
 
   const { data: purchasesData, isLoading, refetch } = useClothesBooks({ page, item_type: 'book' });
   const createMutation = useCreateClothesBook();
@@ -63,11 +63,12 @@ export default function BooksPage() {
       };
     });
 
-    if (selectedStudentGrade && filtered.length > 0) {
+    const ownGradeCount = filtered.filter((item) => item.grade === selectedStudentGrade).length;
+    if (selectedStudentGrade && ownGradeCount > 0) {
       const gradeName = GRADE_MAP[selectedStudentGrade] || selectedStudentGrade;
       mapped.unshift({
         value: 'all_books',
-        label: `📚 هەموو کتێبەکانی ${gradeName} (${filtered.length} کتێب)`,
+        label: `📚 هەموو کتێبەکانی ${gradeName} (${ownGradeCount} کتێب)`,
       });
     }
 
@@ -199,17 +200,15 @@ export default function BooksPage() {
           >
             <HiOutlinePrinter className="w-4 h-4" />
           </Button>
-          {row.book_subject !== 'سەرجەم کتێبەکان' && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-primary hover:bg-primary-light"
-              onClick={() => setEditingPurchase(row)}
-              title="دەستکاریکردنی تۆمار"
-            >
-              <HiOutlinePencil className="w-4 h-4" />
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-primary hover:bg-primary-light"
+            onClick={() => setEditingPurchase(row)}
+            title="دەستکاریکردنی پسوولە"
+          >
+            <HiOutlinePencil className="w-4 h-4" />
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -348,8 +347,21 @@ export default function BooksPage() {
   );
 }
 
-function EditBookModal({ purchase, inventory, onClose, onSuccess }: { purchase: any; inventory: any[] | undefined; onClose: () => void; onSuccess: () => void }) {
+const ALL_BOOKS_LABEL = 'سەرجەم کتێبەکان';
+
+function EditBookModal({
+  purchase,
+  inventory,
+  onClose,
+  onSuccess,
+}: {
+  purchase: ClothesBookPayment;
+  inventory: InventoryItem[] | undefined;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
   const updateMutation = useUpdateClothesBook(purchase.id);
+  const originalSubject = purchase.book_subject || '';
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<{
     amount_paid: number;
     book_subject: string;
@@ -358,7 +370,7 @@ function EditBookModal({ purchase, inventory, onClose, onSuccess }: { purchase: 
   }>({
     defaultValues: {
       amount_paid: Number(purchase.amount_paid),
-      book_subject: purchase.book_subject || '',
+      book_subject: originalSubject,
       payment_date: purchase.payment_date ? new Date(purchase.payment_date).toISOString().split('T')[0] : '',
       notes: purchase.notes || '',
     }
@@ -367,12 +379,13 @@ function EditBookModal({ purchase, inventory, onClose, onSuccess }: { purchase: 
   const watchSubject = watch('book_subject');
   const studentGrade = purchase.student?.grade;
 
-  const filteredBookOptions = useMemo(() => {
+  const gradeBooks = useMemo(() => {
     if (!inventory) return [];
-    const filtered = inventory.filter(
-      (item) => !studentGrade || !item.grade || item.grade === studentGrade
-    );
-    const mapped = filtered.map((item) => {
+    return inventory.filter((item) => !studentGrade || !item.grade || item.grade === studentGrade);
+  }, [inventory, studentGrade]);
+
+  const filteredBookOptions = useMemo(() => {
+    const mapped = gradeBooks.map((item) => {
       const subjectName = item.name.replace('Book: ', '');
       const gradeSuffix = item.grade ? ` (${GRADE_MAP[item.grade] || item.grade})` : '';
       return {
@@ -380,23 +393,37 @@ function EditBookModal({ purchase, inventory, onClose, onSuccess }: { purchase: 
         label: `${subjectName}${gradeSuffix} (مەوجود: ${item.quantity} دانە)`,
       };
     });
-    return mapped;
-  }, [inventory, studentGrade]);
 
-  // Auto-populate price when book changes
-  React.useEffect(() => {
-    if (!watchSubject || !inventory) return;
-    const bookItem = inventory.find(
-      (item) => item.item_type === 'book' && 
-                item.name.replace('Book: ', '') === watchSubject && 
-                (!studentGrade || item.grade === studentGrade)
-    );
-    if (bookItem) {
-      setValue('amount_paid', Number(bookItem.price || 0));
+    // A bulk purchase takes every book of the student's own grade
+    const ownGradeCount = gradeBooks.filter((item) => item.grade === studentGrade).length;
+    if (studentGrade && ownGradeCount > 0) {
+      const gradeName = GRADE_MAP[studentGrade] || studentGrade;
+      mapped.unshift({
+        value: ALL_BOOKS_LABEL,
+        label: `📚 هەموو کتێبەکانی ${gradeName} (${ownGradeCount} کتێب)`,
+      });
     }
-  }, [watchSubject, inventory, studentGrade, setValue]);
 
-  const onSubmit = (values: any) => {
+    return mapped;
+  }, [gradeBooks, studentGrade]);
+
+  // Suggest the inventory price only when the book is changed and it has a price,
+  // so opening the form never wipes the amount already written on the receipt.
+  React.useEffect(() => {
+    if (!watchSubject || watchSubject === originalSubject) return;
+
+    const suggested = watchSubject === ALL_BOOKS_LABEL
+      ? gradeBooks.filter((item) => item.grade === studentGrade).reduce((sum, item) => sum + Number(item.price || 0), 0)
+      : Number(gradeBooks.find((item) => item.name.replace('Book: ', '') === watchSubject)?.price || 0);
+
+    if (suggested > 0) {
+      setValue('amount_paid', suggested);
+    }
+  }, [watchSubject, originalSubject, gradeBooks, studentGrade, setValue]);
+
+  const [printAfterSave, setPrintAfterSave] = useState(false);
+
+  const onSubmit = (values: { amount_paid: number; book_subject: string; payment_date: string; notes: string }) => {
     const payload = {
       amount_paid: values.amount_paid,
       price: values.amount_paid, // Sync price and amount_paid
@@ -409,13 +436,20 @@ function EditBookModal({ purchase, inventory, onClose, onSuccess }: { purchase: 
       onSuccess: () => {
         onSuccess();
         onClose();
+        if (printAfterSave) {
+          window.open(`${API_URL}/clothes-books/${purchase.id}/invoice`, '_blank');
+        }
       }
     });
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose} title="دەستکاریکردنی کڕینی کتێب">
+    <Modal isOpen={true} onClose={onClose} size="lg" title={`دەستکاریکردنی پسوولەی کتێب${purchase.invoice_no ? ` #${purchase.invoice_no}` : ''}`}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="bg-surface-muted/60 border border-border rounded-lg px-3 py-2 text-xs flex flex-wrap justify-between gap-2">
+          <span>قوتابی: <strong className="text-text">{purchase.student?.full_name || '-'}</strong></span>
+          <span>پۆل: <strong className="text-text">{studentGrade ? GRADE_MAP[studentGrade] || studentGrade : '-'}</strong></span>
+        </div>
         <Select
           label="بابەتی کتێب *"
           placeholder="بابەتی کتێب هەڵبژێرە"
@@ -424,9 +458,10 @@ function EditBookModal({ purchase, inventory, onClose, onSuccess }: { purchase: 
           {...register('book_subject', { required: 'تکایە بابەتێک دیاری بکە' })}
         />
         <Input
-          label="نرخی کتێب (دینار) *"
+          label={watchSubject === ALL_BOOKS_LABEL ? 'کۆی گشتی نرخی سەرجەم کتێبەکان (دینار) *' : 'نرخی کتێب (دینار) *'}
           id="edit_amount_paid"
           type="number"
+          min={0}
           error={errors.amount_paid?.message}
           {...register('amount_paid', { valueAsNumber: true, required: 'تکایە بڕی پارەکە بنووسە' })}
         />
@@ -448,12 +483,29 @@ function EditBookModal({ purchase, inventory, onClose, onSuccess }: { purchase: 
             {...register('notes')}
           />
         </div>
-        <div className="flex justify-end gap-3 pt-2 font-semibold">
+        <div className="flex flex-wrap justify-end gap-3 pt-2 font-semibold">
           <Button type="button" variant="secondary" onClick={onClose}>
             پاشگەزبوونەوە
           </Button>
-          <Button type="submit" variant="primary" isLoading={updateMutation.isPending}>
+          <Button
+            type="submit"
+            variant="secondary"
+            onClick={() => setPrintAfterSave(false)}
+            isLoading={updateMutation.isPending && !printAfterSave}
+            disabled={updateMutation.isPending}
+          >
             پاشەکەوتکردن
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            onClick={() => setPrintAfterSave(true)}
+            isLoading={updateMutation.isPending && printAfterSave}
+            disabled={updateMutation.isPending}
+            className="flex items-center gap-1.5"
+          >
+            <HiOutlinePrinter className="w-4 h-4" />
+            <span>پاشەکەوتکردن و چاپ</span>
           </Button>
         </div>
       </form>

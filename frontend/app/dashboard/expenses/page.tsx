@@ -12,23 +12,10 @@ import { Modal } from '@/components/ui/Modal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { DataTable, Column } from '@/components/tables/DataTable';
 import { TablePagination } from '@/components/tables/TablePagination';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, EXPENSE_CATEGORY_OPTIONS, FOOD_EXPENSE_CATEGORY } from '@/lib/utils';
 import { HiOutlinePlusCircle, HiOutlinePencilSquare as PencilIcon, HiOutlineTrash as TrashIcon } from 'react-icons/hi2';
  
-const CATEGORY_OPTIONS = [
-  { value: 'ڕاپۆرتی خەرجی حکومەت', label: 'ڕاپۆرتی خەرجی حکومەت' },
-  { value: 'ڕاپۆرتی پارەی کارەبای حکومەت', label: 'ڕاپۆرتی پارەی کارەبای حکومەت' },
-  { value: 'ڕاپۆرتی صیانەی بینا', label: 'ڕاپۆرتی صیانەی بینا' },
-  { value: 'ڕاپۆرتی پێداویستی پەڕاوگە', label: 'ڕاپۆرتی پێداویستی پەڕاوگە' },
-  { value: 'ڕاپۆرتی خەرجی مووچە', label: 'ڕاپۆرتی خەرجی مووچە' },
-  { value: 'ڕاپۆرتی خەرجی سوتەمەنی', label: 'ڕاپۆرتی خەرجی سوتەمەنی' },
-  { value: 'ڕاپۆرتی خەرجی کڕیی بینا', label: 'ڕاپۆرتی خەرجی کڕیی بینا' },
-  { value: 'ڕاپۆرتی خەرجی بیمە', label: 'ڕاپۆرتی خەرجی بیمە' },
-  { value: 'ڕاپۆرتی خەرجی باج', label: 'ڕاپۆرتی خەرجی باج' },
-  { value: 'ڕاپۆرتی خەرجی مانگانەی قوتابخانە', label: 'ڕاپۆرتی خەرجی مانگانەی قوتابخانە' },
-  { value: 'ڕاپۆرتی خەرجی نانخواردن', label: 'ڕاپۆرتی خەرجی نانخواردن' },
-  { value: 'تر', label: 'تر (Other)' }
-];
+const CATEGORY_OPTIONS = EXPENSE_CATEGORY_OPTIONS;
 
 const MONTH_OPTIONS = [
   { value: 'کانوونی دووەم', label: 'کانوونی دووەم (١)' },
@@ -97,7 +84,7 @@ export default function ExpensesPage() {
   });
  
   const categoryValue = watch('category');
-  const showMonthField = categoryValue === 'ڕاپۆرتی خەرجی نانخواردن' || categoryValue === 'ڕاپۆرتی خەرجی مانگانەی قوتابخانە';
+  const showMonthField = categoryValue === FOOD_EXPENSE_CATEGORY || categoryValue === 'ڕاپۆرتی خەرجی مانگانەی قوتابخانە';
  
   const handleAddItem = () => {
     setItems([...items, { name: '', amount: 0, receipt_no: '', month: getCurrentKurdishMonth() }]);
@@ -157,7 +144,7 @@ export default function ExpensesPage() {
  
   const onSubmit = (values: ExpenseFormValues) => {
     const finalCategory = values.category === 'تر' ? values.custom_category : values.category;
-    const showMonthField = finalCategory === 'ڕاپۆرتی خەرجی نانخواردن' || finalCategory === 'ڕاپۆرتی خەرجی مانگانەی قوتابخانە';
+    const showMonthField = finalCategory === FOOD_EXPENSE_CATEGORY || finalCategory === 'ڕاپۆرتی خەرجی مانگانەی قوتابخانە';
     
     const finalItems = items.map(item => ({
       name: item.name,
@@ -291,7 +278,13 @@ export default function ExpensesPage() {
       </div>
  
       {/* Record/Edit Expense Modal */}
-      <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title={editingExpense ? 'دەستکاریکردنی خەرجی' : 'تۆمارکردنی خەرجی نوێ'}>
+      <Modal
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        title={editingExpense ? 'دەستکاریکردنی خەرجی' : 'تۆمارکردنی خەرجی نوێ'}
+        size="3xl"
+        expandable
+      >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Select
@@ -322,82 +315,96 @@ export default function ExpensesPage() {
             />
           )}
  
-          {/* Breakdown Items List */}
-          <div className="border border-border rounded-xl p-4 bg-surface-muted/50 space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-text">شی کردنەوەی وەسڵەکان (Breakdown of Receipts)</span>
+          {/* Breakdown Items Table */}
+          <div className="border border-border rounded-xl bg-surface-muted/50 overflow-hidden">
+            <div className="flex justify-between items-center px-4 py-3">
+              <span className="text-xs font-bold text-text">
+                شیکردنەوەی وەسڵەکان <span className="text-text-muted font-medium">({items.length} پسوولە)</span>
+              </span>
               <Button type="button" variant="secondary" size="sm" onClick={handleAddItem} className="py-1 px-2.5 text-xs">
                 + زیادکردنی پسوولە
               </Button>
             </div>
-            
-            <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
-              {items.map((item, idx) => (
-                <div key={idx} className="flex gap-2 items-center bg-white p-2 border rounded-lg shadow-sm">
-                  <div className="flex-[2]">
-                    <label className="text-[10px] text-text-light font-semibold mb-0.5 block">ناوی پسوولە</label>
-                    <input
-                      type="text"
-                      placeholder="ناوی بابەت (وەک: کرێی گاز)"
-                      value={item.name}
-                      onChange={(e) => handleItemChange(idx, 'name', e.target.value)}
-                      className="w-full px-2.5 py-1.5 border rounded text-xs bg-white text-text border-border focus:outline-none focus:border-primary-light"
-                      required
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="text-[10px] text-text-light font-semibold mb-0.5 block">بڕی پارە (IQD)</label>
-                    <input
-                      type="number"
-                      placeholder="بڕ"
-                      value={item.amount || ''}
-                      onChange={(e) => handleItemChange(idx, 'amount', parseFloat(e.target.value) || 0)}
-                      className="w-full px-2.5 py-1.5 border rounded text-xs bg-white text-text border-border focus:outline-none focus:border-primary-light"
-                      required
-                    />
-                  </div>
-                  {showMonthField && (
-                    <div className="flex-1">
-                      <label className="text-[10px] text-text-light font-semibold mb-0.5 block">مانگی پسوولە</label>
-                      <select
-                        value={item.month || ''}
-                        onChange={(e) => handleItemChange(idx, 'month', e.target.value)}
-                        className="w-full px-2 py-1.5 border rounded text-xs bg-white text-text border-border focus:outline-none focus:border-primary-light"
-                      >
-                        <option value="">مانگ...</option>
-                        {MONTH_OPTIONS.map((m) => (
-                          <option key={m.value} value={m.value}>
-                            {m.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                  {items.length > 1 && (
-                    <div className="pt-4">
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItem(idx)}
-                        className="text-danger hover:bg-danger-light p-1.5 rounded transition-all mt-0.5 block"
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
+
+            <div className="overflow-x-auto bg-white border-t border-border">
+              <table className="w-full min-w-[480px] text-xs">
+                <thead>
+                  <tr className="bg-surface-muted text-text-muted text-right">
+                    <th className="px-3 py-2 w-10 font-bold">#</th>
+                    <th className="px-3 py-2 font-bold">ناوی پسوولە</th>
+                    <th className="px-3 py-2 w-40 font-bold">بڕی پارە (دینار)</th>
+                    {showMonthField && <th className="px-3 py-2 w-48 font-bold">مانگی پسوولە</th>}
+                    <th className="px-3 py-2 w-12"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {items.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-surface-muted/40">
+                      <td className="px-3 py-2 font-mono text-text-muted">{idx + 1}</td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="text"
+                          placeholder="ناوی بابەت (وەک: کرێی گاز)"
+                          value={item.name}
+                          onChange={(e) => handleItemChange(idx, 'name', e.target.value)}
+                          className="w-full px-2.5 py-2 border rounded-lg text-sm bg-white text-text border-border focus:outline-none focus:border-primary-light"
+                          required
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          min={0}
+                          placeholder="بڕ"
+                          value={item.amount || ''}
+                          onChange={(e) => handleItemChange(idx, 'amount', parseFloat(e.target.value) || 0)}
+                          className="w-full px-2.5 py-2 border rounded-lg text-sm font-mono bg-white text-text border-border focus:outline-none focus:border-primary-light"
+                          required
+                        />
+                      </td>
+                      {showMonthField && (
+                        <td className="px-3 py-2">
+                          <select
+                            value={item.month || ''}
+                            onChange={(e) => handleItemChange(idx, 'month', e.target.value)}
+                            className="w-full px-2 py-2 border rounded-lg text-sm bg-white text-text border-border focus:outline-none focus:border-primary-light"
+                          >
+                            <option value="">مانگ...</option>
+                            {MONTH_OPTIONS.map((m) => (
+                              <option key={m.value} value={m.value}>
+                                {m.label}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                      )}
+                      <td className="px-3 py-2 text-center">
+                        {items.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(idx)}
+                            className="text-danger hover:bg-danger-light p-1.5 rounded transition-all"
+                            title="سڕینەوەی ئەم پسوولەیە"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-amber-50 border-t-2 border-amber-300 font-bold">
+                    <td className="px-3 py-2.5" colSpan={2}>کۆی گشتی خەرجییەکان</td>
+                    <td className="px-3 py-2.5 font-mono text-danger" colSpan={showMonthField ? 3 : 2}>
+                      {formatCurrency(items.reduce((sum, item) => sum + (item.amount || 0), 0))}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           </div>
- 
-          <Input
-            label="کۆی گشتی خەرجییەکان (ماتماتیکییەن ئەژمار دەکرێت)"
-            id="amount_display"
-            type="text"
-            value={formatCurrency(items.reduce((sum, item) => sum + (item.amount || 0), 0))}
-            disabled
-            className="bg-surface-muted font-bold text-danger"
-          />
- 
+
           <div className="flex flex-col gap-1.5">
             <label htmlFor="description" className="text-xs font-semibold text-text">
               تێبینی / وەسف

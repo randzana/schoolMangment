@@ -145,6 +145,44 @@ export function getSchoolName(): string {
 }
 
 /**
+ * Expense categories offered when recording an expense.
+ */
+export const FOOD_EXPENSE_CATEGORY = 'ڕاپۆرتی خەرجی نانخواردن';
+
+export const EXPENSE_CATEGORY_OPTIONS = [
+  { value: 'ڕاپۆرتی خەرجی حکومەت', label: 'ڕاپۆرتی خەرجی حکومەت' },
+  { value: 'ڕاپۆرتی پارەی کارەبای حکومەت', label: 'ڕاپۆرتی پارەی کارەبای حکومەت' },
+  { value: 'ڕاپۆرتی صیانەی بینا', label: 'ڕاپۆرتی صیانەی بینا' },
+  { value: 'ڕاپۆرتی پێداویستی پەڕاوگە', label: 'ڕاپۆرتی پێداویستی پەڕاوگە' },
+  { value: 'ڕاپۆرتی خەرجی مووچە', label: 'ڕاپۆرتی خەرجی مووچە' },
+  { value: 'ڕاپۆرتی خەرجی سوتەمەنی', label: 'ڕاپۆرتی خەرجی سوتەمەنی' },
+  { value: 'ڕاپۆرتی خەرجی کڕیی بینا', label: 'ڕاپۆرتی خەرجی کڕیی بینا' },
+  { value: 'ڕاپۆرتی خەرجی بیمە', label: 'ڕاپۆرتی خەرجی بیمە' },
+  { value: 'ڕاپۆرتی خەرجی باج', label: 'ڕاپۆرتی خەرجی باج' },
+  { value: 'ڕاپۆرتی خەرجی مانگانەی قوتابخانە', label: 'ڕاپۆرتی خەرجی مانگانەی قوتابخانە' },
+  { value: FOOD_EXPENSE_CATEGORY, label: FOOD_EXPENSE_CATEGORY },
+  { value: 'تر', label: 'تر (Other)' },
+];
+
+/**
+ * Month filter options for reports (value is the calendar month number).
+ */
+export const REPORT_MONTH_OPTIONS = [
+  { value: '1', label: 'کانوونی دووەم (1)' },
+  { value: '2', label: 'شوبات (2)' },
+  { value: '3', label: 'ئادار (3)' },
+  { value: '4', label: 'نیسان (4)' },
+  { value: '5', label: 'ئایار (5)' },
+  { value: '6', label: 'حوزەیران (6)' },
+  { value: '7', label: 'تەممووز (7)' },
+  { value: '8', label: 'ئاب (8)' },
+  { value: '9', label: 'ئەیلوول (9)' },
+  { value: '10', label: 'تشرینی یەکەم (10)' },
+  { value: '11', label: 'تشرینی دووەم (11)' },
+  { value: '12', label: 'کانوونی یەکەم (12)' },
+];
+
+/**
  * Item type display labels.
  */
 export const ITEM_TYPE_MAP: Record<string, string> = {

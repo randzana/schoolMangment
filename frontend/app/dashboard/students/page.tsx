@@ -14,7 +14,8 @@ import { DataTable, Column } from '@/components/tables/DataTable';
 import { TablePagination } from '@/components/tables/TablePagination';
 import { formatCurrency, GRADE_OPTIONS, gradeDisplay } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { HiOutlineUserPlus, HiOutlineTrash, HiOutlineEye, HiOutlineMagnifyingGlass } from 'react-icons/hi2';
+import { HiOutlineUserPlus, HiOutlineTrash, HiOutlineEye, HiOutlineMagnifyingGlass, HiOutlinePrinter } from 'react-icons/hi2';
+import { API_URL } from '@/lib/api';
 
 const studentSchema = zod.object({
   full_name: zod.string().min(1, 'ناوی سیانی قوتابی داواکراوە').max(150, 'زۆرترین ١٥٠ پیت'),
@@ -103,6 +104,18 @@ export default function StudentsPage() {
           <p className="text-xs text-text-muted">بەڕێوەبردنی تۆمارەکانی قوتابییان و زانیارییەکانی تۆمارکردن</p>
         </div>
         <div className="flex gap-3">
+          <Button
+            variant="secondary"
+            onClick={() => {
+              const query = new URLSearchParams({ grade, search }).toString();
+              window.open(`${API_URL}/reports/student-list/pdf?${query}`, '_blank');
+            }}
+            className="flex items-center gap-1.5"
+            title="چاپکردنی ناو، پۆل و پارەی جێگیری قوتابییان"
+          >
+            <HiOutlinePrinter className="w-4 h-4" />
+            <span>چاپکردنی لیست</span>
+          </Button>
           <Button variant="primary" onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-1.5">
             <HiOutlineUserPlus className="w-4 h-4" />
             <span>زیادکردنی قوتابی</span>

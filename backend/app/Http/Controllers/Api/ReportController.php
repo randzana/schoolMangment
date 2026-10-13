@@ -240,22 +240,58 @@ class ReportController extends Controller
     }
 
     /**
-     * Expenses report
+     * Kurdish month names used in report headers.
      */
-    public function expenses(Request $request): JsonResponse
+    private const MONTH_NAMES = [
+        1  => 'کانوونی دووەم (1)',
+        2  => 'شوبات (2)',
+        3  => 'ئادار (3)',
+        4  => 'نیسان (4)',
+        5  => 'ئایار (5)',
+        6  => 'حوزەیران (6)',
+        7  => 'تەممووز (7)',
+        8  => 'ئاب (8)',
+        9  => 'ئەیلوول (9)',
+        10 => 'تشرینی یەکەم (10)',
+        11 => 'تشرینی دووەم (11)',
+        12 => 'کانوونی یەکەم (12)',
+    ];
+
+    private const GRADE_NAMES = [
+        'one'   => 'پۆلی یەکەم',
+        'two'   => 'پۆلی دووەم',
+        'three' => 'پۆلی سێیەم',
+        'four'  => 'پۆلی چوارەم',
+        'five'  => 'پۆلی پێنجەم',
+        'six'   => 'پۆلی شەشەم',
+        'seven' => 'پۆلی حەوتەم',
+        'eight' => 'پۆلی هەشتەم',
+        'nine'  => 'پۆلی نۆیەم',
+    ];
+
+    /**
+     * Expenses matching the report filters (date range, month, category).
+     * The general report leaves food bills out; they have their own report.
+     */
+    private function filteredExpenses(Request $request, bool $food)
     {
-        $query = Expense::query();
+        $query = $food ? Expense::food() : Expense::exceptFood();
 
         if ($request->filled('from') || $request->filled('to')) {
             $query->byDateRange($request->from, $request->to);
         }
 
-        if ($request->filled('category')) {
+        $query->byMonth($request->month);
+
+        if (!$food && $request->filled('category')) {
             $query->byCategory($request->category);
         }
 
-        $expenses = $query->orderByDesc('expense_date')->get();
+        return $query->orderByDesc('expense_date')->orderByDesc('id')->get();
+    }
 
+    private function expensesResponse($expenses, string $message): JsonResponse
+    {
         return response()->json([
             'success' => true,
             'data' => [
@@ -265,10 +301,55 @@ class ReportController extends Controller
                     'total_amount' => $expenses->sum('amount'),
                 ],
             ],
-            'message' => 'Expenses report generated',
+            'message' => $message,
         ]);
     }
 
+    private function expensesPdf(Request $request, bool $food)
+    {
+        $expenses = $this->filteredExpenses($request, $food);
+
+        $date_range = ($request->from ?? 'سەرەتا') . ' بۆ ' . ($request->to ?? 'ئێستا');
+        if ($request->filled('month')) {
+            $date_range = 'مانگی ' . (self::MONTH_NAMES[(int) $request->month] ?? $request->month);
+        }
+
+        // Totals per category, largest first, for the summary under the table
+        $byCategory = $expenses->groupBy(fn ($e) => $e->category ?: 'تر')
+            ->map(fn ($group, $name) => [
+                'category' => $name,
+                'count' => $group->count(),
+                'total' => (float) $group->sum('amount'),
+            ])
+            ->sortByDesc('total')
+            ->values();
+
+        return view('reports.expenses', [
+            'expenses' => $expenses,
+            'school_name' => config('school.name', 'Future Generation Private Basic School'),
+            'date_range' => $date_range,
+            'category' => $food ? Expense::FOOD_CATEGORY : ($request->category ?: 'هەموو جۆرەکان (بێ نانخواردن)'),
+            'total' => $expenses->sum('amount'),
+            'title' => $food ? 'ڕاپۆرتی خەرجی نانخواردن' : 'ڕاپۆرتی گشتی خەرجییەکان',
+            'by_category' => $food ? collect() : $byCategory,
+        ]);
+    }
+
+    /**
+     * Expenses report (food bills excluded, see foodExpenses)
+     */
+    public function expenses(Request $request): JsonResponse
+    {
+        return $this->expensesResponse($this->filteredExpenses($request, false), 'Expenses report generated');
+    }
+
+    /**
+     * Food expenses report
+     */
+    public function foodExpenses(Request $request): JsonResponse
+    {
+        return $this->expensesResponse($this->filteredExpenses($request, true), 'Food expenses report generated');
+    }
 
     /**
      * Student list report with payment status
@@ -333,6 +414,141 @@ class ReportController extends Controller
             'data' => $students,
             'message' => 'Student list report generated',
         ]);
+    }
+
+    /**
+     * Printable student list: name, grade and the fixed tuition fee.
+     */
+    public function pdfStudentList(Request $request)
+    {
+        $academicYear = config('school.academic_year', '2025-2026');
+
+        $query = Student::active()->with([
+            'studyPayments' => fn ($q) => $q->where('academic_year', $academicYear),
+        ]);
+
+        if ($request->filled('grade')) {
+            $query->byGrade($request->grade);
+        }
+
+        if ($request->filled('search')) {
+            $query->search($request->search);
+        }
+
+        $records = $query->orderByRaw('LENGTH(serial_number) ASC, serial_number ASC')->get()
+            ->map(fn ($student) => [
+                'serial_number' => $student->serial_number,
+                'full_name' => $student->full_name,
+                'grade_label' => self::GRADE_NAMES[$student->grade] ?? $student->grade,
+                'fixed_fee' => (float) ($student->studyPayments->first()?->price_after_discount ?? 0),
+            ]);
+
+        return view('reports.student-list', [
+            'records' => $records,
+            'school_name' => config('school.name', 'Future Generation Private Basic School'),
+            'academic_year' => $academicYear,
+            'grade_label' => $request->filled('grade') ? (self::GRADE_NAMES[$request->grade] ?? $request->grade) : null,
+            'total_fee' => $records->sum('fixed_fee'),
+        ]);
+    }
+
+    /**
+     * Students who have paid nothing for food and/or clothes in an academic year.
+     *
+     * `type` narrows it to `food` or `clothes`; without it a student is listed
+     * when either one is unpaid. `month` only applies to food (it is paid monthly).
+     */
+    private function unpaidStudentRecords(Request $request): array
+    {
+        $academicYear = $request->filled('academic_year') ? $request->academic_year : config('school.academic_year', '2025-2026');
+        $type = in_array($request->type, ['food', 'clothes'], true) ? $request->type : null;
+        $month = $request->filled('month') ? (int) $request->month : null;
+
+        $foodPaid = FoodInstallment::where('is_returned', false)
+            ->whereHas('foodPayment', fn ($q) => $q->where('academic_year', $academicYear))
+            ->when($month, fn ($q) => $q->whereMonth('payment_date', $month))
+            ->groupBy('student_id')
+            ->selectRaw('student_id, SUM(amount_paid) as total')
+            ->pluck('total', 'student_id');
+
+        $clothesPaid = ClothesBookPayment::where('academic_year', $academicYear)
+            ->whereIn('item_type', ['clothes', 'both'])
+            ->groupBy('student_id')
+            ->selectRaw('student_id, SUM(amount_paid) as total')
+            ->pluck('total', 'student_id');
+
+        $query = Student::active();
+        if ($request->filled('grade')) {
+            $query->byGrade($request->grade);
+        }
+
+        $records = $query->orderByRaw('LENGTH(serial_number) ASC, serial_number ASC')->get()
+            ->map(function ($student) use ($foodPaid, $clothesPaid) {
+                $food = (float) ($foodPaid[$student->id] ?? 0);
+                $clothes = (float) ($clothesPaid[$student->id] ?? 0);
+
+                return [
+                    'id' => $student->id,
+                    'serial_number' => $student->serial_number,
+                    'full_name' => $student->full_name,
+                    'grade' => $student->grade,
+                    'grade_label' => self::GRADE_NAMES[$student->grade] ?? $student->grade,
+                    'food_paid' => $food,
+                    'clothes_paid' => $clothes,
+                    'food_unpaid' => $food <= 0,
+                    'clothes_unpaid' => $clothes <= 0,
+                ];
+            })
+            ->filter(fn ($r) => match ($type) {
+                'food' => $r['food_unpaid'],
+                'clothes' => $r['clothes_unpaid'],
+                default => $r['food_unpaid'] || $r['clothes_unpaid'],
+            })
+            ->values();
+
+        return [
+            'records' => $records,
+            'summary' => [
+                'count' => $records->count(),
+                'food_unpaid_count' => $records->where('food_unpaid', true)->count(),
+                'clothes_unpaid_count' => $records->where('clothes_unpaid', true)->count(),
+            ],
+            'academic_year' => $academicYear,
+            'type' => $type,
+            'month' => $month,
+        ];
+    }
+
+    public function unpaidStudents(Request $request): JsonResponse
+    {
+        $result = $this->unpaidStudentRecords($request);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'records' => $result['records'],
+                'summary' => $result['summary'],
+            ],
+            'message' => 'Unpaid students report generated',
+        ]);
+    }
+
+    public function pdfUnpaidStudents(Request $request)
+    {
+        $result = $this->unpaidStudentRecords($request);
+
+        $title = match ($result['type']) {
+            'food' => 'ڕاپۆرتی ئەو قوتابیانەی پارەی نانخواردنیان نەداوە',
+            'clothes' => 'ڕاپۆرتی ئەو قوتابیانەی پارەی جلوبەرگیان نەداوە',
+            default => 'ڕاپۆرتی ئەو قوتابیانەی پارەی نانخواردن یان جلوبەرگیان نەداوە',
+        };
+
+        return view('reports.unpaid-students', array_merge($result, [
+            'school_name' => config('school.name', 'Future Generation Private Basic School'),
+            'title' => $title,
+            'grade_label' => $request->filled('grade') ? (self::GRADE_NAMES[$request->grade] ?? $request->grade) : null,
+            'month_label' => $result['month'] ? (self::MONTH_NAMES[$result['month']] ?? $result['month']) : null,
+        ]));
     }
 
     /**
@@ -573,13 +789,13 @@ class ReportController extends Controller
             'success' => true,
             'data' => [
                 'records' => $data,
-                'summary' => [
+                'summary' => array_merge([
                     'total_study' => $totalStudy,
                     'total_food' => $totalFood,
                     'total_clothes' => $totalClothes,
                     'total_books' => $totalBooks,
                     'total_income' => $totalIncome,
-                ],
+                ], $this->profitSummary($academicYear, $grade ? null : $totalIncome)),
             ],
             'message' => 'Annual income report generated',
         ]);
@@ -718,9 +934,43 @@ class ReportController extends Controller
             'total_clothes' => $records->sum('clothes_paid'),
             'total_books' => $records->sum('books_paid'),
             'total_income' => $records->sum('grand_total_paid'),
+            'profit' => $this->profitSummary($academicYear, $grade ? null : $records->sum('grand_total_paid')),
         ];
 
         return view('reports.annual-income', $pdf_data);
+    }
+
+    /**
+     * School-wide profit for an academic year: everything collected minus every expense.
+     *
+     * Expenses carry no academic year, but switching years wipes them
+     * (SettingController::update), so every stored expense belongs to the
+     * current year and older years have none left.
+     *
+     * @param  float|null  $schoolIncome  Income already summed for the whole school, or null to sum it here
+     */
+    private function profitSummary(string $academicYear, ?float $schoolIncome = null): array
+    {
+        if ($schoolIncome === null) {
+            $activeStudent = fn ($q) => $q->active();
+
+            $schoolIncome = (float) StudyPayment::where('academic_year', $academicYear)->whereHas('student', $activeStudent)->sum('total_paid')
+                + (float) FoodPayment::where('academic_year', $academicYear)->whereHas('student', $activeStudent)->sum('total_paid')
+                + (float) ClothesBookPayment::where('academic_year', $academicYear)
+                    ->whereIn('item_type', ['clothes', 'book'])
+                    ->whereHas('student', $activeStudent)
+                    ->sum('amount_paid');
+        }
+
+        $totalExpenses = $academicYear === config('school.academic_year')
+            ? (float) Expense::sum('amount')
+            : 0.0;
+
+        return [
+            'school_income' => $schoolIncome,
+            'total_expenses' => $totalExpenses,
+            'net_profit' => $schoolIncome - $totalExpenses,
+        ];
     }
 
     /**
@@ -1043,30 +1293,15 @@ class ReportController extends Controller
      */
     public function pdfExpenses(Request $request)
     {
-        $query = Expense::query();
+        return $this->expensesPdf($request, false);
+    }
 
-        if ($request->filled('from') || $request->filled('to')) {
-            $query->byDateRange($request->from, $request->to);
-        }
-
-        if ($request->filled('category')) {
-            $query->byCategory($request->category);
-        }
-
-        $expenses = $query->orderByDesc('expense_date')->get();
-
-        $date_range = ($request->from ?? 'سەرەتا') . ' بۆ ' . ($request->to ?? 'ئێستا');
-
-        $pdf_data = [
-            'expenses' => $expenses,
-            'school_name' => config('school.name', 'Future Generation Private Basic School'),
-            'date_range' => $date_range,
-            'category' => $request->category ?? 'هەموو جۆرەکان',
-            'total' => $expenses->sum('amount'),
-            'title' => 'ڕاپۆرتی گشتی خەرجییەکان',
-        ];
-
-        return view('reports.expenses', $pdf_data);
+    /**
+     * PDF print of food expenses
+     */
+    public function pdfFoodExpenses(Request $request)
+    {
+        return $this->expensesPdf($request, true);
     }
 
     /**

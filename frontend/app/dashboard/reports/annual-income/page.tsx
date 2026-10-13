@@ -24,7 +24,11 @@ export default function AnnualIncomeReportPage() {
   });
  
   const records = reportResponse?.records || [];
-  const summary = reportResponse?.summary || { total_study: 0, total_food: 0, total_clothes: 0, total_books: 0, total_income: 0 };
+  const summary = reportResponse?.summary || {
+    total_study: 0, total_food: 0, total_clothes: 0, total_books: 0, total_income: 0,
+    school_income: 0, total_expenses: 0, net_profit: 0,
+  };
+  const netProfit = Number(summary.net_profit) || 0;
  
   const handleExportCsv = () => {
     window.open(
@@ -99,6 +103,32 @@ export default function AnnualIncomeReportPage() {
         </div>
       </div>
  
+      {/* Profit: income minus expenses */}
+      <div className="border border-border rounded-xl p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-bold text-text">قازانجی ساڵانە بەپێی داهات و خەرجی</h3>
+          {grade && (
+            <span className="text-[11px] text-text-muted">قازانج بۆ هەموو قوتابخانەیە، نەک تەنها پۆلی هەڵبژێردراو</span>
+          )}
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="bg-success/5 p-4 border border-success/20 rounded-xl">
+            <span className="text-[10px] text-success font-bold">کۆی گشتی داهات</span>
+            <p className="text-base font-bold text-success mt-0.5">{formatCurrency(summary.school_income)}</p>
+          </div>
+          <div className="bg-danger/5 p-4 border border-danger/20 rounded-xl">
+            <span className="text-[10px] text-danger font-bold">کۆی گشتی خەرجی</span>
+            <p className="text-base font-bold text-danger mt-0.5">{formatCurrency(summary.total_expenses)}</p>
+          </div>
+          <div className={`p-4 border rounded-xl ${netProfit < 0 ? 'bg-danger/10 border-danger/30' : 'bg-primary/5 border-primary/20'}`}>
+            <span className={`text-[10px] font-bold ${netProfit < 0 ? 'text-danger' : 'text-primary'}`}>
+              {netProfit < 0 ? 'زیان (داهات − خەرجی)' : 'قازانجی پاک (داهات − خەرجی)'}
+            </span>
+            <p className={`text-base font-bold mt-0.5 ${netProfit < 0 ? 'text-danger' : 'text-primary'}`}>{formatCurrency(netProfit)}</p>
+          </div>
+        </div>
+      </div>
+
       {/* Actions */}
       <div className="flex justify-end gap-3">
         <Button variant="secondary" onClick={handleExportCsv} className="flex items-center gap-1.5">

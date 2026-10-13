@@ -86,10 +86,10 @@ class SettingController extends Controller
                 ])->delete();
 
                 // Reset standard uniforms to 100
-                Inventory::where('item_type', 'clothes')->update(['quantity' => 100]);
+                Inventory::where('item_type', 'clothes')->update(['quantity' => 100, 'total_quantity' => 100]);
 
                 // Reset standard books to 150
-                Inventory::where('item_type', 'book')->update(['quantity' => 150]);
+                Inventory::where('item_type', 'book')->update(['quantity' => 150, 'total_quantity' => 150]);
             });
 
             $message = 'ساڵی خوێندن گۆڕدرا و سەرجەم زانیارییەکان بە سەرکەوتوویی سڕانەوە و سیستەمەکە سفر کرایەوە';
@@ -152,10 +152,10 @@ class SettingController extends Controller
             ])->delete();
 
             // 2. Reset standard uniforms to 100
-            Inventory::where('item_type', 'clothes')->update(['quantity' => 100]);
+            Inventory::where('item_type', 'clothes')->update(['quantity' => 100, 'total_quantity' => 100]);
 
             // 3. Reset standard books to 150
-            Inventory::where('item_type', 'book')->update(['quantity' => 150]);
+            Inventory::where('item_type', 'book')->update(['quantity' => 150, 'total_quantity' => 150]);
         });
 
         return response()->json([

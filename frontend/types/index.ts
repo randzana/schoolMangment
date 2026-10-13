@@ -190,6 +190,7 @@ export interface InventoryItem {
   name: string;
   code: string;
   quantity: number;
+  total_quantity?: number;
   price?: string | number;
   grade?: 'one' | 'two' | 'three' | 'four' | 'five' | 'six' | 'seven' | 'eight' | 'nine' | null;
   created_at?: string;
@@ -197,6 +198,13 @@ export interface InventoryItem {
 }
 
 // Expense
+export interface ExpenseItem {
+  name: string;
+  amount: number | string;
+  month?: string;
+  receipt_no?: string;
+}
+
 export interface Expense {
   id: number;
   title: string;
@@ -205,6 +213,7 @@ export interface Expense {
   category: string | null;
   description: string | null;
   receipt_no: string | null;
+  items?: ExpenseItem[] | null;
   created_by: number | null;
   created_at: string;
   updated_at: string;

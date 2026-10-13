@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '@/lib/api';
+import api, { API_URL } from '@/lib/api';
 import { InventoryItem } from '@/types';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
@@ -17,7 +17,13 @@ import {
   HiOutlinePencilSquare,
   HiOutlineTrash,
   HiOutlinePlusCircle,
+  HiOutlinePlus,
+  HiOutlinePrinter,
 } from 'react-icons/hi2';
+
+/** Fixed count of everything put into stock (older rows may not have it yet). */
+const totalOf = (item: InventoryItem) => Math.max(item.total_quantity ?? item.quantity, item.quantity);
+const soldOf = (item: InventoryItem) => totalOf(item) - item.quantity;
 
 export default function InventoryPage() {
   const queryClient = useQueryClient();
@@ -25,8 +31,12 @@ export default function InventoryPage() {
   
   // Edit states
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
-  const [quantityInput, setQuantityInput] = useState<string>('');
+  const [totalInput, setTotalInput] = useState<string>('');
   const [priceInput, setPriceInput] = useState<string>('0');
+
+  // Add stock states
+  const [stockItem, setStockItem] = useState<InventoryItem | null>(null);
+  const [addInput, setAddInput] = useState<string>('');
 
   // Create item states
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -69,17 +79,19 @@ export default function InventoryPage() {
     },
   });
 
-  // Update stock & price mutation
+  // Update fixed count, stock & price mutation
   const updateMutation = useMutation({
-    mutationFn: async ({ id, quantity, price }: { id: number; quantity: number; price: number }) => {
-      const res = await api.put(`/inventory/${id}`, { quantity, price });
+    mutationFn: async ({ id, ...payload }: { id: number; total_quantity?: number; add_quantity?: number; price?: number }) => {
+      const res = await api.put(`/inventory/${id}`, payload);
       return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory-list'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-list-books'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-list-clothes'] });
       toast.success('زانیارییەکان بە سەرکەوتوویی نوێکرانەوە');
       setEditingItem(null);
+      setStockItem(null);
     },
     onError: (err) => {
       const apiErr = err as { response?: { data?: { message?: string } } };
@@ -107,7 +119,7 @@ export default function InventoryPage() {
 
   const handleEditClick = (item: InventoryItem) => {
     setEditingItem(item);
-    setQuantityInput(item.quantity.toString());
+    setTotalInput(totalOf(item).toString());
     setPriceInput(item.price?.toString() || '0');
   };
 
@@ -115,20 +127,48 @@ export default function InventoryPage() {
     e.preventDefault();
     if (!editingItem) return;
 
-    const qty = parseInt(quantityInput, 10);
-    if (isNaN(qty) || qty < 0) {
+    const total = parseInt(totalInput, 10);
+    if (isNaN(total) || total < 0) {
       toast.error('تکایە ژمارەیەکی دروست بنووسە');
       return;
     }
-
-    const price = editingItem.item_type === 'clothes' ? parseFloat(priceInput) : 0;
-    if (editingItem.item_type === 'clothes' && (isNaN(price) || price < 0)) {
-      toast.error('تکایە نرخێکی دروست بنووسە');
+    if (total < soldOf(editingItem)) {
+      toast.error(`ژمارەی جێگیر ناتوانێت لە ژمارەی فرۆشراو (${soldOf(editingItem)} دانە) کەمتر بێت`);
       return;
     }
 
-    updateMutation.mutate({ id: editingItem.id, quantity: qty, price });
+    if (editingItem.item_type === 'clothes') {
+      const price = parseFloat(priceInput);
+      if (isNaN(price) || price < 0) {
+        toast.error('تکایە نرخێکی دروست بنووسە');
+        return;
+      }
+      updateMutation.mutate({ id: editingItem.id, total_quantity: total, price });
+    } else {
+      updateMutation.mutate({ id: editingItem.id, total_quantity: total });
+    }
   };
+
+  const handleOpenAddStock = (item: InventoryItem) => {
+    setStockItem(item);
+    setAddInput('');
+  };
+
+  const handleAddStock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stockItem) return;
+
+    const amount = parseInt(addInput, 10);
+    if (isNaN(amount) || amount < 1) {
+      toast.error('تکایە ژمارەیەکی دروست بنووسە (لانیکەم ١)');
+      return;
+    }
+
+    updateMutation.mutate({ id: stockItem.id, add_quantity: amount });
+  };
+
+  const addAmount = Math.max(0, parseInt(addInput, 10) || 0);
+  const editTotal = parseInt(totalInput, 10);
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -207,16 +247,26 @@ export default function InventoryPage() {
             <HiOutlineBuildingStorefront className="w-6 h-6" />
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-text">بەڕێوەبردنی کۆگا</h1>
           </div>
-          <p className="text-xs text-text-muted">ڕێژەی مەوجودی جلوبەرگ و کتێبەکان بەپێی جۆر و بابەت</p>
+          <p className="text-xs text-text-muted">ژمارەی جێگیر (کۆی هاتوو)، فرۆشراو و ماوەی جلوبەرگ و کتێبەکان بەپێی جۆر و بابەت</p>
         </div>
-        <Button
-          variant="primary"
-          onClick={() => setIsCreateOpen(true)}
-          className="flex items-center gap-1.5 self-start font-semibold"
-        >
-          <HiOutlinePlusCircle className="w-4 h-4" />
-          <span>{activeTab === 'clothes' ? 'تۆمارکردنی جۆری نوێ' : 'تۆمارکردنی کتێبی نوێ'}</span>
-        </Button>
+        <div className="flex flex-wrap gap-2 self-start">
+          <Button
+            variant="secondary"
+            onClick={() => window.open(`${API_URL}/inventory/print`, '_blank')}
+            className="flex items-center gap-1.5 font-semibold"
+          >
+            <HiOutlinePrinter className="w-4 h-4" />
+            <span>چاپکردنی کۆگا</span>
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => setIsCreateOpen(true)}
+            className="flex items-center gap-1.5 font-semibold"
+          >
+            <HiOutlinePlusCircle className="w-4 h-4" />
+            <span>{activeTab === 'clothes' ? 'تۆمارکردنی جۆری نوێ' : 'تۆمارکردنی کتێبی نوێ'}</span>
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -256,7 +306,9 @@ export default function InventoryPage() {
                   <th className="px-6 py-4">ناوی بابەت</th>
                   <th className="px-6 py-4">کۆدی بابەت</th>
                   {activeTab !== 'book' && <th className="px-6 py-4">نرخی بابەت</th>}
-                  <th className="px-6 py-4">ژمارەی مەوجود لە کۆگا</th>
+                  <th className="px-6 py-4">ژمارەی جێگیر</th>
+                  <th className="px-6 py-4">فرۆشراو</th>
+                  <th className="px-6 py-4">ماوە لە کۆگا</th>
                   <th className="px-6 py-4 text-left">کردارەکان</th>
                 </tr>
               </thead>
@@ -280,6 +332,8 @@ export default function InventoryPage() {
                       {activeTab !== 'book' && (
                         <td className="px-6 py-4 font-semibold text-primary">{formatCurrency(item.price || 0)}</td>
                       )}
+                      <td className="px-6 py-4 font-mono font-bold text-primary">{totalOf(item)}</td>
+                      <td className="px-6 py-4 font-mono font-semibold text-success">{soldOf(item)}</td>
                       <td className="px-6 py-4">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold font-mono ${
                           item.quantity === 0
@@ -293,6 +347,15 @@ export default function InventoryPage() {
                       </td>
                       <td className="px-6 py-4 text-left">
                         <div className="flex items-center gap-2 justify-end">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleOpenAddStock(item)}
+                            className="text-success hover:bg-success/5 p-1 rounded-lg"
+                            title="زیادکردنی بڕ بۆ کۆگا"
+                          >
+                            <HiOutlinePlus className="w-4 h-4" />
+                          </Button>
                           <Button
                             size="sm"
                             variant="ghost"
@@ -339,6 +402,9 @@ export default function InventoryPage() {
                       </div>
                       <p className="text-[10px] text-text-muted font-mono">{item.code}</p>
                       {activeTab !== 'book' && <p className="text-xs text-primary font-bold">{formatCurrency(item.price || 0)}</p>}
+                      <p className="text-[10px] text-text-muted">
+                        جێگیر: <strong className="text-primary font-mono">{totalOf(item)}</strong> · فرۆشراو: <strong className="text-success font-mono">{soldOf(item)}</strong>
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
@@ -350,6 +416,14 @@ export default function InventoryPage() {
                       }`}>
                         {item.quantity} دانە
                       </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleOpenAddStock(item)}
+                        className="text-success p-1.5 bg-success/5 rounded-lg active:scale-95"
+                      >
+                        <HiOutlinePlus className="w-4 h-4" />
+                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -405,7 +479,7 @@ export default function InventoryPage() {
           {activeTab === 'clothes' ? (
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="بڕی سەرەتایی لە کۆگا *"
+                label="ژمارەی جێگیر (بڕی سەرەتایی) *"
                 type="number"
                 min="0"
                 required
@@ -425,7 +499,7 @@ export default function InventoryPage() {
             </div>
           ) : (
             <Input
-              label="بڕی سەرەتایی لە کۆگا *"
+              label="ژمارەی جێگیر (بڕی سەرەتایی) *"
               type="number"
               min="0"
               required
@@ -455,7 +529,7 @@ export default function InventoryPage() {
         </form>
       </Modal>
 
-      {/* Edit quantity & price modal */}
+      {/* Edit fixed count & price modal */}
       <Modal
         isOpen={editingItem !== null}
         onClose={() => setEditingItem(null)}
@@ -466,20 +540,20 @@ export default function InventoryPage() {
             <div>
               <p className="text-xs text-text-muted mb-2">ناوی بابەت: <strong className="text-text font-bold">{editingItem.name}</strong></p>
             </div>
-            {editingItem.item_type === 'clothes' ? (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="quantity" className="block text-xs font-semibold text-text mb-1">ژمارەی مەوجود لە کۆگا</label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    min="0"
-                    required
-                    value={quantityInput}
-                    onChange={(e) => setQuantityInput(e.target.value)}
-                    className="w-full font-mono text-center font-bold text-lg"
-                  />
-                </div>
+            <div className={editingItem.item_type === 'clothes' ? 'grid grid-cols-2 gap-4' : ''}>
+              <div>
+                <label htmlFor="total_quantity" className="block text-xs font-semibold text-text mb-1">ژمارەی جێگیر (کۆی هاتووی کۆگا)</label>
+                <Input
+                  id="total_quantity"
+                  type="number"
+                  min={soldOf(editingItem)}
+                  required
+                  value={totalInput}
+                  onChange={(e) => setTotalInput(e.target.value)}
+                  className="w-full font-mono text-center font-bold text-lg"
+                />
+              </div>
+              {editingItem.item_type === 'clothes' && (
                 <div>
                   <label htmlFor="price" className="block text-xs font-semibold text-text mb-1">نرخی فرۆشتن (دینار)</label>
                   <Input
@@ -492,21 +566,24 @@ export default function InventoryPage() {
                     className="w-full font-mono text-center font-bold text-lg"
                   />
                 </div>
+              )}
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+              <div className="bg-surface-muted rounded-lg p-2 border border-border">
+                <p className="text-text-muted">فرۆشراو</p>
+                <p className="font-mono font-bold text-success">{soldOf(editingItem)}</p>
               </div>
-            ) : (
-              <div>
-                <label htmlFor="quantity" className="block text-xs font-semibold text-text mb-1">ژمارەی مەوجود لە کۆگا</label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  min="0"
-                  required
-                  value={quantityInput}
-                  onChange={(e) => setQuantityInput(e.target.value)}
-                  className="w-full font-mono text-center font-bold text-lg"
-                />
+              <div className="bg-surface-muted rounded-lg p-2 border border-border">
+                <p className="text-text-muted">ماوەی ئێستا</p>
+                <p className="font-mono font-bold text-text">{editingItem.quantity}</p>
               </div>
-            )}
+              <div className="bg-primary/5 rounded-lg p-2 border border-primary/20">
+                <p className="text-primary">ماوە دوای پاشەکەوت</p>
+                <p className="font-mono font-bold text-primary">
+                  {isNaN(editTotal) ? '-' : Math.max(0, editTotal - soldOf(editingItem))}
+                </p>
+              </div>
+            </div>
             <div className="flex justify-end gap-3 pt-2 font-semibold">
               <Button
                 type="button"
@@ -523,6 +600,54 @@ export default function InventoryPage() {
                 className="w-full"
               >
                 تۆمارکردن
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
+
+      {/* Add stock modal */}
+      <Modal
+        isOpen={stockItem !== null}
+        onClose={() => setStockItem(null)}
+        title="زیادکردنی بڕ بۆ کۆگا"
+        size="sm"
+      >
+        {stockItem && (
+          <form onSubmit={handleAddStock} className="space-y-4 pt-2">
+            <p className="text-xs text-text-muted">ناوی بابەت: <strong className="text-text font-bold">{stockItem.name}</strong></p>
+            <Input
+              label="ژمارەی دانەی هاتوو *"
+              id="add_quantity"
+              type="number"
+              min="1"
+              required
+              autoFocus
+              placeholder="بۆ نموونە: ٥٠"
+              value={addInput}
+              onChange={(e) => setAddInput(e.target.value)}
+              className="w-full font-mono text-center font-bold text-lg"
+            />
+            <div className="bg-surface-muted rounded-lg p-3 border border-border text-xs space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-text-muted">ژمارەی جێگیر</span>
+                <span className="font-mono font-bold">
+                  {totalOf(stockItem)} ← <span className="text-primary">{totalOf(stockItem) + addAmount}</span>
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-text-muted">ماوە لە کۆگا</span>
+                <span className="font-mono font-bold">
+                  {stockItem.quantity} ← <span className="text-success">{stockItem.quantity + addAmount}</span>
+                </span>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-2 font-semibold">
+              <Button type="button" variant="secondary" onClick={() => setStockItem(null)} className="w-full">
+                پاشگەزبوونەوە
+              </Button>
+              <Button type="submit" variant="primary" isLoading={updateMutation.isPending} className="w-full">
+                زیادکردن
               </Button>
             </div>
           </form>
