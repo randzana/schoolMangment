@@ -26,6 +26,7 @@ import {
   CartesianGrid,
   Tooltip,
   ReferenceLine,
+  ReferenceArea,
   ResponsiveContainer,
 } from 'recharts';
 
@@ -70,6 +71,8 @@ const SERIES = {
 } as const;
 
 const AXIS_TEXT = '#718096';
+const CHART_MARGIN = { top: 8, right: 8, left: 0, bottom: 0 };
+const Y_AXIS_WIDTH = 52;
 const GRID_LINE = '#EDF2F7';
 const BASELINE = '#CBD5E0';
 
@@ -145,6 +148,30 @@ function SeriesKey({ type, color }: { type: 'bar' | 'line'; color: string }) {
   );
 }
 
+interface MonthTickProps {
+  x?: number;
+  y?: number;
+  payload?: { value: string };
+  selected: string | undefined;
+}
+
+function MonthTick({ x = 0, y = 0, payload, selected }: MonthTickProps) {
+  const isSelected = payload?.value === selected;
+  return (
+    <text
+      x={x}
+      y={y}
+      dy={12}
+      textAnchor="middle"
+      fontSize={11}
+      fontWeight={isSelected ? 700 : 400}
+      fill={isSelected ? '#1A202C' : AXIS_TEXT}
+    >
+      {payload?.value}
+    </text>
+  );
+}
+
 interface ChartTooltipProps {
   active?: boolean;
   payload?: Array<{ payload: ChartRow }>;
@@ -187,6 +214,8 @@ function ChartTooltip({ active, payload }: ChartTooltipProps) {
 
 export default function DashboardPage() {
   const [view, setView] = useState<'chart' | 'table'>('chart');
+  // The chart is monthly, so the totals above it follow one chosen month (this month by default)
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth());
 
   const { data: dashboard, isLoading, error } = useQuery<DashboardData>({
     queryKey: ['dashboard-data'],
@@ -221,6 +250,27 @@ export default function DashboardPage() {
     const expenses = chartData.reduce((sum, row) => sum + row.expenses, 0);
     return { revenue, expenses, profit: revenue - expenses };
   }, [chartData]);
+
+  const selectedRow = chartData[selectedMonth] ?? chartData[chartData.length - 1];
+  const monthTotals = {
+    revenue: selectedRow?.revenue ?? 0,
+    expenses: selectedRow?.expenses ?? 0,
+    profit: (selectedRow?.revenue ?? 0) - (selectedRow?.expenses ?? 0),
+  };
+  const selectMonth = (index: number) => {
+    if (Number.isInteger(index) && index >= 0 && index < chartData.length) setSelectedMonth(index);
+  };
+
+  // Work the month out from where the chart was clicked or tapped. The chart's own
+  // active index lags behind on a tap (there is no hover first) and picks the wrong month.
+  const selectMonthAt = (event: React.MouseEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const plotLeft = CHART_MARGIN.left + Y_AXIS_WIDTH;
+    const plotWidth = rect.width - plotLeft - CHART_MARGIN.right;
+    const x = event.clientX - rect.left - plotLeft;
+    if (plotWidth <= 0 || x < 0 || x > plotWidth || chartData.length === 0) return;
+    selectMonth(Math.min(chartData.length - 1, Math.floor(x / (plotWidth / chartData.length))));
+  };
 
   if (isLoading) {
     return (
@@ -281,7 +331,9 @@ export default function DashboardPage() {
     },
   ];
 
-  const isLoss = yearlyTotals.profit < 0;
+  const isYearLoss = yearlyTotals.profit < 0;
+  const isMonthLoss = monthTotals.profit < 0;
+  const monthName = selectedRow?.fullMonth ?? '';
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -304,56 +356,68 @@ export default function DashboardPage() {
       <section className="bg-white border border-border rounded-2xl shadow-card p-4 md:p-6 space-y-4 md:space-y-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-sm md:text-base font-bold text-text">شیکاری دارایی ساڵانە</h2>
-            <p className="text-[11px] text-text-muted mt-0.5">بەراوردی مانگانەی داهات، خەرجی و قازانج — ساڵی {chartYear}</p>
+            <h2 className="text-sm md:text-base font-bold text-text">شیکاری دارایی مانگانە</h2>
+            <p className="text-[11px] text-text-muted mt-0.5">داهات، خەرجی و قازانجی هەر مانگێک — ساڵی {chartYear}</p>
           </div>
-          <div className="inline-flex rounded-lg border border-border bg-surface-muted p-0.5 text-xs font-semibold" role="tablist">
-            {([
-              { key: 'chart', label: 'چارت', icon: <HiOutlineChartBar className="w-4 h-4" /> },
-              { key: 'table', label: 'خشتە', icon: <HiOutlineTableCells className="w-4 h-4" /> },
-            ] as const).map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                role="tab"
-                aria-selected={view === tab.key}
-                onClick={() => setView(tab.key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
-                  view === tab.key ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'
-                }`}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              aria-label="هەڵبژاردنی مانگ"
+              value={selectedMonth}
+              onChange={(e) => selectMonth(Number(e.target.value))}
+              className="h-9 rounded-lg border border-border bg-white px-2.5 text-xs font-semibold text-text focus:border-primary-light focus:outline-none cursor-pointer"
+            >
+              {chartData.map((row, index) => (
+                <option key={row.month} value={index}>{row.fullMonth}</option>
+              ))}
+            </select>
+            <div className="inline-flex rounded-lg border border-border bg-surface-muted p-0.5 text-xs font-semibold" role="tablist">
+              {([
+                { key: 'chart', label: 'چارت', icon: <HiOutlineChartBar className="w-4 h-4" /> },
+                { key: 'table', label: 'خشتە', icon: <HiOutlineTableCells className="w-4 h-4" /> },
+              ] as const).map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={view === tab.key}
+                  onClick={() => setView(tab.key)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                    view === tab.key ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  {tab.icon}
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Yearly totals */}
+        {/* Totals of the chosen month */}
         <div className="grid gap-2 sm:grid-cols-3 sm:gap-3">
           <div className="@container min-w-0 rounded-xl border border-border bg-surface-muted/60 px-3 py-2.5 flex items-center justify-between gap-2 sm:flex-col sm:items-start">
             <span className="flex items-center gap-1.5 text-[11px] font-semibold text-text-muted">
               <SeriesKey type="bar" color={SERIES.revenue.color} />
-              کۆی داهات
+              داهاتی {monthName}
             </span>
-            <span className="text-sm md:text-base font-bold text-text"><Amount value={yearlyTotals.revenue} /></span>
+            <span className="text-sm md:text-base font-bold text-text"><Amount value={monthTotals.revenue} /></span>
           </div>
           <div className="@container min-w-0 rounded-xl border border-border bg-surface-muted/60 px-3 py-2.5 flex items-center justify-between gap-2 sm:flex-col sm:items-start">
             <span className="flex items-center gap-1.5 text-[11px] font-semibold text-text-muted">
               <SeriesKey type="bar" color={SERIES.expenses.color} />
-              کۆی خەرجی
+              خەرجی {monthName}
             </span>
-            <span className="text-sm md:text-base font-bold text-text"><Amount value={yearlyTotals.expenses} /></span>
+            <span className="text-sm md:text-base font-bold text-text"><Amount value={monthTotals.expenses} /></span>
           </div>
           <div className={`@container min-w-0 rounded-xl border px-3 py-2.5 flex items-center justify-between gap-2 sm:flex-col sm:items-start ${
-            isLoss ? 'bg-danger/5 border-danger/20' : 'bg-success/5 border-success/20'
+            isMonthLoss ? 'bg-danger/5 border-danger/20' : 'bg-success/5 border-success/20'
           }`}>
-            <span className={`flex items-center gap-1.5 text-[11px] font-semibold ${isLoss ? 'text-danger' : 'text-success'}`}>
-              {isLoss ? <HiOutlineArrowTrendingDown className="w-4 h-4" /> : <HiOutlineArrowTrendingUp className="w-4 h-4" />}
-              {isLoss ? 'زیانی ساڵ' : 'قازانجی ساڵ'}
+            <span className={`flex items-center gap-1.5 text-[11px] font-semibold ${isMonthLoss ? 'text-danger' : 'text-success'}`}>
+              {isMonthLoss ? <HiOutlineArrowTrendingDown className="w-4 h-4" /> : <HiOutlineArrowTrendingUp className="w-4 h-4" />}
+              {isMonthLoss ? 'زیانی' : 'قازانجی'} {monthName}
             </span>
-            <span className={`text-sm md:text-base font-bold ${isLoss ? 'text-danger' : 'text-success'}`}>
-              <Amount value={yearlyTotals.profit} />
+            <span className={`text-sm md:text-base font-bold ${isMonthLoss ? 'text-danger' : 'text-success'}`}>
+              <Amount value={monthTotals.profit} />
             </span>
           </div>
         </div>
@@ -367,21 +431,24 @@ export default function DashboardPage() {
               <span className="flex items-center gap-1.5"><SeriesKey type="line" color={SERIES.profit.color} />{SERIES.profit.label}</span>
             </div>
 
-            <div className="h-[260px] sm:h-[300px] lg:h-[340px] w-full" dir="ltr">
+            <div className="h-[260px] sm:h-[300px] lg:h-[340px] w-full cursor-pointer" dir="ltr" onClick={selectMonthAt}>
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barGap={2} barCategoryGap="22%">
+                <ComposedChart data={chartData} margin={CHART_MARGIN} barGap={2} barCategoryGap="22%">
                   <CartesianGrid vertical={false} stroke={GRID_LINE} />
+                  {selectedRow && (
+                    <ReferenceArea x1={selectedRow.shortMonth} x2={selectedRow.shortMonth} fill="#1E3A5F" fillOpacity={0.06} stroke="none" />
+                  )}
                   <XAxis
                     dataKey="shortMonth"
                     tickLine={false}
                     axisLine={false}
-                    tick={{ fontSize: 11, fill: AXIS_TEXT }}
-                    tickMargin={8}
+                    tick={<MonthTick selected={selectedRow?.shortMonth} />}
+                    tickMargin={4}
                     interval="preserveStartEnd"
                     minTickGap={6}
                   />
                   <YAxis
-                    width={52}
+                    width={Y_AXIS_WIDTH}
                     tickLine={false}
                     axisLine={false}
                     tick={{ fontSize: 11, fill: AXIS_TEXT, style: { fontVariantNumeric: 'tabular-nums' } }}
@@ -420,8 +487,12 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {chartData.map((row) => (
-                  <tr key={row.month} className="hover:bg-surface-muted/50">
+                {chartData.map((row, index) => (
+                  <tr
+                    key={row.month}
+                    onClick={() => selectMonth(index)}
+                    className={`cursor-pointer ${index === selectedMonth ? 'bg-primary/5' : 'hover:bg-surface-muted/50'}`}
+                  >
                     <td className="px-3 py-2 font-medium text-text whitespace-nowrap">{row.fullMonth}</td>
                     <td className="px-3 py-2 tabular-nums text-text"><Amount value={row.revenue} nowrap /></td>
                     <td className="px-3 py-2 tabular-nums text-text"><Amount value={row.expenses} nowrap /></td>
@@ -438,7 +509,7 @@ export default function DashboardPage() {
                   <td className="px-3 py-2.5 text-text">کۆی ساڵ</td>
                   <td className="px-3 py-2.5 tabular-nums text-text"><Amount value={yearlyTotals.revenue} nowrap /></td>
                   <td className="px-3 py-2.5 tabular-nums text-text"><Amount value={yearlyTotals.expenses} nowrap /></td>
-                  <td className={`px-3 py-2.5 tabular-nums ${isLoss ? 'text-danger' : 'text-success'}`}><Amount value={yearlyTotals.profit} nowrap /></td>
+                  <td className={`px-3 py-2.5 tabular-nums ${isYearLoss ? 'text-danger' : 'text-success'}`}><Amount value={yearlyTotals.profit} nowrap /></td>
                 </tr>
               </tfoot>
             </table>

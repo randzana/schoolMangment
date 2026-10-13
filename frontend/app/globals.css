@@ -101,6 +101,11 @@ body {
   outline-offset: 2px;
 }
 
+/* Charts take focus on click/tap (they are keyboard navigable); keep the ring for keyboard focus only */
+.recharts-surface:focus:not(:focus-visible) {
+  outline: none;
+}
+
 /* ===== PRINT STYLES ===== */
 @media print {
   .no-print {
