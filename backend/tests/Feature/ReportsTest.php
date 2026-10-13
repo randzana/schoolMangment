@@ -118,6 +118,25 @@ class ReportsTest extends TestCase
             ->assertSee('40,000');
     }
 
+    public function test_long_expense_receipts_can_break_across_printed_pages(): void
+    {
+        $items = collect(range(1, 60))->map(fn ($i) => ['name' => "Item {$i}", 'amount' => 1000])->all();
+        Expense::create([
+            'title' => Expense::FOOD_CATEGORY,
+            'category' => Expense::FOOD_CATEGORY,
+            'amount' => 60000,
+            'expense_date' => '2026-10-06',
+            'items' => $items,
+        ]);
+
+        // Merged (rowspan) cells make a receipt unbreakable, pushing it off the first page
+        $this->get('/api/reports/food-expenses/pdf')
+            ->assertOk()
+            ->assertSeeInOrder(['Item 1', 'Item 60'])
+            ->assertDontSee('rowspan', false)
+            ->assertSee('tfoot { display: table-row-group; }', false);
+    }
+
     public function test_unpaid_students_report_lists_students_without_food_or_clothes_payments(): void
     {
         $paidBoth = $this->student('1', 'Paid Both');

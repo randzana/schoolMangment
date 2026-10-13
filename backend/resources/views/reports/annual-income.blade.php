@@ -140,6 +140,7 @@
             body { background: white; padding: 8mm 10mm; }
             .report-wrapper { border: 1px solid #CBD5E1; box-shadow: none; max-width: 100%; border-radius: 8px; }
             .no-print { display: none; }
+            tfoot { display: table-row-group; }
             tr:hover { background: inherit; }
         }
     </style>

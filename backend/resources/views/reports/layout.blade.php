@@ -117,6 +117,8 @@
             body { background: white; padding: 8mm 10mm; }
             .report-wrapper { border: 1px solid #CBD5E1; box-shadow: none; max-width: 100%; border-radius: 8px; }
             thead { display: table-header-group; }
+            /* Chrome repeats a tfoot on every printed page; the grand total belongs at the end only */
+            tfoot { display: table-row-group; }
             tr { page-break-inside: avoid; }
         }
     </style>

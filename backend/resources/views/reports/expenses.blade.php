@@ -5,8 +5,7 @@
 @push('styles')
     table.grouped tbody tr { background: transparent; }
     table.grouped tbody tr.alt { background: #F8FAFC; }
-    table.grouped tr.group-start td { border-top: 1px solid #E2E8F0; }
-    table.grouped td.group-cell { vertical-align: top; }
+    table.grouped tr.group-start td { border-top: 1px solid #CBD5E1; }
     .description { display: block; margin-top: 3px; font-size: 9px; color: #64748B; font-weight: 400; }
 @endpush
 
@@ -43,17 +42,23 @@
                             : [['name' => $exp->title, 'amount' => $exp->amount]];
                         $span = count($lines);
                     @endphp
+                    {{-- No rowspan: merged cells make a long receipt one unbreakable block,
+                         which pushes it to the next page and leaves the current one blank. --}}
                     @foreach($lines as $lineIndex => $line)
                         <tr class="{{ $index % 2 === 1 ? 'alt' : '' }} {{ $lineIndex === 0 ? 'group-start' : '' }}">
                             @if($lineIndex === 0)
-                                <td class="num group-cell" rowspan="{{ $span }}">{{ $index + 1 }}</td>
-                                <td class="group-cell" rowspan="{{ $span }}">{{ $exp->expense_date?->format('d/m/Y') ?? '-' }}</td>
-                                <td class="group-cell" rowspan="{{ $span }}">
+                                <td class="num">{{ $index + 1 }}</td>
+                                <td>{{ $exp->expense_date?->format('d/m/Y') ?? '-' }}</td>
+                                <td>
                                     <span class="badge">{{ $exp->category ?: '-' }}</span>
                                     @if($exp->description)
                                         <span class="description">{{ $exp->description }}</span>
                                     @endif
                                 </td>
+                            @else
+                                <td></td>
+                                <td></td>
+                                <td></td>
                             @endif
                             <td style="font-weight: 500;">{{ $line['name'] ?? '-' }}</td>
                             <td>{{ !empty($line['month']) ? $line['month'] : '-' }}</td>
