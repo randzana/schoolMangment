@@ -23,9 +23,9 @@ export default function Topbar() {
   const academicYear = settings?.academic_year || '2026-2027';
 
   return (
-    <header className="sticky top-0 z-30 h-14 md:h-16 bg-white border-b flex items-center justify-between px-4 md:px-6"
+    <header className="sticky top-0 z-30 h-14 md:h-16 bg-white border-b flex items-center justify-between gap-2 px-3 sm:px-4 md:px-6"
             style={{ borderColor: 'var(--color-border)' }}>
-      <div className="flex items-center gap-3 md:gap-4">
+      <div className="flex items-center gap-2 sm:gap-3 md:gap-4 min-w-0 flex-1">
         <button
           onClick={() => {
             // On mobile, open the overlay sidebar; on desktop, toggle collapse
@@ -35,7 +35,7 @@ export default function Topbar() {
               toggleSidebar();
             }
           }}
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors active:scale-95"
+          className="p-2 rounded-lg hover:bg-gray-100 transition-colors active:scale-95 flex-shrink-0"
           aria-label="Toggle sidebar"
         >
           <HiOutlineBars3 className="w-5 h-5" style={{ color: 'var(--color-text-muted)' }} />
@@ -45,13 +45,13 @@ export default function Topbar() {
           <h2 className="text-sm md:text-lg font-semibold truncate" style={{ color: 'var(--color-text)' }}>
             {getSchoolName()}
           </h2>
-          <p className="text-[10px] md:text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          <p className="text-[10px] md:text-xs whitespace-nowrap" style={{ color: 'var(--color-text-muted)' }}>
             ساڵی خوێندن: {academicYear}
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 md:gap-4">
+      <div className="flex items-center gap-1 sm:gap-2 md:gap-4 flex-shrink-0">
         <button
           className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors active:scale-95"
           aria-label="Notifications"
