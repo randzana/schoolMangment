@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { DashboardData } from '@/types';
@@ -71,8 +71,10 @@ const SERIES = {
 } as const;
 
 const AXIS_TEXT = '#718096';
-const CHART_MARGIN = { top: 8, right: 8, left: 0, bottom: 0 };
+const CHART_MARGIN = { top: 8, right: 20, left: 0, bottom: 0 };
 const Y_AXIS_WIDTH = 52;
+/** Width one month label needs at 11px (the widest, e.g. "حوزەیران", is ~45px). */
+const MONTH_LABEL_SLOT = 48;
 const GRID_LINE = '#EDF2F7';
 const BASELINE = '#CBD5E0';
 
@@ -92,7 +94,7 @@ interface ChartRow {
 function formatAxisValue(value: number): string {
   const abs = Math.abs(value);
   const sign = value < 0 ? '-' : '';
-  const trim = (n: number) => n.toFixed(1).replace(/\.0$/, '');
+  const trim = (n: number) => n.toFixed(2).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
   if (abs >= 1_000_000_000) return `${sign}${trim(abs / 1_000_000_000)}B`;
   if (abs >= 1_000_000) return `${sign}${trim(abs / 1_000_000)}M`;
   if (abs >= 1_000) return `${sign}${trim(abs / 1_000)}K`;
@@ -148,6 +150,35 @@ function SeriesKey({ type, color }: { type: 'bar' | 'line'; color: string }) {
   );
 }
 
+function MonthFigures({ revenue, expenses, profit }: { revenue: number; expenses: number; profit: number | null }) {
+  const rows: { label: string; value: number | null; key: 'bar' | 'line'; color: string; tone: string }[] = [
+    { label: SERIES.revenue.label, value: revenue, key: 'bar', color: SERIES.revenue.color, tone: 'text-text' },
+    { label: SERIES.expenses.label, value: expenses, key: 'bar', color: SERIES.expenses.color, tone: 'text-text' },
+    {
+      label: profit !== null && profit < 0 ? 'زیان' : 'قازانج',
+      value: profit,
+      key: 'line',
+      color: SERIES.profit.color,
+      tone: profit === null ? 'text-text-light' : profit < 0 ? 'text-danger' : 'text-success',
+    },
+  ];
+  return (
+    <dl className="space-y-1 text-xs">
+      {rows.map((row) => (
+        <div key={row.label} className="flex items-center justify-between gap-3">
+          <dt className="flex items-center gap-1.5 text-text-muted">
+            <SeriesKey type={row.key} color={row.color} />
+            {row.label}
+          </dt>
+          <dd className={`font-semibold tabular-nums ${row.tone}`}>
+            {row.value === null ? '—' : <Amount value={row.value} nowrap />}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 interface MonthTickProps {
   x?: number;
   y?: number;
@@ -159,6 +190,7 @@ function MonthTick({ x = 0, y = 0, payload, selected }: MonthTickProps) {
   const isSelected = payload?.value === selected;
   return (
     <text
+      className="recharts-cartesian-axis-tick-value"
       x={x}
       y={y}
       dy={12}
@@ -216,6 +248,8 @@ export default function DashboardPage() {
   const [view, setView] = useState<'chart' | 'table'>('chart');
   // The chart is monthly, so the totals above it follow one chosen month (this month by default)
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth());
+  const [chartWidth, setChartWidth] = useState(0);
+  const pointerStart = useRef<{ x: number; y: number } | null>(null);
 
   const { data: dashboard, isLoading, error } = useQuery<DashboardData>({
     queryKey: ['dashboard-data'],
@@ -240,7 +274,7 @@ export default function DashboardPage() {
         fullMonth: MONTH_FULL[item.month] || item.month,
         revenue,
         expenses,
-        profit: index <= currentMonth ? revenue - expenses : null,
+        profit: index > currentMonth && revenue === 0 && expenses === 0 ? null : revenue - expenses,
       };
     });
   }, [dashboard]);
@@ -255,15 +289,23 @@ export default function DashboardPage() {
   const monthTotals = {
     revenue: selectedRow?.revenue ?? 0,
     expenses: selectedRow?.expenses ?? 0,
-    profit: (selectedRow?.revenue ?? 0) - (selectedRow?.expenses ?? 0),
+    /** Null for a month that has not happened yet (same as the table and chart) */
+    profit: selectedRow ? selectedRow.profit : null,
   };
   const selectMonth = (index: number) => {
     if (Number.isInteger(index) && index >= 0 && index < chartData.length) setSelectedMonth(index);
   };
 
-  // Work the month out from where the chart was clicked or tapped. The chart's own
-  // active index lags behind on a tap (there is no hover first) and picks the wrong month.
-  const selectMonthAt = (event: React.MouseEvent<HTMLDivElement>) => {
+  // Work the month out from where the chart was pressed. Neither the chart's own active
+  // index (it lags behind on a tap) nor the click event (Chrome moves a tap's click towards
+  // nearby chart parts) is reliable, so use the raw pointer position, and ignore drags.
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    pointerStart.current = event.button === 0 ? { x: event.clientX, y: event.clientY } : null;
+  };
+  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    const start = pointerStart.current;
+    pointerStart.current = null;
+    if (!start || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 10) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const plotLeft = CHART_MARGIN.left + Y_AXIS_WIDTH;
     const plotWidth = rect.width - plotLeft - CHART_MARGIN.right;
@@ -271,6 +313,18 @@ export default function DashboardPage() {
     if (plotWidth <= 0 || x < 0 || x > plotWidth || chartData.length === 0) return;
     selectMonth(Math.min(chartData.length - 1, Math.floor(x / (plotWidth / chartData.length))));
   };
+
+  // Month labels: as many as fit (evenly spaced), always including the chosen month
+  const xTicks = useMemo(() => {
+    if (chartData.length === 0) return [];
+    const plotWidth = Math.max(0, chartWidth - Y_AXIS_WIDTH - CHART_MARGIN.left - CHART_MARGIN.right);
+    const fit = Math.max(1, Math.floor(plotWidth / MONTH_LABEL_SLOT));
+    const step = Math.max(1, Math.ceil(chartData.length / fit));
+    const chosen = Math.min(selectedMonth, chartData.length - 1);
+    return chartData
+      .filter((_, i) => i === chosen || (i % step === 0 && Math.abs(i - chosen) >= step))
+      .map((row) => row.shortMonth);
+  }, [chartData, chartWidth, selectedMonth]);
 
   if (isLoading) {
     return (
@@ -332,7 +386,8 @@ export default function DashboardPage() {
   ];
 
   const isYearLoss = yearlyTotals.profit < 0;
-  const isMonthLoss = monthTotals.profit < 0;
+  const isMonthLoss = (monthTotals.profit ?? 0) < 0;
+  const isMonthFuture = monthTotals.profit === null;
   const monthName = selectedRow?.fullMonth ?? '';
 
   return (
@@ -410,14 +465,14 @@ export default function DashboardPage() {
             <span className="text-sm md:text-base font-bold text-text"><Amount value={monthTotals.expenses} /></span>
           </div>
           <div className={`@container min-w-0 rounded-xl border px-3 py-2.5 flex items-center justify-between gap-2 sm:flex-col sm:items-start ${
-            isMonthLoss ? 'bg-danger/5 border-danger/20' : 'bg-success/5 border-success/20'
+            isMonthFuture ? 'bg-surface-muted/60 border-border' : isMonthLoss ? 'bg-danger/5 border-danger/20' : 'bg-success/5 border-success/20'
           }`}>
-            <span className={`flex items-center gap-1.5 text-[11px] font-semibold ${isMonthLoss ? 'text-danger' : 'text-success'}`}>
+            <span className={`flex items-center gap-1.5 text-[11px] font-semibold ${isMonthFuture ? 'text-text-muted' : isMonthLoss ? 'text-danger' : 'text-success'}`}>
               {isMonthLoss ? <HiOutlineArrowTrendingDown className="w-4 h-4" /> : <HiOutlineArrowTrendingUp className="w-4 h-4" />}
               {isMonthLoss ? 'زیانی' : 'قازانجی'} {monthName}
             </span>
-            <span className={`text-sm md:text-base font-bold ${isMonthLoss ? 'text-danger' : 'text-success'}`}>
-              <Amount value={monthTotals.profit} />
+            <span className={`text-sm md:text-base font-bold ${isMonthFuture ? 'text-text-light' : isMonthLoss ? 'text-danger' : 'text-success'}`}>
+              {monthTotals.profit === null ? '—' : <Amount value={monthTotals.profit} />}
             </span>
           </div>
         </div>
@@ -431,9 +486,15 @@ export default function DashboardPage() {
               <span className="flex items-center gap-1.5"><SeriesKey type="line" color={SERIES.profit.color} />{SERIES.profit.label}</span>
             </div>
 
-            <div className="h-[260px] sm:h-[300px] lg:h-[340px] w-full cursor-pointer" dir="ltr" onClick={selectMonthAt}>
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={CHART_MARGIN} barGap={2} barCategoryGap="22%">
+            <div
+              className="h-[260px] sm:h-[300px] lg:h-[340px] w-full cursor-pointer select-none"
+              dir="ltr"
+              onPointerDown={handlePointerDown}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={() => { pointerStart.current = null; }}
+            >
+              <ResponsiveContainer width="100%" height="100%" onResize={(width) => setChartWidth(width)}>
+                <ComposedChart data={chartData} margin={CHART_MARGIN} barGap={2} barCategoryGap="22%" style={{ cursor: 'pointer' }}>
                   <CartesianGrid vertical={false} stroke={GRID_LINE} />
                   {selectedRow && (
                     <ReferenceArea x1={selectedRow.shortMonth} x2={selectedRow.shortMonth} fill="#1E3A5F" fillOpacity={0.06} stroke="none" />
@@ -444,8 +505,8 @@ export default function DashboardPage() {
                     axisLine={false}
                     tick={<MonthTick selected={selectedRow?.shortMonth} />}
                     tickMargin={4}
-                    interval="preserveStartEnd"
-                    minTickGap={6}
+                    ticks={xTicks}
+                    interval={0}
                   />
                   <YAxis
                     width={Y_AXIS_WIDTH}
@@ -476,44 +537,68 @@ export default function DashboardPage() {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="w-full min-w-[460px] text-sm">
-              <thead>
-                <tr className="bg-surface-muted text-text-muted text-xs text-right">
-                  <th className="px-3 py-2.5 font-semibold">مانگ</th>
-                  <th className="px-3 py-2.5 font-semibold">{SERIES.revenue.label}</th>
-                  <th className="px-3 py-2.5 font-semibold">{SERIES.expenses.label}</th>
-                  <th className="px-3 py-2.5 font-semibold">{SERIES.profit.label}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {chartData.map((row, index) => (
-                  <tr
-                    key={row.month}
-                    onClick={() => selectMonth(index)}
-                    className={`cursor-pointer ${index === selectedMonth ? 'bg-primary/5' : 'hover:bg-surface-muted/50'}`}
-                  >
-                    <td className="px-3 py-2 font-medium text-text whitespace-nowrap">{row.fullMonth}</td>
-                    <td className="px-3 py-2 tabular-nums text-text"><Amount value={row.revenue} nowrap /></td>
-                    <td className="px-3 py-2 tabular-nums text-text"><Amount value={row.expenses} nowrap /></td>
-                    <td className={`px-3 py-2 tabular-nums font-semibold ${
-                      row.profit === null ? 'text-text-light' : row.profit < 0 ? 'text-danger' : 'text-success'
-                    }`}>
-                      {row.profit === null ? '—' : <Amount value={row.profit} nowrap />}
-                    </td>
+          <>
+            {/* Phones and small tablets: one card per month, so no column hides off-screen */}
+            <div className="md:hidden space-y-2">
+              {chartData.map((row, index) => (
+                <button
+                  key={row.month}
+                  type="button"
+                  onClick={() => selectMonth(index)}
+                  aria-pressed={index === selectedMonth}
+                  className={`w-full text-right rounded-xl border p-3 transition-colors cursor-pointer ${
+                    index === selectedMonth ? 'border-primary/40 bg-primary/5' : 'border-border bg-white hover:bg-surface-muted/50'
+                  }`}
+                >
+                  <p className="text-sm font-semibold text-text mb-1.5">{row.fullMonth}</p>
+                  <MonthFigures revenue={row.revenue} expenses={row.expenses} profit={row.profit} />
+                </button>
+              ))}
+              <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-3">
+                <p className="text-sm font-bold text-text mb-1.5">کۆی ساڵ</p>
+                <MonthFigures revenue={yearlyTotals.revenue} expenses={yearlyTotals.expenses} profit={yearlyTotals.profit} />
+              </div>
+            </div>
+
+            <div className="hidden md:block overflow-x-auto rounded-xl border border-border">
+              <table className="w-full min-w-[460px] text-sm">
+                <thead>
+                  <tr className="bg-surface-muted text-text-muted text-xs text-right">
+                    <th className="px-3 py-2.5 font-semibold">مانگ</th>
+                    <th className="px-3 py-2.5 font-semibold">{SERIES.revenue.label}</th>
+                    <th className="px-3 py-2.5 font-semibold">{SERIES.expenses.label}</th>
+                    <th className="px-3 py-2.5 font-semibold">{SERIES.profit.label}</th>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="bg-amber-50 border-t-2 border-amber-300 font-bold">
-                  <td className="px-3 py-2.5 text-text">کۆی ساڵ</td>
-                  <td className="px-3 py-2.5 tabular-nums text-text"><Amount value={yearlyTotals.revenue} nowrap /></td>
-                  <td className="px-3 py-2.5 tabular-nums text-text"><Amount value={yearlyTotals.expenses} nowrap /></td>
-                  <td className={`px-3 py-2.5 tabular-nums ${isYearLoss ? 'text-danger' : 'text-success'}`}><Amount value={yearlyTotals.profit} nowrap /></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {chartData.map((row, index) => (
+                    <tr
+                      key={row.month}
+                      onClick={() => selectMonth(index)}
+                      className={`cursor-pointer ${index === selectedMonth ? 'bg-primary/5' : 'hover:bg-surface-muted/50'}`}
+                    >
+                      <td className="px-3 py-2 font-medium text-text whitespace-nowrap">{row.fullMonth}</td>
+                      <td className="px-3 py-2 tabular-nums text-text"><Amount value={row.revenue} nowrap /></td>
+                      <td className="px-3 py-2 tabular-nums text-text"><Amount value={row.expenses} nowrap /></td>
+                      <td className={`px-3 py-2 tabular-nums font-semibold ${
+                        row.profit === null ? 'text-text-light' : row.profit < 0 ? 'text-danger' : 'text-success'
+                      }`}>
+                        {row.profit === null ? '—' : <Amount value={row.profit} nowrap />}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-amber-50 border-t-2 border-amber-300 font-bold">
+                    <td className="px-3 py-2.5 text-text">کۆی ساڵ</td>
+                    <td className="px-3 py-2.5 tabular-nums text-text"><Amount value={yearlyTotals.revenue} nowrap /></td>
+                    <td className="px-3 py-2.5 tabular-nums text-text"><Amount value={yearlyTotals.expenses} nowrap /></td>
+                    <td className={`px-3 py-2.5 tabular-nums ${isYearLoss ? 'text-danger' : 'text-success'}`}><Amount value={yearlyTotals.profit} nowrap /></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </>
         )}
       </section>
 

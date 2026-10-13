@@ -101,9 +101,16 @@ body {
   outline-offset: 2px;
 }
 
-/* Charts take focus on click/tap (they are keyboard navigable); keep the ring for keyboard focus only */
-.recharts-surface:focus:not(:focus-visible) {
+/* Charts take focus on click/tap (they are keyboard navigable); keep the ring for keyboard focus only.
+   Their inner layers (tabindex="-1") are never reached by keyboard, so they never need one. */
+.recharts-surface:focus:not(:focus-visible),
+.recharts-surface [tabindex="-1"]:focus {
   outline: none;
+}
+
+/* Highlight bands are decoration: keep taps from being pulled onto them */
+.recharts-reference-area {
+  pointer-events: none;
 }
 
 /* ===== PRINT STYLES ===== */
